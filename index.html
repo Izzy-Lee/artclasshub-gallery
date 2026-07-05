@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artable 미술 갤러리</title>
+  <meta name="description" content="Artable 미술 수업 학생 작품 갤러리" />
+  <link rel="preconnect" href="https://www.gstatic.com" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 헤더 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">🎨</span>
+        <div>
+          <h1 class="brand-title">Artable 미술 갤러리</h1>
+          <p class="brand-sub">우리 반 친구들의 작품을 함께 감상해요</p>
+        </div>
+      </div>
+      <button id="adminToggle" class="admin-toggle" title="관리자 모드">🔒</button>
+    </div>
+  </header>
+
+  <!-- 관리자 배너 -->
+  <div id="adminBanner" class="admin-banner" hidden>
+    관리자 모드 — 카드에서 <b>숨김/삭제</b>를 사용할 수 있어요.
+    <button id="adminLogout" class="link-btn">종료</button>
+  </div>
+
+  <!-- 컨트롤 바 -->
+  <section class="controls">
+    <div class="controls-inner">
+      <div class="control search">
+        <span class="control-icon">🔍</span>
+        <input id="searchInput" type="search" placeholder="학생 이름 검색" autocomplete="off" />
+      </div>
+
+      <div class="control">
+        <select id="classFilter">
+          <option value="">전체 학급</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <select id="sortSelect">
+          <option value="newest">최신순</option>
+          <option value="oldest">오래된순</option>
+        </select>
+      </div>
+
+      <div class="count-badge"><span id="countLabel">0</span>점</div>
+    </div>
+  </section>
+
+  <!-- 본문 -->
+  <main class="container">
+    <!-- 로딩 -->
+    <div id="loading" class="loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>작품을 불러오는 중이에요…</p>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div id="emptyState" class="empty" hidden>
+      <div class="empty-emoji">🖼️</div>
+      <p id="emptyText">아직 등록된 작품이 없어요.</p>
+    </div>
+
+    <!-- 갤러리 그리드 -->
+    <div id="gallery" class="gallery" hidden></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>© <span id="year"></span> Artable · 미술 갤러리</p>
+    <p id="sourceNote" class="source-note"></p>
+  </footer>
+
+  <!-- 큰 이미지 모달 -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="닫기">✕</button>
+      <div class="modal-image-wrap">
+        <img id="modalImage" class="modal-image" alt="" />
+      </div>
+      <div class="modal-body">
+        <h2 id="modalStudent" class="modal-student"></h2>
+        <p id="modalTitle" class="modal-title"></p>
+        <p id="modalMeta" class="modal-meta"></p>
+        <div class="modal-actions">
+          <a id="downloadBtn" class="btn btn-primary" download>⬇ 다운로드</a>
+          <button id="shareBtn" class="btn btn-outline">↗ 공유</button>
+          <button id="hideBtn" class="btn btn-ghost admin-only" hidden>🙈 숨김</button>
+          <button id="deleteBtn" class="btn btn-danger admin-only" hidden>🗑 삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase (compat SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- 앱 스크립트 -->
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
