@@ -18,6 +18,11 @@
   let isAdmin = false;
   let usingSample = false;
   let db = null;
+  // 학교별 비밀번호 { 학교명: 비번 } — 걸린 학교만 들어있음
+  let schoolPasswords = {};
+  // 이번 방문에서 비번을 통과해 열어 둔 학교
+  const unlockedSchools = new Set();
+  const SETTINGS_COLLECTION = "school_settings";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -46,6 +51,62 @@
     refreshUI();
     window.scrollTo(0, 0);
   });
+
+  // 학교 갤러리로 들어가기 (비번이 걸려 있으면 확인)
+  function enterSchool(school) {
+    const pw = schoolPasswords[school];
+    if (pw && !isAdmin && !unlockedSchools.has(school)) {
+      const entered = prompt(`🔒 ${school} 갤러리\n\n비밀번호를 입력하세요`);
+      if (entered === null) return;                 // 취소
+      if (entered !== pw) { alert("비밀번호가 올바르지 않아요."); return; }
+      unlockedSchools.add(school);
+    }
+    currentSchool = school;
+    searchInput.value = "";
+    refreshUI();
+    window.scrollTo(0, 0);
+  }
+
+  // 관리자: 학교 비밀번호 설정/변경/해제
+  function manageSchoolPassword(school) {
+    const cur = schoolPasswords[school] || "";
+    const msg = cur
+      ? `${school}\n\n현재 비밀번호: ${cur}\n\n새 비밀번호를 입력하세요.\n(빈칸으로 두고 확인하면 비밀번호 해제 → 공개)`
+      : `${school}\n\n지금은 비밀번호가 없어요 (공개).\n\n걸어 둘 비밀번호를 입력하세요.\n(빈칸이면 계속 공개)`;
+    const val = prompt(msg, cur);
+    if (val === null) return;
+    setSchoolPassword(school, val.trim());
+  }
+
+  async function setSchoolPassword(school, pw) {
+    if (pw) schoolPasswords[school] = pw;
+    else { delete schoolPasswords[school]; unlockedSchools.delete(school); }
+
+    if (db && !usingSample) {
+      const id = school.replace(/\//g, "_");
+      try {
+        await db.collection(SETTINGS_COLLECTION).doc(id).set({ school, password: pw || "" }, { merge: true });
+      } catch (e) { alert("비밀번호 저장에 실패했어요: " + e.message); }
+    } else {
+      // 샘플/오프라인: 이 브라우저에만 저장(데모용)
+      if (pw) localStorage.setItem("schoolPw:" + school, pw);
+      else localStorage.removeItem("schoolPw:" + school);
+    }
+    alert(pw ? `🔒 ${school} 비밀번호를 설정했어요.` : `🔓 ${school} 비밀번호를 해제했어요 (공개).`);
+    refreshUI();
+  }
+
+  // 데모(샘플/오프라인) 모드에서 이 브라우저에 저장된 학교 비번 불러오기
+  function loadLocalPasswords() {
+    schoolPasswords = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("schoolPw:")) {
+        const v = localStorage.getItem(k);
+        if (v) schoolPasswords[k.slice("schoolPw:".length)] = v;
+      }
+    }
+  }
 
   $("year").textContent = new Date().getFullYear();
 
@@ -189,6 +250,21 @@
       return;
     }
 
+    // 학교별 비밀번호 실시간 구독 (관리자 페이지에서 설정한 값)
+    db.collection(SETTINGS_COLLECTION).onSnapshot(
+      (snap) => {
+        const map = {};
+        snap.forEach((doc) => {
+          const d = doc.data() || {};
+          const name = d.school || doc.id;
+          if (d.password) map[name] = d.password;
+        });
+        schoolPasswords = map;
+        refreshUI();
+      },
+      (err) => console.warn("school_settings 구독 오류:", err)
+    );
+
     // 실시간 구독: 새 작품이 올라오면 자동 반영됩니다.
     db.collection(COLLECTION).onSnapshot(
       (snap) => {
@@ -219,6 +295,7 @@
   function loadSample() {
     usingSample = true;
     allItems = sampleData();
+    loadLocalPasswords();
     sourceNote.textContent = "표시 중: 샘플 데이터 (Firebase 미연결)";
     refreshUI();
   }
@@ -268,23 +345,23 @@
       const coverHTML = cover && isPreviewable(cover)
         ? `<img loading="lazy" src="${escapeAttr(cover.imageURL)}" alt="${escapeAttr(school)}" />`
         : docTileHTML(cover || {});
+      const locked = !!schoolPasswords[school];
       card.innerHTML = `
         <div class="card-thumb">
           ${coverHTML}
-          <span class="school-count">${items.length}점</span>
+          <span class="school-count">${items.length}</span>
+          ${locked ? `<span class="school-lock" title="비밀번호 잠김">🔒</span>` : ""}
         </div>
         <div class="card-body">
           <p class="card-student">🏫 ${escapeHtml(school)}</p>
           <p class="card-date">최근 ${formatDate(sorted[0].date)}</p>
+          ${isAdmin ? `<button class="school-pw-btn">${locked ? "🔒 비밀번호 변경/해제" : "🔓 비밀번호 걸기"}</button>` : ""}
         </div>`;
       const img = card.querySelector(".card-thumb img");
       if (img) img.addEventListener("error", () => { img.outerHTML = docTileHTML(cover || {}); });
-      card.addEventListener("click", () => {
-        currentSchool = school;
-        searchInput.value = "";
-        refreshUI();
-        window.scrollTo(0, 0);
-      });
+      const pwBtn = card.querySelector(".school-pw-btn");
+      if (pwBtn) pwBtn.addEventListener("click", (e) => { e.stopPropagation(); manageSchoolPassword(school); });
+      card.addEventListener("click", () => enterSchool(school));
       frag.appendChild(card);
     });
     gallery.appendChild(frag);

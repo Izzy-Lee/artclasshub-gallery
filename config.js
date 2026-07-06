@@ -32,5 +32,5 @@ window.GALLERY_CONFIG = {
 
   // 관리자 모드 비밀번호 (클라이언트 측 — 간단한 학교용 보호).
   // ⚠️ 진짜 보안이 아닙니다. 삭제/숨김을 실제로 막으려면 Firebase Auth + 규칙을 쓰세요.
-  adminPassword: "artable2026"
+  adminPassword: "181818"
 };
