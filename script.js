@@ -30,6 +30,22 @@
   const sortSelect = $("sortSelect");
   const countLabel = $("countLabel");
   const sourceNote = $("sourceNote");
+  const controls = document.querySelector(".controls");
+  const schoolHeader = $("schoolHeader");
+  const schoolTitle = $("schoolTitle");
+
+  // 학교는 홈 카드로 고르므로 학급 드롭다운은 숨김
+  if (classFilter) { const c = classFilter.closest(".control"); if (c) c.style.display = "none"; }
+
+  // 현재 보고 있는 학교 (null = 학교 목록 홈)
+  let currentSchool = null;
+
+  $("backHome").addEventListener("click", () => {
+    currentSchool = null;
+    searchInput.value = "";
+    refreshUI();
+    window.scrollTo(0, 0);
+  });
 
   $("year").textContent = new Date().getFullYear();
 
@@ -117,6 +133,15 @@
     return m ? `https://lh3.googleusercontent.com/d/${m[1]}=w1000` : "";
   }
 
+  // 실제 파일 다운로드 URL. Drive 링크(/view = HTML 페이지)를 원본 파일 URL로 변환
+  // — 이걸 안 쓰면 HTML 페이지가 .pdf 등으로 저장돼 "유효하지 않은 PDF" 오류가 남.
+  function fileDownloadURL(item) {
+    const link = String(item.driveLink || "");
+    const m = link.match(/\/d\/([a-zA-Z0-9_-]+)/) || link.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m) return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+    return item.driveLink || item.imageURL;
+  }
+
   // 파일명/URL에서 확장자 추출 (쿼리스트링 제거)
   function extOf(s) {
     if (!s) return "";
@@ -143,6 +168,15 @@
     if (item.type === "pdf") return "PDF";
     if (item.type === "psd") return "PSD · 레이어 파일";
     return "";
+  }
+
+  // 미리보기 불가/로드 실패 시 보여줄 타일 (깨진 이미지 대신)
+  function docTileHTML(item) {
+    const isPdf = item.type === "pdf" || item.ext === "pdf";
+    const isPsd = item.type === "psd" || item.ext === "psd";
+    const icon = isPdf ? "📄" : isPsd ? "🗂️" : "🖼️";
+    const label = isPdf ? "PDF" : isPsd ? "PSD" : "이미지";
+    return `<div class="card-doc"><span class="card-doc-icon">${icon}</span><span class="card-doc-type">${escapeHtml(label)}</span></div>`;
   }
 
   function startFirebase() {
@@ -194,26 +228,74 @@
   // =========================================================
   function refreshUI() {
     loading.hidden = true;
-    populateClassFilter();
-    applyFilters();
+    const home = currentSchool === null;
+    // 홈에서는 검색/정렬 컨트롤 숨기고, 학교 상세에서는 표시
+    if (controls) controls.hidden = home;
+    schoolHeader.hidden = home;
+    if (!home) schoolTitle.textContent = currentSchool;
+
+    if (home) renderHome();
+    else applyFilters();
   }
 
-  function populateClassFilter() {
-    const current = classFilter.value;
-    const classes = [...new Set(allItems.map((a) => a.school).filter(Boolean))].sort();
-    classFilter.innerHTML =
-      '<option value="">전체 학교</option>' +
-      classes.map((c) => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join("");
-    if (classes.includes(current)) classFilter.value = current;
+  // 학교 목록 홈: 학교별 카드(대표 이미지 + 작품 수)
+  function renderHome() {
+    const visible = allItems.filter((a) => (isAdmin ? true : !a.hidden));
+    const map = new Map();
+    visible.forEach((a) => {
+      const key = a.school || "기타";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    });
+    const schools = [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+
+    countLabel.textContent = schools.length;
+    gallery.innerHTML = "";
+    if (schools.length === 0) {
+      gallery.hidden = true; emptyState.hidden = false;
+      emptyText.textContent = "아직 등록된 작품이 없어요.";
+      return;
+    }
+    emptyState.hidden = true; gallery.hidden = false;
+
+    const frag = document.createDocumentFragment();
+    schools.forEach(([school, items], i) => {
+      const sorted = items.slice().sort((a, b) => b.date - a.date);
+      const cover = sorted.find(isPreviewable) || sorted[0];
+      const card = document.createElement("div");
+      card.className = "card school-card";
+      card.style.animationDelay = Math.min(i * 40, 400) + "ms";
+      const coverHTML = cover && isPreviewable(cover)
+        ? `<img loading="lazy" src="${escapeAttr(cover.imageURL)}" alt="${escapeAttr(school)}" />`
+        : docTileHTML(cover || {});
+      card.innerHTML = `
+        <div class="card-thumb">
+          ${coverHTML}
+          <span class="school-count">${items.length}점</span>
+        </div>
+        <div class="card-body">
+          <p class="card-student">🏫 ${escapeHtml(school)}</p>
+          <p class="card-date">최근 ${formatDate(sorted[0].date)}</p>
+        </div>`;
+      const img = card.querySelector(".card-thumb img");
+      if (img) img.addEventListener("error", () => { img.outerHTML = docTileHTML(cover || {}); });
+      card.addEventListener("click", () => {
+        currentSchool = school;
+        searchInput.value = "";
+        refreshUI();
+        window.scrollTo(0, 0);
+      });
+      frag.appendChild(card);
+    });
+    gallery.appendChild(frag);
   }
 
   function applyFilters() {
     const q = searchInput.value.trim().toLowerCase();
-    const cls = classFilter.value;
     const sort = sortSelect.value;
 
     let list = allItems.filter((a) => (isAdmin ? true : !a.hidden));
-    if (cls) list = list.filter((a) => a.school === cls);
+    if (currentSchool) list = list.filter((a) => (a.school || "기타") === currentSchool);
     if (q) list = list.filter((a) => a.student.toLowerCase().includes(q) || a.title.toLowerCase().includes(q));
 
     list.sort((a, b) => (sort === "oldest" ? a.date - b.date : b.date - a.date));
@@ -242,7 +324,7 @@
       if (item.hidden) card.style.opacity = "0.5";
       const thumb = isPreviewable(item)
         ? `<img loading="lazy" src="${escapeAttr(item.imageURL)}" alt="${escapeAttr(item.student)}의 작품" />`
-        : `<div class="card-doc"><span class="card-doc-icon">${item.type === "pdf" ? "📄" : "🗂️"}</span><span class="card-doc-type">${escapeHtml(typeLabel(item))}</span></div>`;
+        : docTileHTML(item);
       card.innerHTML = `
         <div class="card-thumb">
           ${item.school ? `<span class="card-badge">${escapeHtml(item.school)}</span>` : ""}
@@ -253,6 +335,9 @@
           ${item.title ? `<p class="card-title">${escapeHtml(item.title)}</p>` : ""}
           <p class="card-date">${formatDate(item.date)}</p>
         </div>`;
+      // 이미지 로드 실패 시 깨진 이미지 대신 문서/플레이스홀더 타일로 대체
+      const img = card.querySelector(".card-thumb img");
+      if (img) img.addEventListener("error", () => { img.outerHTML = docTileHTML(item); });
       card.addEventListener("click", () => openModal(item));
       frag.appendChild(card);
     });
@@ -284,7 +369,7 @@
     $("modalMeta").textContent = [item.school, label, formatDate(item.date)].filter(Boolean).join(" · ");
 
     const dl = $("downloadBtn");
-    dl.href = item.driveLink || item.imageURL;
+    dl.href = fileDownloadURL(item);
     dl.setAttribute("download", downloadName(item));
 
     document.querySelectorAll(".admin-only").forEach((el) => (el.hidden = !isAdmin));
@@ -306,7 +391,12 @@
     if (!currentItem) return;
     e.preventDefault();
     // 미리보기 가능한 이미지는 표시 URL을, 그 외(PDF/PSD)는 원본 드라이브 링크를 사용
-    const url = isPreviewable(currentItem) ? currentItem.imageURL : (currentItem.driveLink || currentItem.imageURL);
+    const url = fileDownloadURL(currentItem);
+    if (url.includes("uc?export=download")) {
+      // Drive 직접 다운로드 URL: 브라우저가 원본 파일을 그대로 내려받음 (HTML 페이지 아님)
+      window.open(url, "_blank");
+      return;
+    }
     try {
       const res = await fetch(url, { mode: "cors" });
       const blob = await res.blob();
@@ -385,7 +475,7 @@
     isAdmin = on;
     $("adminBanner").hidden = !on;
     $("adminToggle").textContent = on ? "🔓" : "🔒";
-    applyFilters();
+    refreshUI();
   }
 
   // =========================================================

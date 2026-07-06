@@ -189,6 +189,25 @@ html, body {
 }
 .card-doc-icon { font-size: 46px; line-height: 1; }
 .card-doc-type { font-size: 13px; font-weight: 700; }
+
+/* 학교 홈 */
+.school-header {
+  display: flex; align-items: center; gap: 14px;
+  margin: 4px 0 18px;
+}
+.back-btn {
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--accent-dark); font-weight: 700; font-size: 15px;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+}
+.back-btn:hover { background: var(--accent-soft); }
+.school-title { margin: 0; font-size: 22px; font-weight: 800; }
+.school-count {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+}
+.school-card .card-student { font-size: 17px; }
 .card-badge {
   position: absolute; top: 10px; left: 10px;
   background: rgba(37, 99, 235, 0.92);
