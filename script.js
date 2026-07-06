@@ -40,21 +40,22 @@
     const now = Date.now();
     const day = 86400000;
     const seed = [
-      ["김하늘", "봄의 정원", "3학년 2반", 0],
-      ["이서준", "우리 강아지", "3학년 2반", 1],
-      ["박지우", "", "4학년 1반", 1],
-      ["최유나", "바다 풍경", "4학년 1반", 2],
-      ["정민재", "노을 하늘", "5학년 3반", 3],
-      ["한소미", "예쁜 꽃", "3학년 2반", 4],
-      ["오지호", "밤하늘 별", "5학년 3반", 5],
-      ["서다은", "가을 나무", "4학년 1반", 6],
-      ["문준우", "", "5학년 3반", 7],
+      ["김하늘", "봄의 정원", "논곡초등학교", 0],
+      ["이서준", "우리 강아지", "논곡초등학교", 1],
+      ["박지우", "", "부일초등학교", 1],
+      ["최유나", "바다 풍경", "부일초등학교", 2],
+      ["정민재", "노을 하늘", "논곡초등학교", 3],
+      ["한소미", "예쁜 꽃", "논곡초등학교", 4],
+      ["오지호", "밤하늘 별", "부일초등학교", 5],
+      ["서다은", "가을 나무", "부일초등학교", 6],
+      ["문준우", "", "논곡초등학교", 7],
     ];
-    return seed.map(([student, title, cls, ago], i) => ({
+    return seed.map(([student, title, school, ago], i) => ({
       id: "sample-" + i,
       student,
       title,
-      classCode: cls,
+      classCode: school,
+      school,
       type: "image",
       hidden: false,
       date: new Date(now - ago * day - i * 3600000),
@@ -80,16 +81,68 @@
     const raw = d[CFG.dateField || "created_at"];
     if (raw && typeof raw.toDate === "function") date = raw.toDate();
     else if (raw) date = new Date(raw);
+    const driveLink = d.google_drive_link || "";
+    // 표시용 URL 우선순위: 썸네일 → (구글드라이브 링크→이미지 변환) → 레거시 download_url
+    const url =
+      d.thumbnail_url ||
+      d.download_url ||
+      d.imageURL ||
+      driveImage(driveLink) ||
+      "";
+    const fileName = d.file_name || "";
+    const ext = (d.file_extension || extOf(fileName) || extOf(url) || "").toLowerCase().replace(/^\./, "");
+    const type = d.file_type || d.type || (ext ? kindOfExt(ext) : "image");
     return {
       id,
       student: d.student_nickname || d.student || "이름 없음",
       title: d.title || "",
       classCode: d.class_code || d.className || "",
-      type: d.type || "image",
+      // 학교명(우선 표시). 없으면 클래스코드로 대체
+      school: d.school_name || d.class_code || d.className || "",
+      type,
+      ext,
+      fileName,
       hidden: d.hidden === true,
       date,
-      imageURL: d.download_url || d.imageURL || "",
+      imageURL: url,
+      // 실제 파일(원본) 링크 — 다운로드/열기에 사용
+      driveLink: driveLink || d.download_url || url,
     };
+  }
+
+  // 구글 드라이브 파일 링크에서 파일 ID를 뽑아 이미지 썸네일 URL로 변환
+  function driveImage(link) {
+    if (!link) return "";
+    const m = String(link).match(/\/d\/([a-zA-Z0-9_-]+)/) || String(link).match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return m ? `https://lh3.googleusercontent.com/d/${m[1]}=w1000` : "";
+  }
+
+  // 파일명/URL에서 확장자 추출 (쿼리스트링 제거)
+  function extOf(s) {
+    if (!s) return "";
+    const clean = String(s).split("?")[0].split("#")[0];
+    const m = clean.match(/\.([a-zA-Z0-9]+)$/);
+    return m ? m[1].toLowerCase() : "";
+  }
+  function kindOfExt(ext) {
+    if (ext === "pdf") return "pdf";
+    if (ext === "psd") return "psd";
+    return "image";
+  }
+  // 이미지로 미리보기할 수 있는지 (pdf/psd는 브라우저에서 썸네일 불가)
+  function isPreviewable(item) {
+    return item.type === "image" || ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif"].includes(item.ext);
+  }
+  // 다운로드 파일명 (원본 확장자 유지 — 레이어가 있는 PSD 등이 깨지지 않도록)
+  function downloadName(item) {
+    const ext = item.ext || (item.type === "pdf" ? "pdf" : item.type === "psd" ? "psd" : "jpg");
+    const safeStudent = String(item.student).replace(/[\\/:*?"<>|]/g, "_");
+    return `${safeStudent}_${formatDate(item.date)}.${ext}`;
+  }
+  function typeLabel(item) {
+    if (item.type === "pdf") return "PDF";
+    if (item.type === "psd") return "PSD · 레이어 파일";
+    return "";
   }
 
   function startFirebase() {
@@ -147,9 +200,9 @@
 
   function populateClassFilter() {
     const current = classFilter.value;
-    const classes = [...new Set(allItems.map((a) => a.classCode).filter(Boolean))].sort();
+    const classes = [...new Set(allItems.map((a) => a.school).filter(Boolean))].sort();
     classFilter.innerHTML =
-      '<option value="">전체 학급</option>' +
+      '<option value="">전체 학교</option>' +
       classes.map((c) => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join("");
     if (classes.includes(current)) classFilter.value = current;
   }
@@ -160,7 +213,7 @@
     const sort = sortSelect.value;
 
     let list = allItems.filter((a) => (isAdmin ? true : !a.hidden));
-    if (cls) list = list.filter((a) => a.classCode === cls);
+    if (cls) list = list.filter((a) => a.school === cls);
     if (q) list = list.filter((a) => a.student.toLowerCase().includes(q) || a.title.toLowerCase().includes(q));
 
     list.sort((a, b) => (sort === "oldest" ? a.date - b.date : b.date - a.date));
@@ -187,10 +240,13 @@
       card.className = "card";
       card.style.animationDelay = Math.min(i * 40, 400) + "ms";
       if (item.hidden) card.style.opacity = "0.5";
+      const thumb = isPreviewable(item)
+        ? `<img loading="lazy" src="${escapeAttr(item.imageURL)}" alt="${escapeAttr(item.student)}의 작품" />`
+        : `<div class="card-doc"><span class="card-doc-icon">${item.type === "pdf" ? "📄" : "🗂️"}</span><span class="card-doc-type">${escapeHtml(typeLabel(item))}</span></div>`;
       card.innerHTML = `
         <div class="card-thumb">
-          ${item.classCode ? `<span class="card-badge">${escapeHtml(item.classCode)}</span>` : ""}
-          <img loading="lazy" src="${escapeAttr(item.imageURL)}" alt="${escapeAttr(item.student)}의 작품" />
+          ${item.school ? `<span class="card-badge">${escapeHtml(item.school)}</span>` : ""}
+          ${thumb}
         </div>
         <div class="card-body">
           <p class="card-student">${escapeHtml(item.student)}</p>
@@ -211,16 +267,25 @@
 
   function openModal(item) {
     currentItem = item;
-    $("modalImage").src = item.imageURL;
-    $("modalImage").alt = item.student + "의 작품";
+    const modalImg = $("modalImage");
+    if (isPreviewable(item)) {
+      modalImg.src = item.imageURL;
+      modalImg.alt = item.student + "의 작품";
+      modalImg.hidden = false;
+    } else {
+      // PDF/PSD 등은 브라우저에서 미리보기할 수 없으니 안내만 표시하고 다운로드로 유도합니다.
+      modalImg.removeAttribute("src");
+      modalImg.hidden = true;
+    }
     $("modalStudent").textContent = item.student;
-    $("modalTitle").textContent = item.title || "";
-    $("modalTitle").hidden = !item.title;
-    $("modalMeta").textContent = [item.classCode, formatDate(item.date)].filter(Boolean).join(" · ");
+    const label = typeLabel(item);
+    $("modalTitle").textContent = item.title || (label ? label : "");
+    $("modalTitle").hidden = !item.title && !label;
+    $("modalMeta").textContent = [item.school, label, formatDate(item.date)].filter(Boolean).join(" · ");
 
     const dl = $("downloadBtn");
-    dl.href = item.imageURL;
-    dl.setAttribute("download", `${item.student}_${formatDate(item.date)}.jpg`);
+    dl.href = item.driveLink || item.imageURL;
+    dl.setAttribute("download", downloadName(item));
 
     document.querySelectorAll(".admin-only").forEach((el) => (el.hidden = !isAdmin));
     modal.hidden = false;
@@ -240,13 +305,14 @@
   $("downloadBtn").addEventListener("click", async (e) => {
     if (!currentItem) return;
     e.preventDefault();
-    const url = currentItem.imageURL;
+    // 미리보기 가능한 이미지는 표시 URL을, 그 외(PDF/PSD)는 원본 드라이브 링크를 사용
+    const url = isPreviewable(currentItem) ? currentItem.imageURL : (currentItem.driveLink || currentItem.imageURL);
     try {
       const res = await fetch(url, { mode: "cors" });
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `${currentItem.student}_${formatDate(currentItem.date)}.jpg`;
+      a.download = downloadName(currentItem);
       document.body.appendChild(a);
       a.click();
       a.remove();
