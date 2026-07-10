@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>우리 아이 그림책 📖</title>
+<style>
+  :root { --pink:#F35AA0; --bg:#FDF6F9; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  #app { height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .msg { color:#9a7; font-size:18px; padding:24px; text-align:center; }
+  #book { position:relative; width:100%; max-width:900px; height:100%; display:flex; align-items:center; justify-content:center; padding:12px; }
+  .stage { width:100%; aspect-ratio:3/2; max-height:88%; position:relative; perspective:2000px; }
+  .page { position:absolute; inset:0; border-radius:14px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.18);
+          background:#fff; display:flex; align-items:center; justify-content:center;
+          transition:transform .5s ease, opacity .3s ease; transform-origin:left center; backface-visibility:hidden; }
+  .page img { width:100%; height:100%; object-fit:contain; display:block; }
+  .page.flipping { transform:rotateY(-160deg); opacity:0; }
+  .nav { position:absolute; top:0; bottom:0; width:36%; border:0; background:transparent; cursor:pointer; z-index:5; }
+  .nav.prev { left:0; } .nav.next { right:0; }
+  .arrow { position:absolute; top:50%; transform:translateY(-50%); font-size:34px; color:var(--pink); opacity:.55;
+           background:#fff; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+           box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:6; pointer-events:none; }
+  .arrow.l { left:8px; } .arrow.r { right:8px; }
+  #counter { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:var(--pink); color:#fff;
+             font-weight:700; font-size:14px; padding:5px 14px; border-radius:999px; z-index:7; }
+  #title { position:absolute; top:10px; left:50%; transform:translateX(-50%); color:var(--pink); font-weight:800; font-size:16px; z-index:7; }
+  #classlist { width:100%; max-width:960px; height:100%; overflow:auto; padding:18px; }
+  #classlist h1 { color:var(--pink); font-size:20px; text-align:center; margin:8px 0 18px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px; }
+  .bookcard { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.1); cursor:pointer; }
+  .bookcard img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; background:#f2e6ee; }
+  .bookcard .cap { padding:8px 10px; }
+  .bookcard .t { font-weight:800; font-size:14px; color:#333; }
+  .bookcard .s { font-size:12px; color:#999; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="loading" class="msg">그림책을 불러오는 중… 📖</div>
+  <div id="error" class="msg" hidden>그림책을 찾지 못했어요 😢<br>주소를 다시 확인해 주세요.</div>
+  <div id="classlist" hidden><h1>우리 반 그림책 문집 📖</h1><div class="grid" id="grid"></div></div>
+  <div id="book" hidden>
+    <div id="title">그림책 📖</div>
+    <div class="stage" id="stage"></div>
+    <div class="arrow l">‹</div>
+    <div class="arrow r">›</div>
+    <button class="nav prev" id="prev" aria-label="이전"></button>
+    <button class="nav next" id="next" aria-label="다음"></button>
+    <div id="counter">1 / 1</div>
+  </div>
+</div>
+<script>
+  // ⬇️ gas/ 배포 후 웹앱 /exec URL 로 교체
+  var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
+  var qp = new URLSearchParams(location.search);
+  var bookId = qp.get("book");
+  var classId = qp.get("class");
+  var pages = [], idx = 0, animating = false;
+
+  var el = function(id){ return document.getElementById(id); };
+  var stage = el("stage");
+
+  function show(state){
+    el("loading").hidden    = state !== "loading";
+    el("error").hidden      = state !== "error";
+    el("book").hidden       = state !== "book";
+    el("classlist").hidden  = state !== "class";
+  }
+
+  function render(){
+    stage.innerHTML = "";
+    var p = document.createElement("div"); p.className = "page";
+    var img = document.createElement("img"); img.src = pages[idx]; img.alt = "page " + (idx+1);
+    p.appendChild(img); stage.appendChild(p);
+    el("counter").textContent = (idx+1) + " / " + pages.length;
+  }
+
+  function go(dir){
+    if (animating) return;
+    var ni = idx + dir;
+    if (ni < 0 || ni >= pages.length) return;
+    animating = true;
+    var cur = stage.querySelector(".page");
+    if (dir > 0 && cur) { cur.classList.add("flipping"); }
+    setTimeout(function(){ idx = ni; render(); animating = false; }, dir > 0 ? 360 : 0);
+  }
+
+  el("prev").addEventListener("click", function(){ go(-1); });
+  el("next").addEventListener("click", function(){ go(1); });
+
+  // 스와이프
+  var sx = 0;
+  stage.parentElement.addEventListener("touchstart", function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  stage.parentElement.addEventListener("touchend", function(e){
+    var dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+  }, {passive:true});
+  document.addEventListener("keydown", function(e){
+    if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1);
+  });
+
+  function loadClass(){
+    show("loading");
+    fetch(API + "?class=" + encodeURIComponent(classId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok || !d.books || !d.books.length) { show("error"); return; }
+        var grid = el("grid"); grid.innerHTML = "";
+        d.books.forEach(function(b){
+          var card = document.createElement("div"); card.className = "bookcard";
+          card.innerHTML = '<img src="' + (b.cover || "") + '" alt=""><div class="cap"><div class="t">'
+            + (b.title || "제목 없음") + '</div><div class="s">' + (b.student || "") + '</div></div>';
+          card.addEventListener("click", function(){ location.href = "?book=" + encodeURIComponent(b.bookId); });
+          grid.appendChild(card);
+        });
+        show("class");
+      })
+      .catch(function(){ show("error"); });
+  }
+
+  function loadBook(){
+    show("loading");
+    fetch(API + "?book=" + encodeURIComponent(bookId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok || !d.pages || !d.pages.length) { show("error"); return; }
+        pages = d.pages;
+        pages.forEach(function(u){ var im = new Image(); im.src = u; });
+        idx = 0; render(); show("book");
+      })
+      .catch(function(){ show("error"); });
+  }
+
+  function load(){
+    if (!API || API.indexOf("PASTE") === 0) { show("error"); return; }
+    if (classId) loadClass();
+    else if (bookId) loadBook();
+    else show("error");
+  }
+  load();
+</script>
+</body>
+</html>
