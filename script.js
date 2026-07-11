@@ -174,8 +174,9 @@
       student: d.student_nickname || d.student || "이름 없음",
       title: d.title || "",
       classCode: d.class_code || d.className || "",
-      // 학교명(우선 표시). 없으면 클래스코드로 대체
-      school: d.school_name || d.class_code || d.className || "",
+      // 그룹 이름: 학교명 우선 → 없으면 반 이름(class_name) → 그래도 없을 때만 코드.
+      // (신규 클래스는 school_name이 비어 있어 예전엔 코드가 그대로 노출됐음)
+      school: d.school_name || d.class_name || d.className || d.class_code || "",
       type,
       ext,
       fileName,
