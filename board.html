@@ -30,8 +30,9 @@
   @keyframes pulse { 50% { filter: brightness(1.5); box-shadow: 0 0 40px rgba(255,210,63,.9); } }
 
   /* 축하 오버레이 */
+  /* canvas-confetti가 자체 캔버스를 z-index:100으로 띄우므로, 메시지는 그보다 위(9999)에 둔다. */
   #celebrate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-               flex-direction: column; gap: 2vh; z-index: 20; text-align: center;
+               flex-direction: column; gap: 2vh; z-index: 9999; text-align: center;
                background: radial-gradient(circle at center, rgba(43,26,74,.55), rgba(27,16,48,.9)); }
   #celebrate .big { font-size: 7vw; font-weight: 900; text-shadow: 0 4px 30px rgba(0,0,0,.5); padding: 0 5vw; }
   #celebrate.finale .big { font-size: 9vw; color: #FFD23F; }
