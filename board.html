@@ -128,16 +128,20 @@
         .onSnapshot(function (snap) { books = snap.docs.map(function (d) { return d.data(); }); render(); });
     }
 
-    // ---- 자동 전환 타이머 (이 보드가 컨트롤러) ----
+    // ---- 매초 틱: 타이머 글자만 갱신 + 자동 전환 (전체 DOM 재생성 금지 → 입력 안 끊김) ----
     setInterval(function () {
-      if (pace && pace.active && !pace.paused && (pace.stageIndex || 0) < STAGES.length - 1) {
-        if (remaining(pace) <= 0 && !advancing) {
-          advancing = true;
-          goStage(1);
-          setTimeout(function () { advancing = false; }, 1500);
-        }
+      if (!pace || !pace.active) return;
+      if (!pace.paused && (pace.stageIndex || 0) < STAGES.length - 1 && remaining(pace) <= 0 && !advancing) {
+        advancing = true;
+        goStage(1);
+        setTimeout(function () { advancing = false; }, 1500);
       }
-      render();
+      const el = document.getElementById("tmr");
+      if (el) {
+        const rem = remaining(pace);
+        el.textContent = fmt(rem);
+        el.className = "timer " + (rem <= 60 ? "warn" : "");
+      }
     }, 300);
 
     // ---- 렌더 ----
@@ -159,7 +163,7 @@
       root.innerHTML =
         '<div class="stage ' + (pace.paused ? "paused" : "") + '">' +
           '<div class="title">🎨 지금은 <b>' + STAGES[i] + '</b> ' + (i === 4 ? "하는" : "그리는") + ' 시간</div>' +
-          '<div class="timer ' + (rem <= 60 ? "warn" : "") + '">' + fmt(rem) + '</div>' +
+          '<div class="timer ' + (rem <= 60 ? "warn" : "") + '" id="tmr">' + fmt(rem) + '</div>' +
           (pace.paused ? '<div class="pausedTag">⏸ 잠깐 멈춤</div>' : '') +
         '</div>' +
         '<div class="funnel">' +
