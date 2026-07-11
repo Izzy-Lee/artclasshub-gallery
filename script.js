@@ -185,7 +185,16 @@
       imageURL: url,
       // 실제 파일(원본) 링크 — 다운로드/열기에 사용
       driveLink: driveLink || d.download_url || url,
+      // 저작 구분(투명성 표기) — 앱 업로드 메타데이터의 authorship
+      authorship: d.authorship || null,
     };
+  }
+
+  // "✍️ 이야기·그림: 학생 직접 / 🧚 밑그림 힌트 사용" 투명성 뱃지
+  function authorshipText(item) {
+    const a = item.authorship;
+    if (!a) return "";
+    return "✍️ 이야기·그림 학생 직접" + (a.used_ai_hint === true ? " · 🧚 밑그림 힌트 사용" : "");
   }
 
   // 구글 드라이브 파일 링크에서 파일 ID를 뽑아 이미지 썸네일 URL로 변환
@@ -412,6 +421,7 @@
           <p class="card-student">${escapeHtml(item.student)}</p>
           ${item.title ? `<p class="card-title">${escapeHtml(item.title)}</p>` : ""}
           <p class="card-date">${formatDate(item.date)}</p>
+          ${authorshipText(item) ? `<p class="card-author" style="font-size:11px;color:#7A4FE0;font-weight:700;margin-top:2px">${escapeHtml(authorshipText(item))}</p>` : ""}
         </div>`;
       // 이미지 로드 실패 시 깨진 이미지 대신 문서/플레이스홀더 타일로 대체
       const img = card.querySelector(".card-thumb img");
@@ -444,7 +454,7 @@
     const label = typeLabel(item);
     $("modalTitle").textContent = item.title || (label ? label : "");
     $("modalTitle").hidden = !item.title && !label;
-    $("modalMeta").textContent = [item.school, label, formatDate(item.date)].filter(Boolean).join(" · ");
+    $("modalMeta").textContent = [item.school, label, formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
 
     const dl = $("downloadBtn");
     dl.href = fileDownloadURL(item);
