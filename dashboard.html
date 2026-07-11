@@ -3,40 +3,79 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>학생 진도 대시보드 (교사용)</title>
+<title>수업 페이스 · 교사 대시보드</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    background: #faf7fd; color: #241635; padding: 20px; max-width: 1000px; margin: 0 auto;
-  }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  .warn { color: #b00; font-weight: 800; font-size: 13px; margin-bottom: 14px; }
-  .bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-  input { font-size: 16px; padding: 8px 12px; border-radius: 10px; border: 1px solid #d9cdeb; text-transform: uppercase; }
-  button { font-family: inherit; cursor: pointer; border: none; border-radius: 10px; font-weight: 800;
-           color: #fff; background: #7A4FE0; padding: 9px 16px; font-size: 15px; }
-  .stagepill { background: #efe7fb; color: #7A4FE0; font-weight: 800; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
-  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
-  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #eee; font-size: 15px; }
-  th { background: #f3eefb; font-size: 13px; color: #6b5a86; }
-  .prog { display: inline-block; height: 8px; border-radius: 4px; background: #7A4FE0; }
-  .progwrap { background: #eee; border-radius: 4px; width: 120px; height: 8px; display: inline-block; vertical-align: middle; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+         background: #faf7fd; color: #241635; padding: 18px; max-width: 1040px; margin: 0 auto; }
+  h1 { font-size: 21px; margin-bottom: 2px; }
+  .warn { color: #b00; font-weight: 800; font-size: 12px; margin-bottom: 14px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  label { font-size: 12px; color: #6b5a86; font-weight: 700; display: flex; flex-direction: column; gap: 3px; }
+  input { font-size: 15px; padding: 8px 10px; border-radius: 9px; border: 1px solid #d9cdeb; }
+  input.code { text-transform: uppercase; width: 120px; }
+  input.mins { width: 62px; }
+  input.size { width: 74px; }
+  input.msg { flex: 1; min-width: 200px; text-transform: none; }
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: 9px; font-weight: 800;
+           color: #fff; background: #7A4FE0; padding: 9px 15px; font-size: 14px; }
+  button.ghost { background: #efe7fb; color: #7A4FE0; }
+  button.warn { background: #E8734C; }
+  button:active { transform: translateY(1px); }
+  .pill { background: #efe7fb; color: #7A4FE0; font-weight: 800; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .muted { display: flex; flex-direction: column; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { background: #f3eefb; font-size: 12px; color: #6b5a86; }
   .done { color: #2a9d5a; font-weight: 800; }
-  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
-  .empty { color: #999; padding: 24px; text-align: center; }
+  .progwrap { background: #eee; border-radius: 4px; width: 110px; height: 8px; display: inline-block; vertical-align: middle; }
+  .prog { display: inline-block; height: 8px; border-radius: 4px; background: #7A4FE0; }
+  .empty { color: #999; padding: 20px; text-align: center; }
+  .hint { color: #9a86c4; font-size: 12px; }
 </style>
 </head>
 <body>
-  <h1>학생 진도 대시보드</h1>
-  <div class="warn">⚠️ 이 화면은 이름이 보입니다 — 프로젝터에 띄우지 마세요. (프로젝터는 board.html)</div>
-  <div class="bar">
-    <input id="cc" placeholder="반 코드" />
-    <button onclick="DASH.load()">불러오기</button>
-    <span id="stage" class="stagepill" style="display:none"></span>
-    <span id="count" style="color:#6b5a86;font-size:14px;"></span>
+  <h1>수업 페이스 · 교사 대시보드</h1>
+  <div class="warn">⚠️ 이 화면은 이름이 보입니다 — 프로젝터엔 board(프로젝터 뷰)만 띄우세요.</div>
+
+  <div class="card">
+    <div class="row">
+      <label>반 코드<input id="cc" class="code" placeholder="반 코드" /></label>
+      <label>반 인원(분모)<input id="size" class="size" type="number" min="1" value="25" /></label>
+      <button onclick="APP.load()">불러오기</button>
+      <span class="sp" style="flex:1"></span>
+      <button class="ghost" onclick="APP.openProjector()">🖥️ 프로젝터 뷰 열기</button>
+    </div>
   </div>
-  <div id="body"><div class="empty">반 코드를 넣고 불러오세요.</div></div>
+
+  <div class="card" id="controlCard">
+    <div class="row" style="margin-bottom:10px">
+      <b style="font-size:14px">단계별 권장 시간(분)</b>
+      <label>표지<input id="d0" class="mins" type="number" min="1" value="50" /></label>
+      <label>1-2쪽<input id="d1" class="mins" type="number" min="1" value="50" /></label>
+      <label>3-4쪽<input id="d2" class="mins" type="number" min="1" value="50" /></label>
+      <label>5-6쪽<input id="d3" class="mins" type="number" min="1" value="50" /></label>
+      <label>마무리<input id="d4" class="mins" type="number" min="1" value="50" /></label>
+      <button onclick="APP.start()">▶ 수업 시작</button>
+    </div>
+    <div class="row" id="liveControls" style="display:none">
+      <span class="pill" id="stagePill">—</span>
+      <span id="rem" class="hint"></span>
+      <button class="ghost" onclick="APP.prev()">◀ 이전</button>
+      <button onclick="APP.next()">다음 단계 ▶ (축하)</button>
+      <button class="ghost" onclick="APP.pause()">⏸ 멈춤</button>
+      <button class="ghost" onclick="APP.mute()" id="muteBtn">🔊 소리</button>
+      <button class="warn" onclick="APP.end()">종료</button>
+    </div>
+    <div class="row muted" id="finaleRow" style="display:none; margin-top:10px">
+      <label style="flex:1">피날레(마무리 완료) 메시지 — 사탕 대신 다른 보상도 가능
+        <input id="finaleMsg" class="msg" placeholder="🍬 전원 완성! 사탕 타임! 🍬" onchange="APP.saveFinale()" />
+      </label>
+    </div>
+  </div>
+
+  <div class="card"><div id="tblBody"><div class="empty">반 코드를 넣고 불러오세요.</div></div></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -48,56 +87,115 @@
     const db = firebase.firestore();
     const STAGES = ["표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리"];
     const SPREADS = ["표지", "1-2쪽", "3-4쪽", "5-6쪽"];
-    let unsubBooks = null, unsubPace = null;
+    const LAST = STAGES.length - 1;
+    const sv = firebase.firestore.FieldValue.serverTimestamp;
+
+    let classCode = "", pace = null, books = [];
+    let unsubPace = null, unsubBooks = null, advancing = false;
 
     const params = new URLSearchParams(location.search);
-    const preset = (params.get("class") || "").trim().toUpperCase();
-    if (preset) document.getElementById("cc").value = preset;
+    if (params.get("class")) document.getElementById("cc").value = params.get("class").toUpperCase();
 
-    function stageName(book) {
-      if (book.status === "완성") return "완성 🎉";
-      const cur = book.currentSpread || "";
-      if (cur) return cur + " 그리는 중";
-      return (book.statusText || "시작 전");
+    const $ = function (id) { return document.getElementById(id); };
+    function ref() { return db.collection("pace_sessions").doc(classCode); }
+    function denom() { return (pace && pace.classSize) ? pace.classSize : books.length; }
+    function completedForStage(k) {
+      if (k >= 3) return books.filter(function (b) { return b.status === "완성"; }).length;
+      return books.filter(function (b) { return (b.maxSpreadIndex || 0) >= k + 1; }).length;
+    }
+    function durationSec(p) { const i = p.stageIndex || 0; return ((p.durationsMin && p.durationsMin[i]) || 50) * 60; }
+    function remaining(p) {
+      if (!p) return 0;
+      if (p.paused) return p.pausedRemainingSec || 0;
+      return Math.max(0, durationSec(p) - Math.floor((Date.now() - (p.stageStartedAtMs || Date.now())) / 1000));
     }
 
-    function render(books) {
-      const b = document.getElementById("body");
-      if (!books.length) { b.innerHTML = '<div class="empty">아직 그림책을 시작한 학생이 없어요.</div>'; return; }
-      const done = books.filter(function (x) { return x.status === "완성"; }).length;
-      document.getElementById("count").textContent = "총 " + books.length + "명 · 완성 " + done;
-      books.sort(function (a, c) { return (c.maxSpreadIndex || 0) - (a.maxSpreadIndex || 0); });
-      const rows = books.map(function (x) {
-        const mi = Math.min(3, x.maxSpreadIndex || 0);
-        const pct = x.status === "완성" ? 100 : ((mi + 1) / 4) * 100;
-        const isDone = x.status === "완성";
-        return "<tr><td><b>" + esc(x.studentName || "이름 없음") + "</b></td>" +
-          "<td>" + (isDone ? '<span class="done">완성 🎉</span>' : esc(stageName(x))) + "</td>" +
-          "<td>도달: " + esc(SPREADS[mi] || "표지") + "</td>" +
-          '<td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>";
-      }).join("");
-      b.innerHTML = "<table><thead><tr><th>이름</th><th>지금</th><th>최대 도달</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
-    }
-    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+    // ---- 컨트롤러: 타이머 만료 또는 전원 완료 시 축하→다음 ----
+    setInterval(function () {
+      if (!pace || !pace.active || pace.paused || advancing || pace.finished) return;
+      const k = pace.stageIndex || 0;
+      const total = denom(), done = completedForStage(k);
+      const allDone = total > 0 && done >= total;
+      if (remaining(pace) <= 0 || allDone) triggerAdvance(k, k === LAST);
+    }, 700);
 
-    window.DASH = {
+    function triggerAdvance(k, finale) {
+      advancing = true;
+      ref().set({ celebrateAt: Date.now(), celebratedStage: k, celebrateFinale: finale, updatedAt: sv() }, { merge: true });
+      setTimeout(function () {
+        if (finale) { ref().set({ finished: true }, { merge: true }); }
+        else { ref().set({ stageIndex: k + 1, stageStartedAtMs: Date.now(), paused: false, pausedRemainingSec: 0 }, { merge: true }); }
+        advancing = false;
+      }, finale ? 6000 : 4300);
+    }
+
+    window.APP = {
       load: function () {
-        const cc = (document.getElementById("cc").value || "").trim().toUpperCase();
-        if (!cc) return;
-        history.replaceState(null, "", "?class=" + encodeURIComponent(cc));
-        if (unsubBooks) unsubBooks();
-        if (unsubPace) unsubPace();
-        unsubBooks = db.collection("storybooks").where("classCode", "==", cc)
-          .onSnapshot(function (snap) { render(snap.docs.map(function (d) { return d.data(); })); });
-        unsubPace = db.collection("pace_sessions").doc(cc).onSnapshot(function (doc) {
-          const el = document.getElementById("stage");
-          if (doc.exists && doc.data().active) {
-            el.style.display = ""; el.textContent = "현재 단계: " + (STAGES[doc.data().stageIndex || 0]);
-          } else { el.style.display = "none"; }
-        });
+        classCode = (($("cc").value) || "").trim().toUpperCase();
+        if (!classCode) return;
+        history.replaceState(null, "", "?class=" + encodeURIComponent(classCode));
+        if (unsubPace) unsubPace(); if (unsubBooks) unsubBooks();
+        unsubPace = ref().onSnapshot(function (doc) { pace = doc.exists ? doc.data() : null; renderControls(); });
+        unsubBooks = db.collection("storybooks").where("classCode", "==", classCode)
+          .onSnapshot(function (snap) { books = snap.docs.map(function (d) { return d.data(); }); renderTable(); renderControls(); });
+      },
+      start: function () {
+        if (!classCode) { alert("먼저 반 코드를 불러오세요."); return; }
+        const durs = [0,1,2,3,4].map(function (k) { return Math.max(1, parseInt($("d" + k).value, 10) || 50); });
+        const size = Math.max(1, parseInt($("size").value, 10) || books.length || 25);
+        ref().set({ active: true, finished: false, stageIndex: 0, stageStartedAtMs: Date.now(),
+          durationsMin: durs, paused: false, pausedRemainingSec: 0, classSize: size,
+          muted: (pace && pace.muted) || false, finaleMessage: ($("finaleMsg").value || ""),
+          celebrateAt: 0, updatedAt: sv() }, { merge: true });
+      },
+      prev: function () { if (!pace) return; const k = Math.max(0, (pace.stageIndex || 0) - 1);
+        ref().set({ stageIndex: k, stageStartedAtMs: Date.now(), paused: false, pausedRemainingSec: 0 }, { merge: true }); },
+      next: function () { if (!pace) return; triggerAdvance(pace.stageIndex || 0, (pace.stageIndex || 0) === LAST); },
+      pause: function () { if (!pace) return;
+        if (pace.paused) { ref().set({ paused: false, stageStartedAtMs: Date.now() - (durationSec(pace) - (pace.pausedRemainingSec || 0)) * 1000 }, { merge: true }); }
+        else { ref().set({ paused: true, pausedRemainingSec: remaining(pace) }, { merge: true }); } },
+      mute: function () { if (!pace) return; ref().set({ muted: !pace.muted }, { merge: true }); },
+      saveFinale: function () { if (!classCode) return; ref().set({ finaleMessage: $("finaleMsg").value || "" }, { merge: true }); },
+      end: function () { if (confirm("페이스 세션을 종료할까요?")) ref().set({ active: false, finished: false }, { merge: true }); },
+      openProjector: function () {
+        const cc = (($("cc").value) || "").trim().toUpperCase();
+        if (!cc) { alert("반 코드를 넣어주세요."); return; }
+        window.open("board.html?class=" + encodeURIComponent(cc), "_blank", "noopener");
       }
     };
-    if (preset) DASH.load();
+
+    function renderControls() {
+      const active = pace && pace.active;
+      $("liveControls").style.display = active ? "flex" : "none";
+      $("finaleRow").style.display = active ? "flex" : "none";
+      if (!active) return;
+      const k = pace.stageIndex || 0, total = denom(), done = completedForStage(k);
+      $("stagePill").textContent = "현재: " + STAGES[k] + (pace.finished ? " · 종료" : "");
+      $("rem").textContent = done + "/" + total + " 완료 · 남은 " + Math.floor(remaining(pace) / 60) + "분";
+      $("muteBtn").textContent = pace.muted ? "🔇 음소거됨" : "🔊 소리";
+      if (document.activeElement !== $("finaleMsg")) $("finaleMsg").value = pace.finaleMessage || "";
+    }
+
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+    function stageNameOf(b) {
+      if (b.status === "완성") return "완성 🎉";
+      return b.currentSpread ? (b.currentSpread + " 그리는 중") : (b.statusText || "시작 전");
+    }
+    function renderTable() {
+      const el = $("tblBody");
+      if (!books.length) { el.innerHTML = '<div class="empty">아직 그림책을 시작한 학생이 없어요.</div>'; return; }
+      const arr = books.slice().sort(function (a, c) { return (c.maxSpreadIndex || 0) - (a.maxSpreadIndex || 0); });
+      const rows = arr.map(function (x) {
+        const mi = Math.min(3, x.maxSpreadIndex || 0);
+        const pct = x.status === "완성" ? 100 : (mi + 1) / 4 * 100;
+        return "<tr><td><b>" + esc(x.studentName || "이름 없음") + "</b></td><td>" +
+          (x.status === "완성" ? '<span class="done">완성 🎉</span>' : esc(stageNameOf(x))) + "</td><td>도달: " +
+          esc(SPREADS[mi] || "표지") + '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>";
+      }).join("");
+      el.innerHTML = "<table><thead><tr><th>이름</th><th>지금</th><th>최대 도달</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
+    }
+
+    if (params.get("class")) APP.load();
   })();
   </script>
 </body>
