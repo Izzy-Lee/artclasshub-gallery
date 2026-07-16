@@ -46,7 +46,7 @@
     <div id="stageBox" class="stage">—</div>
     <div id="tmr" class="timer">0:00</div>
     <div id="pausedTag" class="pausedTag" style="display:none">⏸ 잠깐 멈춤</div>
-    <div class="gaugeWrap">
+    <div class="gaugeWrap" id="gaugeWrap">
       <div class="gaugeLabel"><span id="stageDone">이 단계 완료</span><span class="cnt" id="cnt">0 / 0</span></div>
       <div class="gauge"><div id="fill" class="fill"></div></div>
     </div>
@@ -87,6 +87,11 @@
     function durationSec(p) { const i = p.stageIndex || 0; return ((p.durationsMin && p.durationsMin[i]) || 50) * 60; }
     function remaining(p) {
       if (!p) return 0;
+      // 앱 '라이브수업' 수업 타이머 미러(kind:"class") — endsAtMs 기준 카운트다운.
+      if (p.kind === "class") {
+        if (p.paused) return p.pausedRemainingSec || 0;
+        return Math.max(0, Math.round(((p.endsAtMs || Date.now()) - Date.now()) / 1000));
+      }
       if (p.paused) return p.pausedRemainingSec || 0;
       return Math.max(0, durationSec(p) - Math.floor((Date.now() - (p.stageStartedAtMs || Date.now())) / 1000));
     }
@@ -112,8 +117,15 @@
       $("wait").style.display = active ? "none" : "block";
       $("board").style.display = active ? "flex" : "none";
       if (!active) return;
-      const i = pace.stageIndex || 0;
-      $("stageBox").innerHTML = "🎨 지금은 <b>" + STAGES[i] + "</b> " + (i === LAST ? "하는" : "그리는") + " 시간";
+      const isClass = pace.kind === "class";
+      // 수업 타이머 모드: 단계·진행 게이지 없이 라벨 + 큰 카운트다운만.
+      $("gaugeWrap").style.display = isClass ? "none" : "block";
+      if (isClass) {
+        $("stageBox").innerHTML = "⏰ <b>" + (pace.classLabel || "수업 시간") + "</b>";
+      } else {
+        const i = pace.stageIndex || 0;
+        $("stageBox").innerHTML = "🎨 지금은 <b>" + STAGES[i] + "</b> " + (i === LAST ? "하는" : "그리는") + " 시간";
+      }
       $("board").className = pace.paused ? "paused" : "";
       $("board").style.display = "flex";
       $("pausedTag").style.display = pace.paused ? "block" : "none";
@@ -122,6 +134,7 @@
       if (!pace || !pace.active) return;
       const rem = remaining(pace);
       const t = $("tmr"); t.textContent = fmt(rem); t.className = "timer " + (rem <= 60 ? "warn" : "");
+      if (pace.kind === "class") return;   // 수업 타이머 모드는 진행 게이지 없음
       const total = denom(), done = completedForStage(pace.stageIndex || 0);
       const pct = total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0;
       $("cnt").textContent = done + " / " + total + " 완료";
