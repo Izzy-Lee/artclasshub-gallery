@@ -45,10 +45,16 @@
   .card .tx { font-size: 1.55vw; font-weight: 700; color: #fff; line-height: 1.3;
               display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .card.pending .tx { color: #8a79b3; font-weight: 600; }
+  .card.done { background: #16351f; box-shadow: inset 0 0 0 2px rgba(74,222,128,.5); }
+  .card.done .nm { color: #a3e635; }
   /* 인원이 적을 때는 카드를 키운다(2~3열) */
   .wall.few { grid-template-columns: repeat(3, 1fr); }
   .wall.few .nm { font-size: 2vw; }
   .wall.few .tx { font-size: 2.3vw; -webkit-line-clamp: 5; }
+  /* 전체 이야기 페이지: 글이 길어 4열 + 더 많은 줄 */
+  .wall.story { grid-template-columns: repeat(4, 1fr); }
+  .wall.story .tx { font-size: 1.35vw; -webkit-line-clamp: 8; }
+  .wall.story.few { grid-template-columns: repeat(2, 1fr); }
 
   /* 축하 오버레이 */
   /* canvas-confetti가 자체 캔버스를 z-index:100으로 띄우므로, 메시지는 그보다 위(9999)에 둔다. */
@@ -86,7 +92,8 @@
     "use strict";
     firebase.initializeApp(window.FIREBASE_CONFIG);
     const db = firebase.firestore();
-    const STAGES = ["표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리"];
+    // 0~3=그리기 스프레드, 4=완성 축하, 5=소감, 6=전체 이야기. 선생님 화살표로 순서대로 이동.
+    const STAGES = ["표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리", "소감", "전체 이야기"];
     const LAST = STAGES.length - 1;
 
     const params = new URLSearchParams(location.search);
@@ -96,6 +103,7 @@
     let lastCelebrateAt = 0;
     let lastMilestone = 0;
     let audioMuted = false;
+    let lastStageShown = -1;   // '완성 축하' 페이지 진입 시 1회 폭죽
 
     const $ = function (id) { return document.getElementById(id); };
 
@@ -121,15 +129,32 @@
     function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-    // 단계(설문)별로 학생 카드에 보여줄 '글'. 표지=제목, 나머지=장면 이야기.
-    var STAGE_ROLE = ["title", "sceneStart", "sceneMiddle", "sceneEnd", "title"];
-    var STAGE_SUB = ["제목", "시작 장면", "중간 장면", "끝 장면", "마무리"];
-    function textFor(b, stage) {
-      if (stage === 0 || stage === LAST) return b.title || "";
-      var role = STAGE_ROLE[stage];
-      var ps = (b.pageStories && b.pageStories[role]) || "";
-      var ans = (b.answers && b.answers[role]) || "";
-      return ps || ans;
+    var STAGE_SUB = ["제목", "시작 장면", "중간 장면", "끝 장면", "완성 축하", "소감", "전체 이야기"];
+    var STAGE_ROLE = ["title", "sceneStart", "sceneMiddle", "sceneEnd"];
+    // 한 학생 카드에 보여줄 줄들(단계별). 빈 배열이면 '쓰는 중'.
+    function cardLines(b, stage) {
+      if (stage <= 3) {
+        var t = stage === 0 ? (b.title || "")
+              : ((b.pageStories && b.pageStories[STAGE_ROLE[stage]]) || (b.answers && b.answers[STAGE_ROLE[stage]]) || "");
+        return t ? [t] : [];
+      }
+      if (stage === 4) {  // 완성 축하 + 아이별 완성 여부
+        return [b.status === "완성" ? "완성했어요! 🎉" : "아직 그리는 중…"];
+      }
+      if (stage === 5) {  // 소감(성찰 카드: fav·hard·next)
+        var r = b.reflections || {};
+        var out = [];
+        if (r.fav) out.push("👍 " + r.fav);
+        if (r.hard) out.push("😅 " + r.hard);
+        if (r.next) out.push("➡️ " + r.next);
+        return out;
+      }
+      // 6: 전체 이야기 — 정해진 전체 글 또는 장면들을 이어붙임
+      var story = b.storyText || [b.title,
+        b.pageStories && b.pageStories.sceneStart,
+        b.pageStories && b.pageStories.sceneMiddle,
+        b.pageStories && b.pageStories.sceneEnd].filter(Boolean).join(" ");
+      return story ? [story] : [];
     }
     // 멘티식 응답 벽: 지금 단계(설문) 한 페이지에 학생들의 글을 카드로(최대 24명).
     function renderWall() {
@@ -139,14 +164,15 @@
       var items = books.filter(function (b) { return b.studentName; })
                        .sort(function (a, c) { return (a.studentName || "").localeCompare(c.studentName || ""); })
                        .slice(0, 24);
-      el.className = "wall" + (items.length <= 6 ? " few" : "");
+      el.className = "wall" + (items.length <= 6 ? " few" : "") + (stage === 6 ? " story" : "");
       if (!items.length) { el.innerHTML = '<div class="card pending"><div class="tx">아직 시작한 학생이 없어요</div></div>'; return; }
       el.innerHTML = items.map(function (b) {
-        var t = textFor(b, stage);
+        var lines = cardLines(b, stage);
         var done = b.status === "완성";
-        return '<div class="card' + (t ? "" : " pending") + '">'
+        var body = lines.length ? lines.map(esc).join("<br>") : "✏️ 쓰는 중…";
+        return '<div class="card' + (lines.length ? "" : " pending") + (stage === 4 && done ? " done" : "") + '">'
              + '<div class="nm">' + esc(b.studentName) + (done ? " ✅" : "") + "</div>"
-             + '<div class="tx">' + (t ? esc(t) : "✏️ 쓰는 중…") + "</div></div>";
+             + '<div class="tx">' + body + "</div></div>";
       }).join("");
     }
 
@@ -179,9 +205,14 @@
         $("stageBox").innerHTML = "⏰ <b>" + (pace.classLabel || "수업 시간") + "</b>";
       } else {
         const i = pace.stageIndex || 0;
-        // 한 설문 당 1페이지: 단계 이름 + 부제 + 페이지 표시(2/5)
-        $("stageBox").innerHTML = "🎨 <b>" + STAGES[i] + "</b> · " + STAGE_SUB[i]
+        // 한 설문 당 1페이지: 단계 이름 + 부제 + 페이지 표시(5/7)
+        const emoji = i === 4 ? "🎉" : (i >= 5 ? "📖" : "🎨");
+        const sub = STAGE_SUB[i] && STAGE_SUB[i] !== STAGES[i] ? " · " + STAGE_SUB[i] : "";
+        $("stageBox").innerHTML = emoji + " <b>" + STAGES[i] + "</b>" + sub
           + ' <span style="opacity:.5;font-size:.6em">(' + (i + 1) + " / " + STAGES.length + ")</span>";
+        // '완성 축하' 페이지로 넘어오면 1회 폭죽.
+        if (i === 4 && lastStageShown !== 4) { blast(true); chime(true); }
+        lastStageShown = i;
       }
       $("board").className = (isClass ? "" : "book") + (pace.paused ? " paused" : "");
       $("board").style.display = "flex";
