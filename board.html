@@ -29,19 +29,26 @@
   .fill.pulse { animation: pulse .5s ease 2; }
   @keyframes pulse { 50% { filter: brightness(1.5); box-shadow: 0 0 40px rgba(255,210,63,.9); } }
 
-  /* 멘티식 진행 트랙 — 단계별 칸에 학생 이름 점(pill)이 실시간 이동 */
-  .track { display: none; width: 92vw; gap: 1vw; align-items: stretch; }
-  .track.on { display: flex; }
-  .trackCol { flex: 1; min-width: 0; background: #241640; border-radius: 16px; padding: 1.4vh 0.6vw 1.8vh;
-              display: flex; flex-direction: column; align-items: center; gap: 0.8vh; transition: background .3s; }
-  .trackCol.cur { background: #3a2470; box-shadow: inset 0 0 0 3px rgba(255,210,63,.65); }
-  .trackCol .lbl { font-size: 1.7vw; font-weight: 900; color: #cbb8ee; }
-  .trackCol.cur .lbl { color: #FFD23F; }
-  .trackCol .num { font-size: 1.3vw; font-weight: 800; color: #fff; opacity: .55; }
-  .pill { font-size: 1.5vw; font-weight: 800; color: #1b1030; max-width: 100%;
-          background: linear-gradient(90deg, #E84C88, #FFC24B); padding: 0.5vh 1.1vw; border-radius: 999px;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-  .pill.done { background: linear-gradient(90deg, #4ade80, #a3e635); }
+  /* 그림책 모드: 타이머 작게, 위에서부터 채움 */
+  #board.book { justify-content: flex-start; gap: 1.6vh; padding: 3vh 0 2vh; }
+  #board.book .stage { font-size: 3.4vw; }
+  #board.book .timer { font-size: 4vw; opacity: .6; }
+
+  /* 멘티식 응답 벽 — 한 단계(설문) 페이지에 학생 글 카드(최대 24명) */
+  .wall { display: none; width: 95vw; flex: 1; min-height: 0; overflow: hidden;
+          grid-template-columns: repeat(6, 1fr); grid-auto-rows: 1fr; gap: 1vw; align-content: start; }
+  #board.book .wall { display: grid; }
+  .card { background: #241640; border-radius: 14px; padding: 1vh 0.9vw; min-height: 0; overflow: hidden;
+          display: flex; flex-direction: column; gap: 0.5vh; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+  .card.cur { box-shadow: inset 0 0 0 2px rgba(255,210,63,.4); }
+  .card .nm { font-size: 1.35vw; font-weight: 900; color: #FFC24B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .tx { font-size: 1.55vw; font-weight: 700; color: #fff; line-height: 1.3;
+              display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .card.pending .tx { color: #8a79b3; font-weight: 600; }
+  /* 인원이 적을 때는 카드를 키운다(2~3열) */
+  .wall.few { grid-template-columns: repeat(3, 1fr); }
+  .wall.few .nm { font-size: 2vw; }
+  .wall.few .tx { font-size: 2.3vw; -webkit-line-clamp: 5; }
 
   /* 축하 오버레이 */
   /* canvas-confetti가 자체 캔버스를 z-index:100으로 띄우므로, 메시지는 그보다 위(9999)에 둔다. */
@@ -64,8 +71,8 @@
       <div class="gaugeLabel"><span id="stageDone">이 단계 완료</span><span class="cnt" id="cnt">0 / 0</span></div>
       <div class="gauge"><div id="fill" class="fill"></div></div>
     </div>
-    <!-- 멘티식 진행 트랙: 단계별 칸에 학생 이름 점(pill)이 실시간으로 이동 -->
-    <div class="track" id="track"></div>
+    <!-- 멘티식 응답 벽: 이 단계(설문) 한 페이지에 학생들의 글을 카드로(최대 24명) -->
+    <div class="wall" id="wall"></div>
   </div>
   <canvas id="confetti"></canvas>
   <div id="celebrate"><div class="big" id="celBig"></div><div class="sub" id="celSub"></div></div>
@@ -114,28 +121,32 @@
     function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-    // 학생이 지금 있는 단계: 완성=마무리, 아니면 currentSpread(없으면 maxSpreadIndex).
-    function stageOf(b) {
-      if (b.status === "완성") return LAST;
-      var i = STAGES.indexOf(b.currentSpread);
-      if (i >= 0) return i;
-      return Math.min(3, b.maxSpreadIndex || 0);
+    // 단계(설문)별로 학생 카드에 보여줄 '글'. 표지=제목, 나머지=장면 이야기.
+    var STAGE_ROLE = ["title", "sceneStart", "sceneMiddle", "sceneEnd", "title"];
+    var STAGE_SUB = ["제목", "시작 장면", "중간 장면", "끝 장면", "마무리"];
+    function textFor(b, stage) {
+      if (stage === 0 || stage === LAST) return b.title || "";
+      var role = STAGE_ROLE[stage];
+      var ps = (b.pageStories && b.pageStories[role]) || "";
+      var ans = (b.answers && b.answers[role]) || "";
+      return ps || ans;
     }
-    // 멘티식 진행 트랙: 단계별 칸에 학생 이름 점을 실시간으로 배치.
-    function renderTrack() {
-      var el = $("track");
-      var show = pace && pace.active && pace.kind !== "class";
-      el.className = "track" + (show ? " on" : "");
-      if (!show) return;
-      var cur = (pace && typeof pace.stageIndex === "number") ? pace.stageIndex : 0;
-      el.innerHTML = STAGES.map(function (name, s) {
-        var kids = books.filter(function (b) { return stageOf(b) === s; });
-        var pills = kids.map(function (b) {
-          return '<div class="pill' + (b.status === "완성" ? " done" : "") + '">' + esc(b.studentName || "?") + "</div>";
-        }).join("");
-        return '<div class="trackCol' + (s === cur ? " cur" : "") + '">'
-             + '<div class="lbl">' + name + "</div>"
-             + '<div class="num">' + kids.length + "명</div>" + pills + "</div>";
+    // 멘티식 응답 벽: 지금 단계(설문) 한 페이지에 학생들의 글을 카드로(최대 24명).
+    function renderWall() {
+      var el = $("wall");
+      if (!(pace && pace.active && pace.kind !== "class")) { el.innerHTML = ""; return; }
+      var stage = pace.stageIndex || 0;
+      var items = books.filter(function (b) { return b.studentName; })
+                       .sort(function (a, c) { return (a.studentName || "").localeCompare(c.studentName || ""); })
+                       .slice(0, 24);
+      el.className = "wall" + (items.length <= 6 ? " few" : "");
+      if (!items.length) { el.innerHTML = '<div class="card pending"><div class="tx">아직 시작한 학생이 없어요</div></div>'; return; }
+      el.innerHTML = items.map(function (b) {
+        var t = textFor(b, stage);
+        var done = b.status === "완성";
+        return '<div class="card' + (t ? "" : " pending") + '">'
+             + '<div class="nm">' + esc(b.studentName) + (done ? " ✅" : "") + "</div>"
+             + '<div class="tx">' + (t ? esc(t) : "✏️ 쓰는 중…") + "</div></div>";
       }).join("");
     }
 
@@ -148,11 +159,11 @@
         runCelebration(pace.celebratedStage || 0, !!pace.celebrateFinale, pace.finaleMessage);
       }
       renderStatic();
-      renderTrack();
+      renderWall();
     });
     db.collection("storybooks").where("classCode", "==", classCode).onSnapshot(function (snap) {
       books = snap.docs.map(function (d) { return d.data(); });
-      renderTrack();
+      renderWall();
     });
 
     // ---- 렌더 (매초 갱신은 텍스트/게이지만) ----
@@ -162,15 +173,17 @@
       $("board").style.display = active ? "flex" : "none";
       if (!active) return;
       const isClass = pace.kind === "class";
-      // 단일 게이지는 숨김 — 그림책 모드는 아래 멘티식 트랙(이름 점)이 대신 보여준다.
+      // 단일 게이지는 숨김 — 그림책 모드는 아래 멘티식 응답 벽이 대신 보여준다.
       $("gaugeWrap").style.display = "none";
       if (isClass) {
         $("stageBox").innerHTML = "⏰ <b>" + (pace.classLabel || "수업 시간") + "</b>";
       } else {
         const i = pace.stageIndex || 0;
-        $("stageBox").innerHTML = "🎨 지금은 <b>" + STAGES[i] + "</b> " + (i === LAST ? "하는" : "그리는") + " 시간";
+        // 한 설문 당 1페이지: 단계 이름 + 부제 + 페이지 표시(2/5)
+        $("stageBox").innerHTML = "🎨 <b>" + STAGES[i] + "</b> · " + STAGE_SUB[i]
+          + ' <span style="opacity:.5;font-size:.6em">(' + (i + 1) + " / " + STAGES.length + ")</span>";
       }
-      $("board").className = pace.paused ? "paused" : "";
+      $("board").className = (isClass ? "" : "book") + (pace.paused ? " paused" : "");
       $("board").style.display = "flex";
       $("pausedTag").style.display = pace.paused ? "block" : "none";
     }
