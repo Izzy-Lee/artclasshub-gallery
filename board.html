@@ -29,6 +29,20 @@
   .fill.pulse { animation: pulse .5s ease 2; }
   @keyframes pulse { 50% { filter: brightness(1.5); box-shadow: 0 0 40px rgba(255,210,63,.9); } }
 
+  /* 멘티식 진행 트랙 — 단계별 칸에 학생 이름 점(pill)이 실시간 이동 */
+  .track { display: none; width: 92vw; gap: 1vw; align-items: stretch; }
+  .track.on { display: flex; }
+  .trackCol { flex: 1; min-width: 0; background: #241640; border-radius: 16px; padding: 1.4vh 0.6vw 1.8vh;
+              display: flex; flex-direction: column; align-items: center; gap: 0.8vh; transition: background .3s; }
+  .trackCol.cur { background: #3a2470; box-shadow: inset 0 0 0 3px rgba(255,210,63,.65); }
+  .trackCol .lbl { font-size: 1.7vw; font-weight: 900; color: #cbb8ee; }
+  .trackCol.cur .lbl { color: #FFD23F; }
+  .trackCol .num { font-size: 1.3vw; font-weight: 800; color: #fff; opacity: .55; }
+  .pill { font-size: 1.5vw; font-weight: 800; color: #1b1030; max-width: 100%;
+          background: linear-gradient(90deg, #E84C88, #FFC24B); padding: 0.5vh 1.1vw; border-radius: 999px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .pill.done { background: linear-gradient(90deg, #4ade80, #a3e635); }
+
   /* 축하 오버레이 */
   /* canvas-confetti가 자체 캔버스를 z-index:100으로 띄우므로, 메시지는 그보다 위(9999)에 둔다. */
   #celebrate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
@@ -50,6 +64,8 @@
       <div class="gaugeLabel"><span id="stageDone">이 단계 완료</span><span class="cnt" id="cnt">0 / 0</span></div>
       <div class="gauge"><div id="fill" class="fill"></div></div>
     </div>
+    <!-- 멘티식 진행 트랙: 단계별 칸에 학생 이름 점(pill)이 실시간으로 이동 -->
+    <div class="track" id="track"></div>
   </div>
   <canvas id="confetti"></canvas>
   <div id="celebrate"><div class="big" id="celBig"></div><div class="sub" id="celSub"></div></div>
@@ -96,6 +112,32 @@
       return Math.max(0, durationSec(p) - Math.floor((Date.now() - (p.stageStartedAtMs || Date.now())) / 1000));
     }
     function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    // 학생이 지금 있는 단계: 완성=마무리, 아니면 currentSpread(없으면 maxSpreadIndex).
+    function stageOf(b) {
+      if (b.status === "완성") return LAST;
+      var i = STAGES.indexOf(b.currentSpread);
+      if (i >= 0) return i;
+      return Math.min(3, b.maxSpreadIndex || 0);
+    }
+    // 멘티식 진행 트랙: 단계별 칸에 학생 이름 점을 실시간으로 배치.
+    function renderTrack() {
+      var el = $("track");
+      var show = pace && pace.active && pace.kind !== "class";
+      el.className = "track" + (show ? " on" : "");
+      if (!show) return;
+      var cur = (pace && typeof pace.stageIndex === "number") ? pace.stageIndex : 0;
+      el.innerHTML = STAGES.map(function (name, s) {
+        var kids = books.filter(function (b) { return stageOf(b) === s; });
+        var pills = kids.map(function (b) {
+          return '<div class="pill' + (b.status === "완성" ? " done" : "") + '">' + esc(b.studentName || "?") + "</div>";
+        }).join("");
+        return '<div class="trackCol' + (s === cur ? " cur" : "") + '">'
+             + '<div class="lbl">' + name + "</div>"
+             + '<div class="num">' + kids.length + "명</div>" + pills + "</div>";
+      }).join("");
+    }
 
     // ---- 구독 ----
     db.collection("pace_sessions").doc(classCode).onSnapshot(function (doc) {
@@ -106,9 +148,11 @@
         runCelebration(pace.celebratedStage || 0, !!pace.celebrateFinale, pace.finaleMessage);
       }
       renderStatic();
+      renderTrack();
     });
     db.collection("storybooks").where("classCode", "==", classCode).onSnapshot(function (snap) {
       books = snap.docs.map(function (d) { return d.data(); });
+      renderTrack();
     });
 
     // ---- 렌더 (매초 갱신은 텍스트/게이지만) ----
@@ -118,8 +162,8 @@
       $("board").style.display = active ? "flex" : "none";
       if (!active) return;
       const isClass = pace.kind === "class";
-      // 수업 타이머 모드: 단계·진행 게이지 없이 라벨 + 큰 카운트다운만.
-      $("gaugeWrap").style.display = isClass ? "none" : "block";
+      // 단일 게이지는 숨김 — 그림책 모드는 아래 멘티식 트랙(이름 점)이 대신 보여준다.
+      $("gaugeWrap").style.display = "none";
       if (isClass) {
         $("stageBox").innerHTML = "⏰ <b>" + (pace.classLabel || "수업 시간") + "</b>";
       } else {
