@@ -92,8 +92,8 @@
     "use strict";
     firebase.initializeApp(window.FIREBASE_CONFIG);
     const db = firebase.firestore();
-    // 0~3=그리기 스프레드, 4=완성 축하, 5=소감, 6=전체 이야기. 선생님 화살표로 순서대로 이동.
-    const STAGES = ["표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리", "소감", "전체 이야기"];
+    // 0=주인공, 1~4=그리기 스프레드, 5=완성 축하, 6=소감, 7=전체 이야기. 선생님 화살표로 순서대로 이동.
+    const STAGES = ["주인공", "표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리", "소감", "전체 이야기"];
     const LAST = STAGES.length - 1;
 
     const params = new URLSearchParams(location.search);
@@ -129,19 +129,27 @@
     function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-    var STAGE_SUB = ["제목", "시작 장면", "중간 장면", "끝 장면", "완성 축하", "소감", "전체 이야기"];
+    var STAGE_SUB = ["캐릭터 이름", "제목", "시작 장면", "중간 장면", "끝 장면", "완성 축하", "소감", "전체 이야기"];
+    // 그리기 단계(1~4)의 글 필드. stage-1로 참조.
     var STAGE_ROLE = ["title", "sceneStart", "sceneMiddle", "sceneEnd"];
     // 한 학생 카드에 보여줄 줄들(단계별). 빈 배열이면 '쓰는 중'.
     function cardLines(b, stage) {
-      if (stage <= 3) {
-        var t = stage === 0 ? (b.title || "")
-              : ((b.pageStories && b.pageStories[STAGE_ROLE[stage]]) || (b.answers && b.answers[STAGE_ROLE[stage]]) || "");
+      if (stage === 0) {  // 주인공(캐릭터 이름) — 문답 답변 hero(+종류)
+        var hero = (b.answers && b.answers.hero) || "";
+        var kind = (b.answers && b.answers.heroKind) || "";
+        if (!hero) return [];
+        return [kind ? (hero + " (" + kind + ")") : hero];
+      }
+      if (stage >= 1 && stage <= 4) {
+        var role = STAGE_ROLE[stage - 1];
+        var t = stage === 1 ? (b.title || (b.pageStories && b.pageStories.title) || "")
+              : ((b.pageStories && b.pageStories[role]) || (b.answers && b.answers[role]) || "");
         return t ? [t] : [];
       }
-      if (stage === 4) {  // 완성 축하 + 아이별 완성 여부
+      if (stage === 5) {  // 완성 축하 + 아이별 완성 여부
         return [b.status === "완성" ? "완성했어요! 🎉" : "아직 그리는 중…"];
       }
-      if (stage === 5) {  // 소감(성찰 카드: fav·hard·next)
+      if (stage === 6) {  // 소감(성찰 카드: fav·hard·next)
         var r = b.reflections || {};
         var out = [];
         if (r.fav) out.push("👍 " + r.fav);
@@ -149,7 +157,7 @@
         if (r.next) out.push("➡️ " + r.next);
         return out;
       }
-      // 6: 전체 이야기 — 정해진 전체 글 또는 장면들을 이어붙임
+      // 7: 전체 이야기 — 정해진 전체 글 또는 장면들을 이어붙임
       var story = b.storyText || [b.title,
         b.pageStories && b.pageStories.sceneStart,
         b.pageStories && b.pageStories.sceneMiddle,
@@ -164,13 +172,13 @@
       var items = books.filter(function (b) { return b.studentName; })
                        .sort(function (a, c) { return (a.studentName || "").localeCompare(c.studentName || ""); })
                        .slice(0, 24);
-      el.className = "wall" + (items.length <= 6 ? " few" : "") + (stage === 6 ? " story" : "");
+      el.className = "wall" + (items.length <= 6 ? " few" : "") + (stage === 7 ? " story" : "");
       if (!items.length) { el.innerHTML = '<div class="card pending"><div class="tx">아직 시작한 학생이 없어요</div></div>'; return; }
       el.innerHTML = items.map(function (b) {
         var lines = cardLines(b, stage);
         var done = b.status === "완성";
         var body = lines.length ? lines.map(esc).join("<br>") : "✏️ 쓰는 중…";
-        return '<div class="card' + (lines.length ? "" : " pending") + (stage === 4 && done ? " done" : "") + '">'
+        return '<div class="card' + (lines.length ? "" : " pending") + (stage === 5 && done ? " done" : "") + '">'
              + '<div class="nm">' + esc(b.studentName) + (done ? " ✅" : "") + "</div>"
              + '<div class="tx">' + body + "</div></div>";
       }).join("");
@@ -206,12 +214,12 @@
       } else {
         const i = pace.stageIndex || 0;
         // 한 설문 당 1페이지: 단계 이름 + 부제 + 페이지 표시(5/7)
-        const emoji = i === 4 ? "🎉" : (i >= 5 ? "📖" : "🎨");
+        const emoji = i === 0 ? "🦸" : (i === 5 ? "🎉" : (i >= 6 ? "📖" : "🎨"));
         const sub = STAGE_SUB[i] && STAGE_SUB[i] !== STAGES[i] ? " · " + STAGE_SUB[i] : "";
         $("stageBox").innerHTML = emoji + " <b>" + STAGES[i] + "</b>" + sub
           + ' <span style="opacity:.5;font-size:.6em">(' + (i + 1) + " / " + STAGES.length + ")</span>";
-        // '완성 축하' 페이지로 넘어오면 1회 폭죽.
-        if (i === 4 && lastStageShown !== 4) { blast(true); chime(true); }
+        // '완성 축하' 페이지(5)로 넘어오면 1회 폭죽.
+        if (i === 5 && lastStageShown !== 5) { blast(true); chime(true); }
         lastStageShown = i;
       }
       $("board").className = (isClass ? "" : "book") + (pace.paused ? " paused" : "");
