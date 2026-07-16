@@ -190,7 +190,7 @@
         const pct = x.status === "완성" ? 100 : (mi + 1) / 4 * 100;
         return "<tr><td><b>" + esc(x.studentName || "이름 없음") + "</b></td><td>" +
           (x.status === "완성" ? '<span class="done">완성 🎉</span>' : esc(stageNameOf(x))) + "</td><td>도달: " +
-          esc(SPREADS[mi] || "표지") + '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>";
+          esc(SPREADS[mi] || "표지") + '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>';
       }).join("");
       el.innerHTML = "<table><thead><tr><th>이름</th><th>지금</th><th>최대 도달</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
     }
