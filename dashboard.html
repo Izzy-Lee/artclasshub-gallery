@@ -52,11 +52,14 @@
   <div class="card" id="controlCard">
     <div class="row" style="margin-bottom:10px">
       <b style="font-size:14px">단계별 권장 시간(분)</b>
-      <label>표지<input id="d0" class="mins" type="number" min="1" value="50" /></label>
-      <label>1-2쪽<input id="d1" class="mins" type="number" min="1" value="50" /></label>
-      <label>3-4쪽<input id="d2" class="mins" type="number" min="1" value="50" /></label>
-      <label>5-6쪽<input id="d3" class="mins" type="number" min="1" value="50" /></label>
-      <label>마무리<input id="d4" class="mins" type="number" min="1" value="50" /></label>
+      <label>주인공<input id="d0" class="mins" type="number" min="1" value="10" /></label>
+      <label>표지<input id="d1" class="mins" type="number" min="1" value="50" /></label>
+      <label>1-2쪽<input id="d2" class="mins" type="number" min="1" value="50" /></label>
+      <label>3-4쪽<input id="d3" class="mins" type="number" min="1" value="50" /></label>
+      <label>5-6쪽<input id="d4" class="mins" type="number" min="1" value="50" /></label>
+      <label>마무리<input id="d5" class="mins" type="number" min="1" value="20" /></label>
+      <label>소감<input id="d6" class="mins" type="number" min="1" value="10" /></label>
+      <label>전체<input id="d7" class="mins" type="number" min="1" value="10" /></label>
       <button onclick="APP.start()">▶ 수업 시작</button>
     </div>
     <div class="row" id="liveControls" style="display:none">
@@ -85,7 +88,8 @@
     "use strict";
     firebase.initializeApp(window.FIREBASE_CONFIG);
     const db = firebase.firestore();
-    const STAGES = ["표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리"];
+    // board.html·앱과 동일한 8단계.
+    const STAGES = ["주인공", "표지", "1-2쪽", "3-4쪽", "5-6쪽", "마무리", "소감", "전체 이야기"];
     const SPREADS = ["표지", "1-2쪽", "3-4쪽", "5-6쪽"];
     const LAST = STAGES.length - 1;
     const sv = firebase.firestore.FieldValue.serverTimestamp;
@@ -99,9 +103,12 @@
     const $ = function (id) { return document.getElementById(id); };
     function ref() { return db.collection("pace_sessions").doc(classCode); }
     function denom() { return (pace && pace.classSize) ? pace.classSize : books.length; }
+    // 8단계 완료 판정(전원 완료 시 자동 다음). 0=주인공(고른 아이), 1~3=표지/1-2/3-4(다음 스프레드 도달),
+    // 4=5-6·5~7=마무리/소감/전체는 완성 기준.
     function completedForStage(k) {
-      if (k >= 3) return books.filter(function (b) { return b.status === "완성"; }).length;
-      return books.filter(function (b) { return (b.maxSpreadIndex || 0) >= k + 1; }).length;
+      if (k === 0) return books.filter(function (b) { return b.answers && b.answers.hero; }).length;
+      if (k >= 4) return books.filter(function (b) { return b.status === "완성"; }).length;
+      return books.filter(function (b) { return (b.maxSpreadIndex || 0) >= k; }).length;
     }
     function durationSec(p) { const i = p.stageIndex || 0; return ((p.durationsMin && p.durationsMin[i]) || 50) * 60; }
     function remaining(p) {
@@ -141,7 +148,7 @@
       },
       start: function () {
         if (!classCode) { alert("먼저 반 코드를 불러오세요."); return; }
-        const durs = [0,1,2,3,4].map(function (k) { return Math.max(1, parseInt($("d" + k).value, 10) || 50); });
+        const durs = [0,1,2,3,4,5,6,7].map(function (k) { return Math.max(1, parseInt($("d" + k).value, 10) || 50); });
         const size = Math.max(1, parseInt($("size").value, 10) || books.length || 25);
         ref().set({ active: true, finished: false, stageIndex: 0, stageStartedAtMs: Date.now(),
           durationsMin: durs, paused: false, pausedRemainingSec: 0, classSize: size,
