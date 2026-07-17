@@ -181,6 +181,17 @@
       if (b.status === "완성") return "완성 🎉";
       return b.currentSpread ? (b.currentSpread + " 그리는 중") : (b.statusText || "시작 전");
     }
+    // 지금 단계(pace.stageIndex, 8단계)의 학생 답(글) — board.html과 동일 매핑.
+    function stageContentOf(b) {
+      var s = pace ? (pace.stageIndex || 0) : 0;
+      if (s === 0) { var h = (b.answers && b.answers.hero) || ""; var k = (b.answers && b.answers.heroKind) || "";
+        return h ? (k ? (h + " (" + k + ")") : h) : ""; }
+      if (s >= 1 && s <= 4) { var role = ["title", "sceneStart", "sceneMiddle", "sceneEnd"][s - 1];
+        return s === 1 ? (b.title || "") : ((b.pageStories && b.pageStories[role]) || (b.answers && b.answers[role]) || ""); }
+      if (s === 5) return b.status === "완성" ? "완성 🎉" : "그리는 중";
+      if (s === 6) { var r = b.reflections || {}; return r.fav || r.hard || r.next || ""; }
+      return b.storyText || "";
+    }
     function renderTable() {
       const el = $("tblBody");
       if (!books.length) { el.innerHTML = '<div class="empty">아직 그림책을 시작한 학생이 없어요.</div>'; return; }
@@ -188,11 +199,13 @@
       const rows = arr.map(function (x) {
         const mi = Math.min(3, x.maxSpreadIndex || 0);
         const pct = x.status === "완성" ? 100 : (mi + 1) / 4 * 100;
+        const ans = stageContentOf(x);
         return "<tr><td><b>" + esc(x.studentName || "이름 없음") + "</b></td><td>" +
-          (x.status === "완성" ? '<span class="done">완성 🎉</span>' : esc(stageNameOf(x))) + "</td><td>도달: " +
-          esc(SPREADS[mi] || "표지") + '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>';
+          (ans ? "<b>" + esc(ans) + "</b>" : '<span style="opacity:.4">…아직</span>') + "</td><td>" +
+          (x.status === "완성" ? '<span class="done">완성 🎉</span>' : esc(stageNameOf(x))) +
+          '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>';
       }).join("");
-      el.innerHTML = "<table><thead><tr><th>이름</th><th>지금</th><th>최대 도달</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
+      el.innerHTML = "<table><thead><tr><th>이름</th><th>지금 답</th><th>상태</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
     }
 
     if (params.get("class")) APP.load();
