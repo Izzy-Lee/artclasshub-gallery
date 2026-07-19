@@ -40,6 +40,7 @@
 <div id="app">
   <div id="loading" class="msg">그림책을 불러오는 중… 📖</div>
   <div id="error" class="msg" hidden>그림책을 찾지 못했어요 😢<br>주소를 다시 확인해 주세요.</div>
+  <div id="empty" class="msg" hidden>📭 이 반엔 아직 온라인에 올린 그림책이 없어요.<br><span id="emptyHint" style="font-size:13px;opacity:.7"></span></div>
   <div id="classlist" hidden><h1>우리 반 그림책 문집 📖</h1><div class="grid" id="grid"></div></div>
   <div id="book" hidden>
     <div id="title">그림책 📖</div>
@@ -65,6 +66,7 @@
   function show(state){
     el("loading").hidden    = state !== "loading";
     el("error").hidden      = state !== "error";
+    el("empty").hidden      = state !== "empty";
     el("book").hidden       = state !== "book";
     el("classlist").hidden  = state !== "class";
   }
@@ -106,7 +108,11 @@
     fetch(API + "?class=" + encodeURIComponent(classId))
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if (!d.ok || !d.books || !d.books.length) { show("error"); return; }
+        if (!d.ok) { show("error"); return; }
+        if (!d.books || !d.books.length) {           // 주소는 맞지만 이 반에 게시된 책이 0권
+          el("emptyHint").textContent = "반코드: " + classId + " · 앱에서 ‘온라인 갤러리에 올리기’로 책을 올리면 여기에 나와요.";
+          show("empty"); return;
+        }
         var grid = el("grid"); grid.innerHTML = "";
         d.books.forEach(function(b){
           var card = document.createElement("div"); card.className = "bookcard";
