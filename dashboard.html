@@ -25,14 +25,32 @@
   button:active { transform: translateY(1px); }
   .pill { background: #efe7fb; color: #7A4FE0; font-weight: 800; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
   .muted { display: flex; flex-direction: column; margin-bottom: 10px; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-  th { background: #f3eefb; font-size: 12px; color: #6b5a86; }
   .done { color: #2a9d5a; font-weight: 800; }
-  .progwrap { background: #eee; border-radius: 4px; width: 110px; height: 8px; display: inline-block; vertical-align: middle; }
-  .prog { display: inline-block; height: 8px; border-radius: 4px; background: #7A4FE0; }
   .empty { color: #999; padding: 20px; text-align: center; }
   .hint { color: #9a86c4; font-size: 12px; }
+
+  /* 단계별 진행 리스트: 맨 위 단계 축 + 학생마다 8칸 세그먼트 바 */
+  .scrollx { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .plist { display: flex; flex-direction: column; min-width: 560px; }
+  .prow { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid #f0ebf8; }
+  .prow.head { border-bottom: 2px solid #e6ddf5; padding-bottom: 7px; position: sticky; top: 0; background: #fff; }
+  .pname { flex: 0 0 148px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .pname b { font-size: 14px; }
+  .pname .ans { font-size: 12px; color: #6b5a86; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pname .ans.dim { opacity: .4; font-weight: 400; }
+  .prow.head .pname { font-size: 12px; color: #6b5a86; font-weight: 700; }
+  .ptrack { flex: 1; display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; align-items: end; }
+  .axlabel { font-size: 10px; color: #6b5a86; text-align: center; line-height: 1.15; white-space: nowrap; }
+  .seg { height: 15px; border-radius: 3px; background: #ece5f7; }
+  .seg.done { background: #7A4FE0; }
+  .seg.cur { background: #b79bf0; animation: segpulse 1.2s ease-in-out infinite; }
+  @keyframes segpulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    h1 { font-size: 18px; }
+    .pname { flex-basis: 116px; }
+  }
 </style>
 </head>
 <body>
@@ -199,20 +217,35 @@
       if (s === 6) { var r = b.reflections || {}; return r.fav || r.hard || r.next || ""; }
       return b.storyText || "";
     }
+    // 학생이 지금까지 도달한 단계(0~7). -1 = 아직 시작 전.
+    function reachedStage(b) {
+      if (b.status === "완성") return 7;                       // 전체 이야기(끝)
+      var ms = (typeof b.maxSpreadIndex === "number") ? b.maxSpreadIndex : -1;  // 0~3 그린 스프레드
+      if (ms >= 0) return Math.min(4, ms + 1);                 // 표지(1)~5-6쪽(4)
+      if (b.answers && b.answers.hero) return 0;               // 주인공 정함(아직 그리기 전)
+      return -1;                                               // 시작 전
+    }
     function renderTable() {
       const el = $("tblBody");
       if (!books.length) { el.innerHTML = '<div class="empty">아직 그림책을 시작한 학생이 없어요.</div>'; return; }
-      const arr = books.slice().sort(function (a, c) { return (c.maxSpreadIndex || 0) - (a.maxSpreadIndex || 0); });
+      const arr = books.slice().sort(function (a, c) { return reachedStage(c) - reachedStage(a); });
+      // 맨 위 단계 축(제목 줄)
+      const axis = '<div class="prow head"><div class="pname">이름 · 지금 답</div><div class="ptrack">' +
+        STAGES.map(function (s) { return '<span class="axlabel">' + esc(s) + '</span>'; }).join("") + '</div></div>';
       const rows = arr.map(function (x) {
-        const mi = Math.min(3, x.maxSpreadIndex || 0);
-        const pct = x.status === "완성" ? 100 : (mi + 1) / 4 * 100;
+        const done = x.status === "완성";
+        const r = reachedStage(x);
         const ans = stageContentOf(x);
-        return "<tr><td><b>" + esc(x.studentName || "이름 없음") + "</b></td><td>" +
-          (ans ? "<b>" + esc(ans) + "</b>" : '<span style="opacity:.4">…아직</span>') + "</td><td>" +
-          (x.status === "완성" ? '<span class="done">완성 🎉</span>' : esc(stageNameOf(x))) +
-          '</td><td><span class="progwrap"><span class="prog" style="width:' + pct + '%"></span></span></td></tr>';
+        var segs = "";
+        for (var i = 0; i < 8; i++) {
+          var cls = (done || i < r) ? "seg done" : (i === r ? "seg cur" : "seg");
+          segs += '<span class="' + cls + '"></span>';
+        }
+        return '<div class="prow"><div class="pname"><b>' + esc(x.studentName || "이름 없음") + '</b>' +
+          (ans ? '<span class="ans">' + esc(ans) + '</span>' : '<span class="ans dim">…아직</span>') +
+          '</div><div class="ptrack">' + segs + '</div></div>';
       }).join("");
-      el.innerHTML = "<table><thead><tr><th>이름</th><th>지금 답</th><th>상태</th><th>진행</th></tr></thead><tbody>" + rows + "</tbody></table>";
+      el.innerHTML = '<div class="scrollx"><div class="plist">' + axis + rows + '</div></div>';
     }
 
     if (params.get("class")) APP.load();
