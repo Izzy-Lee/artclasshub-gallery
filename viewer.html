@@ -11,12 +11,22 @@
   #app { height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .msg { color:#9a7; font-size:18px; padding:24px; text-align:center; }
   #book { position:relative; width:100%; max-width:900px; height:100%; display:flex; align-items:center; justify-content:center; padding:12px; }
-  .stage { width:100%; aspect-ratio:3/2; max-height:88%; position:relative; perspective:2000px; }
+  .stage { position:relative; perspective:2000px; margin:0 auto; }
+  /* 펼침면(가로 3:2)과 표지 반쪽(세로 3:4)은 화면에 맞추는 기준이 반대다.
+     가로는 폭 기준, 세로는 높이 기준으로 잡아야 잘리거나 늘어나지 않는다. */
+  .stage.spread { width:min(100%, calc(84vh * 3 / 2)); aspect-ratio:3 / 2; }
+  .stage.single { height:min(84vh, calc(92vw * 4 / 3)); aspect-ratio:3 / 4; }
   .page { position:absolute; inset:0; border-radius:14px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.18);
           background:#fff; display:flex; align-items:center; justify-content:center;
           transition:transform .5s ease, opacity .3s ease; transform-origin:left center; backface-visibility:hidden; }
   .page img { width:100%; height:100%; object-fit:contain; display:block; }
+  /* 표지 스프레드는 [뒤표지|앞표지]가 한 장에 붙어 있어 반쪽만 보여준다(배경 위치로 크롭). */
+  .page .half { width:100%; height:100%; background-size:200% 100%; background-repeat:no-repeat; }
+  .page .half.left  { background-position:left center; }
+  .page .half.right { background-position:right center; }
   .page.flipping { transform:rotateY(-160deg); opacity:0; }
+  #backlist { position:absolute; top:10px; left:12px; z-index:8; background:transparent; border:0; cursor:pointer;
+              font-weight:800; font-size:15px; color:#333; padding:6px 4px; font-family:inherit; }
   .nav { position:absolute; top:0; bottom:0; width:36%; border:0; background:transparent; cursor:pointer; z-index:5; }
   .nav.prev { left:0; } .nav.next { right:0; }
   .arrow { position:absolute; top:50%; transform:translateY(-50%); font-size:34px; color:var(--pink); opacity:.55;
@@ -43,6 +53,7 @@
   <div id="empty" class="msg" hidden>📭 이 반엔 아직 온라인에 올린 그림책이 없어요.<br><span id="emptyHint" style="font-size:13px;opacity:.7"></span></div>
   <div id="classlist" hidden><h1>우리 반 그림책 문집 📖</h1><div class="grid" id="grid"></div></div>
   <div id="book" hidden>
+    <button id="backlist" hidden>‹ 리스트로 돌아가기</button>
     <div id="title">그림책 📖</div>
     <div class="stage" id="stage"></div>
     <div class="arrow l">‹</div>
@@ -71,11 +82,32 @@
     el("classlist").hidden  = state !== "class";
   }
 
+  /* 앱이 보내는 건 펼침면 4장(표지·1-2쪽·3-4쪽·5-6쪽).
+     표지 장은 [뒤표지|앞표지]가 좌우로 붙어 있으므로 이북에서는 반으로 갈라
+     앞표지(오른쪽 반)를 맨 앞, 뒤표지(왼쪽 반)를 맨 뒤로 보낸다. → 앞표지·1-2·3-4·5-6·뒤표지 */
+  function buildPages(srcs){
+    if (srcs.length < 2) return srcs.map(function(u){ return { src:u, half:null }; });
+    var out = [{ src:srcs[0], half:"right" }];                       // 앞표지
+    for (var i = 1; i < srcs.length; i++) out.push({ src:srcs[i], half:null });
+    out.push({ src:srcs[0], half:"left" });                          // 뒤표지(판권)
+    return out;
+  }
+
   function render(){
     stage.innerHTML = "";
+    var pg = pages[idx];
+    // 반쪽 페이지는 세로(3:4), 펼침면은 가로(3:2).
+    stage.className = "stage " + (pg.half ? "single" : "spread");
     var p = document.createElement("div"); p.className = "page";
-    var img = document.createElement("img"); img.src = pages[idx]; img.alt = "page " + (idx+1);
-    p.appendChild(img); stage.appendChild(p);
+    if (pg.half) {
+      var h = document.createElement("div"); h.className = "half " + pg.half;
+      h.style.backgroundImage = 'url("' + pg.src + '")';
+      p.appendChild(h);
+    } else {
+      var img = document.createElement("img"); img.src = pg.src; img.alt = "page " + (idx+1);
+      p.appendChild(img);
+    }
+    stage.appendChild(p);
     el("counter").textContent = (idx+1) + " / " + pages.length;
   }
 
@@ -118,7 +150,10 @@
           var card = document.createElement("div"); card.className = "bookcard";
           card.innerHTML = '<img src="' + (b.cover || "") + '" alt=""><div class="cap"><div class="t">'
             + (b.title || "제목 없음") + '</div><div class="s">' + (b.student || "") + '</div></div>';
-          card.addEventListener("click", function(){ location.href = "?book=" + encodeURIComponent(b.bookId); });
+          // 반코드를 함께 넘겨야 책에서 '리스트로 돌아가기'가 이 반 목록으로 돌아온다.
+          card.addEventListener("click", function(){
+            location.href = "?book=" + encodeURIComponent(b.bookId) + "&class=" + encodeURIComponent(classId);
+          });
           grid.appendChild(card);
         });
         show("class");
@@ -132,17 +167,27 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.ok || !d.pages || !d.pages.length) { show("error"); return; }
-        pages = d.pages;
-        pages.forEach(function(u){ var im = new Image(); im.src = u; });
+        d.pages.forEach(function(u){ var im = new Image(); im.src = u; });
+        pages = buildPages(d.pages);
         idx = 0; render(); show("book");
       })
       .catch(function(){ show("error"); });
   }
 
+  // 목록으로 — 반코드를 알면 그 반 목록으로, 모르면 브라우저 뒤로.
+  el("backlist").addEventListener("click", function(){
+    if (classId) location.href = "?class=" + encodeURIComponent(classId);
+    else history.back();
+  });
+
   function load(){
     if (!API || API.indexOf("PASTE") === 0) { show("error"); return; }
-    if (classId) loadClass();
-    else if (bookId) loadBook();
+    // book이 있으면 책 우선(주소에 class가 같이 붙어 있어도 책을 연다).
+    if (bookId) {
+      el("backlist").hidden = !(classId || document.referrer);
+      loadBook();
+    }
+    else if (classId) loadClass();
     else show("error");
   }
   load();
