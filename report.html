@@ -35,6 +35,14 @@
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:7px; }
   .grid img { width:100%; aspect-ratio:1; object-fit:cover; display:block; border-radius:9px;
               background:#f0eaed; cursor:pointer; }
+  .cell { position:relative; }
+  .cell .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+                pointer-events:none; }
+  .cell .play span { width:38px; height:38px; border-radius:50%; background:rgba(0,0,0,.55);
+                     color:#fff; font-size:16px; display:flex; align-items:center; justify-content:center;
+                     padding-left:3px; }
+  .cell .dur { position:absolute; right:5px; bottom:5px; background:rgba(0,0,0,.6); color:#fff;
+               font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px; pointer-events:none; }
 
   /* 로그인 */
   .gate { max-width:340px; margin:16vh auto; background:#fff; border:1px solid var(--line);
@@ -52,6 +60,7 @@
   #box { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; z-index:50;
          align-items:center; justify-content:center; }
   #box img { max-width:96vw; max-height:88vh; object-fit:contain; }
+  #box iframe { width:min(96vw,1100px); height:min(80vh,620px); border:0; border-radius:10px; background:#000; }
   #box .x { position:absolute; top:14px; right:18px; color:#fff; font-size:30px; cursor:pointer; }
   #box .nav { position:absolute; top:50%; transform:translateY(-50%); color:#fff; font-size:38px;
               cursor:pointer; padding:14px; user-select:none; opacity:.75; }
@@ -83,6 +92,7 @@
   <span class="x">&times;</span>
   <span class="nav prev">&#8249;</span>
   <img id="boximg" alt="">
+  <iframe id="boxvid" allow="autoplay; fullscreen" allowfullscreen hidden></iframe>
   <span class="nav next">&#8250;</span>
   <div class="cap" id="boxcap"></div>
 </div>
@@ -146,7 +156,7 @@
     });
 
     var main = el("main"); main.innerHTML = "";
-    var shown = 0, photos = 0;
+    var shown = 0, photos = 0, vids = 0;
 
     DATA.dates.forEach(function (day) {
       var orgs = day.orgs.filter(function (o) { return REGION === "전체" || o.region === REGION; });
@@ -154,12 +164,18 @@
       shown++;
 
       var sec = document.createElement("section"); sec.className = "day";
-      var n = 0;
-      orgs.forEach(function (o) { o.programs.forEach(function (p) { n += p.photos.length; }); });
-      photos += n;
+      var n = 0, v = 0;
+      orgs.forEach(function (o) {
+        o.programs.forEach(function (p) {
+          n += p.photos.length;
+          v += p.photos.filter(function (x) { return x.kind === "video"; }).length;
+        });
+      });
+      photos += n; vids += v;
 
       sec.innerHTML = '<div class="dayhead"><h2>' + esc(day.label) + '</h2>'
-        + '<span class="cnt">' + orgs.length + '개 기관 · 사진 ' + n + '장</span></div>';
+        + '<span class="cnt">' + orgs.length + '개 기관 · ' + (n - v) + '장'
+        + (v ? ' · 영상 ' + v + '개' : '') + '</span></div>';
 
       orgs.forEach(function (o) {
         var card = document.createElement("div"); card.className = "org";
@@ -170,13 +186,24 @@
           wrap.innerHTML = "<h4>" + esc(p.title) + "</h4>";
           var g = document.createElement("div"); g.className = "grid";
           p.photos.forEach(function (ph) {
+            var cell = document.createElement("div"); cell.className = "cell";
             var im = document.createElement("img");
             im.src = ph.thumb; im.loading = "lazy"; im.alt = ph.name;
-            im.addEventListener("click", function () {
+            // 영상 썸네일이 없을 수도 있어(드라이브가 아직 안 만든 경우) 회색 칸으로 대체.
+            im.addEventListener("error", function () { im.style.visibility = "hidden"; });
+            cell.appendChild(im);
+            if (ph.kind === "video") {
+              var badge = document.createElement("div"); badge.className = "play";
+              badge.innerHTML = "<span>&#9654;</span>";
+              cell.appendChild(badge);
+              var tag = document.createElement("div"); tag.className = "dur"; tag.textContent = "영상";
+              cell.appendChild(tag);
+            }
+            cell.addEventListener("click", function () {
               SHOTS = p.photos; AT = p.photos.indexOf(ph);
               show(day.label + " · " + o.org + " · " + p.title);
             });
-            g.appendChild(im);
+            g.appendChild(cell);
           });
           wrap.appendChild(g); card.appendChild(wrap);
         });
@@ -186,7 +213,7 @@
     });
 
     el("summary").textContent = shown
-      ? shown + "일 · 사진 " + photos + "장"
+      ? shown + "일 · 사진 " + (photos - vids) + "장" + (vids ? " · 영상 " + vids + "개" : "")
       : "";
     if (!shown) {
       main.innerHTML = '<div class="msg">이 지역에는 아직 올라온 사진이 없어요.<br>'
@@ -197,23 +224,38 @@
   // 사진 크게 보기
   var box = el("box");
   function show(cap) {
-    el("boximg").src = SHOTS[AT].full;
+    var it = SHOTS[AT];
+    var img = el("boximg"), vid = el("boxvid");
+    if (it.kind === "video") {
+      img.hidden = true; img.removeAttribute("src");
+      vid.hidden = false; vid.src = it.full;          // 드라이브 플레이어
+    } else {
+      vid.hidden = true; vid.removeAttribute("src");  // 재생 중이던 영상을 확실히 멈춘다
+      img.hidden = false; img.src = it.full;
+    }
     el("boxcap").textContent = cap + "  (" + (AT + 1) + "/" + SHOTS.length + ")";
     box.style.display = "flex";
     box.dataset.cap = cap;
+  }
+
+  /// 닫을 때도 iframe을 비워 소리가 계속 나지 않게 한다.
+  function closeBox() {
+    box.style.display = "none";
+    el("boxvid").removeAttribute("src");
+    el("boximg").removeAttribute("src");
   }
   function step(d) {
     if (!SHOTS.length) return;
     AT = (AT + d + SHOTS.length) % SHOTS.length;
     show(box.dataset.cap || "");
   }
-  box.querySelector(".x").addEventListener("click", function () { box.style.display = "none"; });
+  box.querySelector(".x").addEventListener("click", closeBox);
   box.querySelector(".prev").addEventListener("click", function (e) { e.stopPropagation(); step(-1); });
   box.querySelector(".next").addEventListener("click", function (e) { e.stopPropagation(); step(1); });
-  box.addEventListener("click", function (e) { if (e.target === box) box.style.display = "none"; });
+  box.addEventListener("click", function (e) { if (e.target === box) closeBox(); });
   document.addEventListener("keydown", function (e) {
     if (box.style.display !== "flex") return;
-    if (e.key === "Escape") box.style.display = "none";
+    if (e.key === "Escape") closeBox();
     if (e.key === "ArrowRight") step(1);
     if (e.key === "ArrowLeft") step(-1);
   });
