@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>활동 보고</title>
+<style>
+  :root { --pink:#F35AA0; --ink:#2b2b2b; --sub:#8a8a8a; --line:#ececec; --bg:#FBF8F9; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--bg); color:var(--ink);
+              font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  header { position:sticky; top:0; z-index:20; background:rgba(251,248,249,.94);
+           backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+  .hwrap { max-width:1100px; margin:0 auto; padding:14px 18px 0; }
+  h1 { font-size:19px; margin:0 0 2px; letter-spacing:-.02em; }
+  .sub { font-size:13px; color:var(--sub); margin-bottom:10px; }
+  .tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; }
+  .tab { flex:0 0 auto; border:0; cursor:pointer; font:inherit; font-weight:800; font-size:14px;
+         padding:8px 16px; border-radius:999px; background:#efe9ec; color:#6b6b6b; }
+  .tab.on { background:var(--pink); color:#fff; }
+  main { max-width:1100px; margin:0 auto; padding:18px; }
+
+  .day { margin-bottom:30px; }
+  .dayhead { display:flex; align-items:baseline; gap:10px; margin:0 0 12px; }
+  .dayhead h2 { font-size:17px; margin:0; }
+  .dayhead .cnt { font-size:12px; color:var(--sub); }
+  .org { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px; }
+  .orghead { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .orghead h3 { font-size:16px; margin:0; }
+  .badge { font-size:11px; font-weight:800; color:var(--pink); background:#fdeef5;
+           padding:3px 9px; border-radius:999px; }
+  .prog { margin-top:14px; }
+  .prog h4 { font-size:14px; margin:0 0 7px; color:#444; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:7px; }
+  .grid img { width:100%; aspect-ratio:1; object-fit:cover; display:block; border-radius:9px;
+              background:#f0eaed; cursor:pointer; }
+
+  /* 로그인 */
+  .gate { max-width:340px; margin:16vh auto; background:#fff; border:1px solid var(--line);
+          border-radius:18px; padding:26px 22px; text-align:center; }
+  .gate h1 { font-size:18px; margin:0 0 6px; }
+  .gate p { font-size:13px; color:var(--sub); margin:0 0 16px; }
+  .gate input { width:100%; font:inherit; font-size:16px; padding:12px 14px; text-align:center;
+                border:1px solid var(--line); border-radius:12px; margin-bottom:10px; }
+  .gate button { width:100%; font:inherit; font-weight:800; font-size:15px; color:#fff;
+                 background:var(--pink); border:0; border-radius:12px; padding:13px; cursor:pointer; }
+  .err { color:#d7443e; font-size:13px; min-height:18px; margin-top:8px; }
+  .msg { text-align:center; color:var(--sub); padding:40px 20px; font-size:14px; line-height:1.7; }
+
+  /* 사진 크게 보기 */
+  #box { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; z-index:50;
+         align-items:center; justify-content:center; }
+  #box img { max-width:96vw; max-height:88vh; object-fit:contain; }
+  #box .x { position:absolute; top:14px; right:18px; color:#fff; font-size:30px; cursor:pointer; }
+  #box .nav { position:absolute; top:50%; transform:translateY(-50%); color:#fff; font-size:38px;
+              cursor:pointer; padding:14px; user-select:none; opacity:.75; }
+  #box .prev { left:4px; } #box .next { right:4px; }
+  #box .cap { position:absolute; bottom:16px; left:0; right:0; text-align:center; color:#fff; font-size:13px; }
+  @media print { header, .tabs, #box { display:none } .org { break-inside:avoid } }
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <h1>활동 보고</h1>
+  <p>열람용 비밀번호를 입력해 주세요.</p>
+  <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
+  <button id="go">열기</button>
+  <div id="err" class="err"></div>
+</div>
+
+<header id="head" hidden>
+  <div class="hwrap">
+    <h1>활동 보고</h1>
+    <div class="sub" id="summary"></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+</header>
+<main id="main" hidden></main>
+
+<div id="box">
+  <span class="x">&times;</span>
+  <span class="nav prev">&#8249;</span>
+  <img id="boximg" alt="">
+  <span class="nav next">&#8250;</span>
+  <div class="cap" id="boxcap"></div>
+</div>
+
+<script>
+  // Apps Script 웹앱 — 앱과 같은 배포본을 쓴다.
+  var API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+
+  var el = function (id) { return document.getElementById(id); };
+  var DATA = null, REGION = "전체", SHOTS = [], AT = 0;
+
+  // 한 번 맞춘 비밀번호는 이 브라우저에만 기억해 둔다(매번 입력하지 않게).
+  var saved = localStorage.getItem("reportPw");
+  if (saved) { el("pw").value = saved; open(saved, true); }
+
+  el("go").addEventListener("click", function () { open(el("pw").value.trim(), false); });
+  el("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") el("go").click(); });
+
+  function open(pw, quiet) {
+    if (!pw) return;
+    if (!quiet) { el("err").textContent = "여는 중…"; }
+    fetch(API, {
+      method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "reportTree", secret: "artclasshub-2026", pw: pw })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) {
+          localStorage.removeItem("reportPw");
+          el("err").textContent = d.message || "열지 못했어요.";
+          return;
+        }
+        localStorage.setItem("reportPw", pw);
+        DATA = d;
+        el("gate").hidden = true; el("gate").style.display = "none";
+        el("head").hidden = false; el("main").hidden = false;
+        render();
+      })
+      .catch(function () { el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요."; });
+  }
+
+  /// 기관에 붙은 지역들을 모아 탭으로. 지역 미지정은 '기타'로 묶인다.
+  function regionsOf(dates) {
+    var set = [];
+    dates.forEach(function (d) {
+      d.orgs.forEach(function (o) { if (set.indexOf(o.region) < 0) set.push(o.region); });
+    });
+    set.sort(function (a, b) { return a === "기타" ? 1 : b === "기타" ? -1 : (a < b ? -1 : 1); });
+    return ["전체"].concat(set);
+  }
+
+  function render() {
+    var regions = regionsOf(DATA.dates);
+    var tabs = el("tabs"); tabs.innerHTML = "";
+    regions.forEach(function (r) {
+      var b = document.createElement("button");
+      b.className = "tab" + (r === REGION ? " on" : "");
+      b.textContent = r;
+      b.addEventListener("click", function () { REGION = r; render(); window.scrollTo(0, 0); });
+      tabs.appendChild(b);
+    });
+
+    var main = el("main"); main.innerHTML = "";
+    var shown = 0, photos = 0;
+
+    DATA.dates.forEach(function (day) {
+      var orgs = day.orgs.filter(function (o) { return REGION === "전체" || o.region === REGION; });
+      if (!orgs.length) return;
+      shown++;
+
+      var sec = document.createElement("section"); sec.className = "day";
+      var n = 0;
+      orgs.forEach(function (o) { o.programs.forEach(function (p) { n += p.photos.length; }); });
+      photos += n;
+
+      sec.innerHTML = '<div class="dayhead"><h2>' + esc(day.label) + '</h2>'
+        + '<span class="cnt">' + orgs.length + '개 기관 · 사진 ' + n + '장</span></div>';
+
+      orgs.forEach(function (o) {
+        var card = document.createElement("div"); card.className = "org";
+        card.innerHTML = '<div class="orghead"><h3>' + esc(o.org) + '</h3>'
+          + '<span class="badge">' + esc(o.region) + '</span></div>';
+        o.programs.forEach(function (p) {
+          var wrap = document.createElement("div"); wrap.className = "prog";
+          wrap.innerHTML = "<h4>" + esc(p.title) + "</h4>";
+          var g = document.createElement("div"); g.className = "grid";
+          p.photos.forEach(function (ph) {
+            var im = document.createElement("img");
+            im.src = ph.thumb; im.loading = "lazy"; im.alt = ph.name;
+            im.addEventListener("click", function () {
+              SHOTS = p.photos; AT = p.photos.indexOf(ph);
+              show(day.label + " · " + o.org + " · " + p.title);
+            });
+            g.appendChild(im);
+          });
+          wrap.appendChild(g); card.appendChild(wrap);
+        });
+        sec.appendChild(card);
+      });
+      main.appendChild(sec);
+    });
+
+    el("summary").textContent = shown
+      ? shown + "일 · 사진 " + photos + "장"
+      : "";
+    if (!shown) {
+      main.innerHTML = '<div class="msg">이 지역에는 아직 올라온 사진이 없어요.<br>'
+        + '드라이브에 <b>날짜 ▸ 학교·기관명 ▸ 01프로그램명</b> 순서로 넣으면 여기에 나옵니다.</div>';
+    }
+  }
+
+  // 사진 크게 보기
+  var box = el("box");
+  function show(cap) {
+    el("boximg").src = SHOTS[AT].full;
+    el("boxcap").textContent = cap + "  (" + (AT + 1) + "/" + SHOTS.length + ")";
+    box.style.display = "flex";
+    box.dataset.cap = cap;
+  }
+  function step(d) {
+    if (!SHOTS.length) return;
+    AT = (AT + d + SHOTS.length) % SHOTS.length;
+    show(box.dataset.cap || "");
+  }
+  box.querySelector(".x").addEventListener("click", function () { box.style.display = "none"; });
+  box.querySelector(".prev").addEventListener("click", function (e) { e.stopPropagation(); step(-1); });
+  box.querySelector(".next").addEventListener("click", function (e) { e.stopPropagation(); step(1); });
+  box.addEventListener("click", function (e) { if (e.target === box) box.style.display = "none"; });
+  document.addEventListener("keydown", function (e) {
+    if (box.style.display !== "flex") return;
+    if (e.key === "Escape") box.style.display = "none";
+    if (e.key === "ArrowRight") step(1);
+    if (e.key === "ArrowLeft") step(-1);
+  });
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+</script>
+</body>
+</html>
