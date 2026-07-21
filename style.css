@@ -402,3 +402,6 @@ html, body {
 .rail-box .prev { left: 4px; } .rail-box .next { right: 4px; }
 .rail-box .cap { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center;
                  color: #fff; font-size: 13px; }
+
+/* 클래스 안 '우리 그림' 제목 (기존 작품 그리드 위) */
+.rail-standalone { max-width: 1240px; margin: 0 auto 8px; padding: 0 4px; font-size: 17px; }

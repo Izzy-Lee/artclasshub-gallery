@@ -1,8 +1,10 @@
 /* =========================================================
-   Artable 갤러리 — 홈 가로 줄(레일)
-     📚 그림책  |  🎨 그림  |  📷 수업 모습(비밀번호)
-   기존 script.js 는 건드리지 않고, 홈 화면 위/아래에 얹는다.
-   학교로 들어가면(#schoolHeader 가 보이면) 레일은 숨는다.
+   Artable 갤러리 — 클래스 안의 가로 줄(레일)
+     클래스 카드 → (비밀번호) → 📚 그림책 · 🎨 우리 그림 · 📷 수업 모습
+
+   홈(클래스 카드 나열)은 기존 script.js 그대로 두고,
+   클래스로 들어갔을 때만 작품 그리드 위/아래에 레일을 붙인다.
+   가운데 '우리 그림'은 기존 그리드를 그대로 쓴다(검색·정렬·모달·관리자 기능 유지).
    ========================================================= */
 (function () {
   "use strict";
@@ -12,9 +14,15 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  // 클래스 이름 → 그 반의 반코드 모음 (그림책을 반과 이어 붙이는 데 쓴다)
+  var codesByClass = {};
+  var books = null;        // storybooks 캐시
+  var reportData = null;   // 비밀번호를 통과한 뒤의 사진 트리
+  var currentClass = "";
+
   /// 가로로 부드럽게 옮긴다.
   /// scroll-behavior:smooth 와 scroll-snap 을 같이 쓰면 코드로 건 스크롤이 스냅 엔진에
-  /// 취소되는 브라우저가 있어, 직접 한 프레임씩 그린다. 프레임이 안 도는 상황(백그라운드 탭)
+  /// 취소되는 브라우저가 있어 직접 한 프레임씩 그린다. 프레임이 안 도는 상황(백그라운드 탭)
   /// 에서는 즉시 옮겨 '눌러도 안 움직이는' 상태가 되지 않게 한다.
   function glide(box, target, done) {
     var keepSnap = box.style.scrollSnapType, keepBehav = box.style.scrollBehavior;
@@ -38,28 +46,24 @@
     requestAnimationFrame(frame);
   }
 
-  /// 레일 한 줄을 만든다. { id, icon, title, note } → { section, track, setCount }
-  function makeRail(opt) {
+  function makeRail(id, icon, title) {
     var sec = document.createElement("section");
-    sec.className = "rail"; sec.id = opt.id;
+    sec.className = "rail"; sec.id = id; sec.hidden = true;
     sec.innerHTML =
       '<div class="rail-head">' +
-        '<h2 class="rail-title">' + opt.icon + " " + opt.title + "</h2>" +
+        '<h2 class="rail-title">' + icon + " " + title + "</h2>" +
         '<span class="rail-cnt"></span>' +
         '<button class="rail-arrow" type="button" aria-label="이전">‹</button>' +
         '<button class="rail-arrow" type="button" aria-label="다음">›</button>' +
       "</div>" +
-      (opt.note ? '<p class="rail-note">' + opt.note + "</p>" : "") +
       '<div class="rail-track"></div>';
-
     var track = sec.querySelector(".rail-track");
     var arrows = sec.querySelectorAll(".rail-arrow");
     function sync() {
       var end = track.scrollWidth - track.clientWidth - 2;
       arrows[0].disabled = track.scrollLeft <= 2;
       arrows[1].disabled = track.scrollLeft >= end;
-      // 한 화면에 다 들어오면 화살표를 숨긴다.
-      var hide = track.scrollWidth <= track.clientWidth + 2;
+      var hide = track.scrollWidth <= track.clientWidth + 2;   // 한 화면에 다 들어오면 숨긴다
       arrows[0].style.display = arrows[1].style.display = hide ? "none" : "";
     }
     function page(dir) {
@@ -70,7 +74,6 @@
     arrows[1].addEventListener("click", function () { page(1); });
     track.addEventListener("scroll", sync);
     window.addEventListener("resize", sync);
-
     return {
       section: sec, track: track, sync: sync,
       setCount: function (t) { sec.querySelector(".rail-cnt").textContent = t || ""; }
@@ -85,8 +88,7 @@
         (imgUrl ? '<img loading="lazy" alt="">' : '<div class="rail-noimg">🖼</div>') +
         (isVideo ? '<span class="rail-play">▶</span>' : "") +
       "</div>" +
-      '<p class="rail-l1"></p>' +
-      (line2 ? '<p class="rail-l2"></p>' : "");
+      '<p class="rail-l1"></p>' + (line2 ? '<p class="rail-l2"></p>' : "");
     if (imgUrl) {
       var im = el.querySelector("img");
       im.src = imgUrl;
@@ -98,91 +100,97 @@
     return el;
   }
 
-  // ---------- 데이터 ----------
+  function db() { try { return firebase.firestore(); } catch (e) { return null; } }
 
-  function db() {
-    try { return firebase.firestore(); } catch (e) { return null; }
+  // ---------- 반코드 모으기 ----------
+
+  /// 작품 문서에서 '클래스 이름 → 반코드들'을 만들어 둔다.
+  /// (홈 카드의 이름은 학교명 → 없으면 반이름 순으로 정해지므로 같은 규칙을 쓴다)
+  function loadClassCodes() {
+    var d = db();
+    if (!d) return Promise.resolve();
+    var CFG = window.GALLERY_CONFIG || {};
+    return d.collection(CFG.collection || "submissions").limit(600).get().then(function (snap) {
+      snap.forEach(function (doc) {
+        var a = doc.data() || {};
+        var name = a.school_name || a.class_name || a.className || a.class_code || "";
+        var code = a.class_code || a.classCode || "";
+        if (!name || !code) return;
+        (codesByClass[name] = codesByClass[name] || {})[code] = true;
+      });
+    }).catch(function () {});
   }
 
-  /// 📚 온라인에 올라간 그림책 — storybooks 중 bookId 가 발급된 것.
-  function loadBooks(rail) {
+  function loadBooks() {
+    if (books) return Promise.resolve(books);
     var d = db();
-    if (!d) { rail.section.hidden = true; return; }
-    d.collection("storybooks").limit(300).get().then(function (snap) {
-      var books = [];
+    if (!d) { books = []; return Promise.resolve(books); }
+    return d.collection("storybooks").limit(400).get().then(function (snap) {
+      var out = [];
       snap.forEach(function (doc) {
         var b = doc.data() || {};
         if (!b.bookId) return;                       // 아직 온라인에 안 올린 책
-        books.push({
+        out.push({
           bookId: b.bookId,
           title: b.title || "제목 없는 그림책",
           student: b.studentName || "",
+          classCode: b.classCode || "",
           cover: b.thumbURL || (b.spreadThumbs && b.spreadThumbs[0]) || "",
           at: b.updatedAt && b.updatedAt.seconds ? b.updatedAt.seconds : 0
         });
       });
-      books.sort(function (a, b) { return b.at - a.at; });
-      if (!books.length) { rail.section.hidden = true; return; }
-      books.forEach(function (b) {
+      out.sort(function (a, b) { return b.at - a.at; });
+      books = out;
+      return books;
+    }).catch(function () { books = []; return books; });
+  }
+
+  // ---------- 📚 그림책 ----------
+
+  function fillBooks(rail, className) {
+    loadBooks().then(function (all) {
+      var codes = codesByClass[className] || {};
+      var mine = all.filter(function (b) {
+        // 반코드가 맞거나, 반코드 자체가 클래스 이름인 경우(코드 대신 반이름을 쓰는 반)
+        return codes[b.classCode] || b.classCode === className;
+      });
+      rail.track.innerHTML = "";
+      if (!mine.length) { rail.section.hidden = true; return; }
+      mine.forEach(function (b) {
         rail.track.appendChild(tile(b.cover, b.title, b.student, function () {
           location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
         }));
       });
-      rail.setCount(books.length + "권");
+      rail.setCount(mine.length + "권");
+      rail.section.hidden = false;
       rail.sync();
-    }).catch(function () { rail.section.hidden = true; });
+    });
   }
 
-  /// 🎨 최근 작품 — 기존 갤러리와 같은 컬렉션.
-  function loadArt(rail) {
-    var d = db();
-    if (!d) { rail.section.hidden = true; return; }
-    var CFG = window.GALLERY_CONFIG || {};
-    d.collection(CFG.collection || "submissions").limit(300).get().then(function (snap) {
-      var items = [];
-      snap.forEach(function (doc) {
-        var a = doc.data() || {};
-        if (a.hidden) return;
-        var url = a.thumbnail_url || a.image_url || a.url || "";
-        if (!url) return;
-        var ts = a[CFG.dateField || "created_at"];
-        items.push({
-          url: url,
-          student: a.student_name || a.student || "",
-          title: a.title || "",
-          at: ts && ts.seconds ? ts.seconds : 0
-        });
-      });
-      items.sort(function (a, b) { return b.at - a.at; });
-      if (!items.length) { rail.section.hidden = true; return; }
-      items.slice(0, 60).forEach(function (a) {
-        rail.track.appendChild(tile(a.url, a.student, a.title, null));
-      });
-      rail.setCount(items.length + "점");
-      rail.sync();
-    }).catch(function () { rail.section.hidden = true; });
-  }
+  // ---------- 📷 수업 모습 ----------
 
-  /// 📷 수업 모습 — 아이 얼굴이 담긴 사진이라 비밀번호를 넣어야 열린다.
-  function setupPhotos(rail) {
+  function fillPhotos(rail, className) {
+    rail.track.innerHTML = "";
+    var old = rail.section.querySelector(".rail-gate, .rail-days");
+    while (old) { old.remove(); old = rail.section.querySelector(".rail-gate, .rail-days"); }
+    rail.section.hidden = false;
+
+    if (reportData) { renderPhotos(rail, className); return; }
+
     var gate = document.createElement("div");
     gate.className = "rail-gate";
     gate.innerHTML =
-      '<p>수업 사진은 아이들 얼굴이 담겨 있어 비밀번호를 넣어야 보여요.</p>' +
+      "<p>수업 사진은 아이들 얼굴이 담겨 있어 비밀번호를 넣어야 보여요.</p>" +
       '<div class="rail-gate-row">' +
         '<input type="password" placeholder="비밀번호" autocomplete="current-password">' +
         "<button type=\"button\">열기</button>" +
-      "</div>" +
-      '<span class="rail-gate-err"></span>';
+      "</div><span class=\"rail-gate-err\"></span>";
     rail.section.insertBefore(gate, rail.track);
 
-    var input = gate.querySelector("input");
-    var btn = gate.querySelector("button");
-    var err = gate.querySelector(".rail-gate-err");
-
+    var input = gate.querySelector("input"), btn = gate.querySelector("button"),
+        err = gate.querySelector(".rail-gate-err");
     var saved = localStorage.getItem("reportPw");
     if (saved) { input.value = saved; open(saved, true); }
-
     btn.addEventListener("click", function () { open(input.value.trim(), false); });
     input.addEventListener("keydown", function (e) { if (e.key === "Enter") btn.click(); });
 
@@ -201,55 +209,64 @@
             return;
           }
           localStorage.setItem("reportPw", pw);
-          err.textContent = "";
+          reportData = d.dates || [];
           gate.remove();
-          renderPhotos(rail, d.dates || []);
+          renderPhotos(rail, className);
         })
         .catch(function () { err.textContent = "연결에 실패했어요."; });
     }
   }
 
-  /// 날짜 카드 → 고른 날의 사진을 한 줄로.
-  function renderPhotos(rail, dates) {
-    if (!dates.length) { rail.section.hidden = true; return; }
+  function dparts(f) {
+    var g = String(f).replace(/[^0-9]/g, "");
+    if (g.length !== 8) return { m: String(f), y: "" };
+    return { m: (+g.substr(4, 2)) + "/" + (+g.substr(6, 2)), y: g.substr(0, 4) };
+  }
+
+  /// 이 클래스(기관)에 해당하는 날짜만 골라 날짜 카드 + 사진 한 줄로.
+  function renderPhotos(rail, className) {
+    var days = (reportData || []).map(function (day) {
+      var orgs = day.orgs.filter(function (o) { return o.org === className; });
+      return orgs.length ? { folder: day.folder, orgs: orgs } : null;
+    }).filter(Boolean);
+
+    if (!days.length) {
+      rail.track.innerHTML = "";
+      rail.setCount("");
+      rail.section.hidden = true;   // 이 반 사진이 없으면 줄 자체를 감춘다
+      return;
+    }
 
     var bar = document.createElement("div");
     bar.className = "rail-days";
     rail.section.insertBefore(bar, rail.track);
-
-    var pick = dates[0].folder;
-    function dparts(f) {
-      var g = String(f).replace(/[^0-9]/g, "");
-      if (g.length !== 8) return { m: String(f), y: "" };
-      return { m: (+g.substr(4, 2)) + "/" + (+g.substr(6, 2)), y: g.substr(0, 4) };
-    }
+    var pick = days[0].folder;
 
     function draw() {
       bar.innerHTML = "";
-      dates.forEach(function (day) {
+      days.forEach(function (day) {
         var p = dparts(day.folder), n = 0;
         day.orgs.forEach(function (o) { o.programs.forEach(function (pr) { n += pr.photos.length; }); });
         var c = document.createElement("button");
         c.type = "button";
         c.className = "rail-day" + (day.folder === pick ? " on" : "");
-        c.innerHTML = '<span class="y">' + p.y + '</span><span class="d">' + p.m + '</span>'
-          + '<span class="n">' + n + "개</span>";
+        c.innerHTML = '<span class="y">' + p.y + '</span><span class="d">' + p.m
+          + '</span><span class="n">' + n + "개</span>";
         c.addEventListener("click", function () { pick = day.folder; draw(); });
         bar.appendChild(c);
       });
 
-      var day = dates.filter(function (d) { return d.folder === pick; })[0];
-      rail.track.innerHTML = "";
+      var day = days.filter(function (d) { return d.folder === pick; })[0];
       var shots = [];
       day.orgs.forEach(function (o) {
         o.programs.forEach(function (pr) {
           pr.photos.forEach(function (ph) { shots.push({ ph: ph, org: o.org, prog: pr.title }); });
         });
       });
+      rail.track.innerHTML = "";
       shots.forEach(function (s, i) {
-        rail.track.appendChild(tile(s.ph.thumb, s.org, s.prog, function () {
-          lightbox(shots, i);
-        }, s.ph.kind === "video"));
+        rail.track.appendChild(tile(s.ph.thumb, s.prog, s.ph.kind === "video" ? "영상" : "",
+          function () { lightbox(shots, i); }, s.ph.kind === "video"));
       });
       rail.setCount(shots.length + "개");
       rail.sync();
@@ -300,34 +317,43 @@
 
   // ---------- 조립 ----------
   function init() {
-    var main = document.querySelector("main") || document.body;
     var galleryEl = $("gallery");
-    var anchor = galleryEl ? (galleryEl.parentNode === main ? galleryEl : main.firstChild) : main.firstChild;
-
-    var books = makeRail({ id: "railBooks", icon: "📚", title: "그림책" });
-    var art = makeRail({ id: "railArt", icon: "🎨", title: "우리 그림" });
-    var photos = makeRail({ id: "railPhotos", icon: "📷", title: "수업 모습" });
-
-    main.insertBefore(books.section, anchor);
-    main.insertBefore(art.section, anchor);
-    main.appendChild(photos.section);   // 수업 모습은 맨 아래
-
-    loadBooks(books);
-    loadArt(art);
-    setupPhotos(photos);
-
-    // 학교로 들어가면(학교 머리말이 보이면) 레일은 접어 둔다.
     var head = $("schoolHeader");
-    if (head) {
-      var apply = function () {
-        var inSchool = !head.hidden;
-        [books.section, art.section, photos.section].forEach(function (s) {
-          s.classList.toggle("rail-off", inSchool);
-        });
-      };
-      new MutationObserver(apply).observe(head, { attributes: true, attributeFilter: ["hidden"] });
-      apply();
+    var titleEl = $("schoolTitle");
+    if (!galleryEl || !head) return;
+
+    var bookRail = makeRail("railBooks", "📚", "그림책");
+    var photoRail = makeRail("railPhotos", "📷", "수업 모습");
+    var artHead = document.createElement("h2");
+    artHead.className = "rail-title rail-standalone";
+    artHead.textContent = "🎨 우리 그림";
+    artHead.hidden = true;
+
+    galleryEl.parentNode.insertBefore(bookRail.section, galleryEl);
+    galleryEl.parentNode.insertBefore(artHead, galleryEl);
+    galleryEl.parentNode.insertBefore(photoRail.section, galleryEl.nextSibling);
+
+    loadClassCodes();
+
+    function apply() {
+      var inClass = !head.hidden;
+      var name = (titleEl && titleEl.textContent || "").trim();
+      artHead.hidden = !inClass;
+      if (!inClass) {
+        bookRail.section.hidden = true;
+        photoRail.section.hidden = true;
+        currentClass = "";
+        return;
+      }
+      if (name === currentClass) return;   // 같은 반이면 다시 그리지 않는다
+      currentClass = name;
+      fillBooks(bookRail, name);
+      fillPhotos(photoRail, name);
     }
+    // 학교(반) 머리말이 보이는지 + 이름이 바뀌는지 둘 다 지켜본다.
+    new MutationObserver(apply).observe(head, { attributes: true, attributeFilter: ["hidden"] });
+    if (titleEl) new MutationObserver(apply).observe(titleEl, { childList: true, characterData: true, subtree: true });
+    apply();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
