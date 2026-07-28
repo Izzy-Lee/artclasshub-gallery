@@ -195,14 +195,34 @@
   var DATA = null, REGION = "전체", DAY = null, SHOTS = [], AT = 0;
 
   var saved = localStorage.getItem("reportPw");
-  if (saved) { el("pw").value = saved; openReport(saved, true); }
+  if (saved) {
+    el("pw").value = saved;
+    // 지난번 받아둔 자료를 즉시 그려서(재열람은 바로 뜬다) 기다림을 없앤다.
+    var cachedRaw = localStorage.getItem("reportData");
+    if (cachedRaw) { try { applyData(JSON.parse(cachedRaw)); } catch (e) { /* 깨진 캐시는 무시 */ } }
+    openReport(saved, true);   // 백그라운드에서 최신으로 갱신
+  }
 
   el("go").addEventListener("click", function () { openReport(el("pw").value.trim(), false); });
   el("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") el("go").click(); });
 
+  function setLoading(on) {
+    var b = el("go");
+    b.disabled = on;
+    b.textContent = on ? "불러오는 중…" : "열기";
+  }
+
+  function applyData(d) {
+    DATA = d;
+    el("gate").style.display = "none";
+    el("head").hidden = false; el("main").hidden = false;
+    render();
+  }
+
   function openReport(pw, quiet) {
     if (!pw) return;
-    if (!quiet) el("err").textContent = "여는 중…";
+    var haveView = !el("main").hidden;              // 이미 (캐시로) 보여주는 중인가
+    if (!quiet && !haveView) { el("err").textContent = ""; setLoading(true); }
     fetch(API, {
       method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "reportTree", secret: "artclasshub-2026", pw: pw })
@@ -210,17 +230,23 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) {
-          localStorage.removeItem("reportPw");
-          el("err").textContent = d.message || "열지 못했어요.";
+          if (!haveView) {                          // 캐시로 보여주는 중이면 조용히 무시
+            localStorage.removeItem("reportPw");
+            setLoading(false);
+            el("err").textContent = d.message || "열지 못했어요.";
+          }
           return;
         }
         localStorage.setItem("reportPw", pw);
-        DATA = d;
-        el("gate").style.display = "none";
-        el("head").hidden = false; el("main").hidden = false;
-        render();
+        var raw = JSON.stringify(d);
+        if (haveView && raw === localStorage.getItem("reportData")) return;   // 바뀐 게 없으면 다시 안 그림
+        localStorage.setItem("reportData", raw);
+        setLoading(false);
+        applyData(d);
       })
-      .catch(function () { el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요."; });
+      .catch(function () {
+        if (!haveView) { setLoading(false); el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요."; }
+      });
   }
 
   /// 20260721 → {m:"7/21", y:"2026"}
