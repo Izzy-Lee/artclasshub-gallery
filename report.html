@@ -74,6 +74,26 @@
   .cell .tag { position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.6); color:#fff;
                font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; pointer-events:none; }
 
+  /* 상단 자동재생 슬라이드쇼 — 아래 사진들을 영상처럼 */
+  .hero { margin:0 0 18px; }
+  .hero-stage { position:relative; width:100%; aspect-ratio:16/9; border-radius:16px; overflow:hidden;
+                background:#000; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.10); }
+  @media (max-width:640px) { .hero-stage { aspect-ratio:4/3; } }
+  .hero-stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+                    opacity:0; transform:scale(1.04); will-change:opacity,transform; }
+  .hero-stage img.show { opacity:1; }
+  .hero-badge { position:absolute; left:12px; top:12px; z-index:3; display:flex; align-items:center; gap:6px;
+                background:rgba(0,0,0,.5); color:#fff; font-size:12px; font-weight:800;
+                padding:5px 11px; border-radius:999px; pointer-events:none; }
+  .hero-badge .dot { width:7px; height:7px; border-radius:50%; background:var(--pink);
+                     animation:heropulse 1.4s ease-in-out infinite; }
+  @keyframes heropulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  .hero-cap { position:absolute; left:0; right:0; bottom:0; z-index:2; pointer-events:none;
+              padding:30px 14px 13px; color:#fff; font-size:13px; font-weight:700;
+              text-shadow:0 1px 3px rgba(0,0,0,.5);
+              background:linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,0)); }
+  .hero-bar { position:absolute; left:0; bottom:0; height:3px; z-index:4; width:0; background:var(--pink); }
+
   /* 로그인 */
   .gate { max-width:340px; margin:16vh auto; background:#fff; border:1px solid var(--line);
           border-radius:18px; padding:26px 22px; text-align:center; }
@@ -270,6 +290,108 @@
     renderDay(days.filter(function (d) { return d.folder === DAY; })[0]);
   }
 
+  // ── 상단 자동재생 슬라이드쇼 ──────────────────────────────────
+  // 지금 보고 있는 날짜의 사진(영상 제외)을 랜덤 순서로 크로스페이드+켄번스 줌으로
+  // 동영상처럼 돌린다. 탭하면 그 작품이 큰 화면으로 열리고, 큰 화면이 열려 있는 동안은 멈춘다.
+  var HERO = null;
+
+  function heroStop() {
+    if (HERO && HERO.timer) clearTimeout(HERO.timer);
+    HERO = null;
+  }
+  function heroPause() { if (HERO && HERO.timer) { clearTimeout(HERO.timer); HERO.timer = null; } }
+  function heroResume() {
+    if (!HERO || HERO.timer) return;
+    heroBar();                                   // 진행바 다시 채우기 시작
+    HERO.timer = setTimeout(HERO.tick, HERO.INTERVAL);
+  }
+  function heroBar() {
+    var bar = HERO.bar;
+    bar.style.transition = "none"; bar.style.width = "0";
+    void bar.offsetWidth;
+    bar.style.transition = "width " + HERO.INTERVAL + "ms linear"; bar.style.width = "100%";
+  }
+
+  /// 지금 화면(날짜·지역)의 이미지들을 캡션과 함께 모은다.
+  function buildHero(day, orgs) {
+    var imgs = [], caps = [], m = dparts(day.folder).m;
+    orgs.forEach(function (o) {
+      o.programs.forEach(function (pr) {
+        pr.photos.forEach(function (ph) {
+          if (ph.kind === "video") return;       // 사진만
+          imgs.push(ph);
+          caps.push(m + " · " + o.org + " · " + pr.title);
+        });
+      });
+    });
+    return { imgs: imgs, caps: caps };
+  }
+
+  function shuffledOrder(n) {
+    var a = []; for (var i = 0; i < n; i++) a.push(i);
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function heroStart(built) {
+    var wrap = document.createElement("div"); wrap.className = "hero";
+    var stage = document.createElement("div"); stage.className = "hero-stage";
+    var a = document.createElement("img"); a.alt = ""; a.decoding = "async";
+    var b = document.createElement("img"); b.alt = ""; b.decoding = "async";
+    var badge = document.createElement("div"); badge.className = "hero-badge";
+    badge.innerHTML = '<span class="dot"></span>자동재생 · ' + built.imgs.length + '장';
+    var cap = document.createElement("div"); cap.className = "hero-cap";
+    var bar = document.createElement("div"); bar.className = "hero-bar";
+    stage.appendChild(a); stage.appendChild(b);
+    stage.appendChild(badge); stage.appendChild(cap); stage.appendChild(bar);
+    wrap.appendChild(stage);
+
+    var H = {
+      list: built.imgs, caps: built.caps, layers: [a, b],
+      order: shuffledOrder(built.imgs.length), pos: 0, layer: 0,
+      timer: null, INTERVAL: 3400, FADE: 900, bar: bar, cap: cap, tick: null
+    };
+    HERO = H;
+
+    function swap(first) {
+      var idx = H.order[H.pos];
+      var ph = H.list[idx];
+      var next = H.layers[H.layer ^ 1], prev = H.layers[H.layer];
+      next.src = ph.full || ph.thumb;
+      next.onerror = function () { next.style.visibility = "hidden"; };
+      // 켄번스: scale 1.04 → 1.14 로 INTERVAL 동안 서서히.
+      next.style.transition = "none"; next.style.transform = "scale(1.04)";
+      next.classList.remove("show");
+      void next.offsetWidth;                     // reflow — 트랜지션이 처음부터 돌게
+      next.style.transition = "opacity " + H.FADE + "ms ease, transform " + (H.INTERVAL + H.FADE) + "ms ease-out";
+      next.classList.add("show");
+      next.style.transform = "scale(1.14)";
+      if (!first) prev.classList.remove("show");
+      H.layer ^= 1;
+      H.cap.textContent = H.caps[idx];
+      heroBar();
+    }
+
+    H.tick = function () {
+      H.pos = (H.pos + 1) % H.order.length;
+      if (H.pos === 0) H.order = shuffledOrder(H.list.length);   // 한 바퀴 돌면 다시 섞기
+      swap(false);
+      H.timer = setTimeout(H.tick, H.INTERVAL);
+    };
+
+    stage.addEventListener("click", function () {
+      SHOTS = H.list; AT = H.order[H.pos];
+      show(H.caps[AT]);                          // 큰 화면 (열리면 show()가 heroPause 호출)
+    });
+
+    swap(true);
+    H.timer = setTimeout(H.tick, H.INTERVAL);
+    return wrap;
+  }
+
   function renderDay(day) {
     var orgs = day.orgs.filter(function (o) { return REGION === "전체" || o.region === REGION; });
     var total = 0, vids = 0;
@@ -284,6 +406,12 @@
       + (total - vids) + "장" + (vids ? " · 영상 " + vids + "개" : "");
 
     var main = el("main"); main.innerHTML = "";
+
+    // 맨 위: 지금 날짜의 사진들을 영상처럼 자동재생하는 슬라이드쇼.
+    heroStop();
+    var built = buildHero(day, orgs);
+    if (built.imgs.length >= 2) main.appendChild(heroStart(built));
+
     orgs.forEach(function (o) {
       var card = document.createElement("div"); card.className = "org";
       card.innerHTML = '<div class="orghead"><h3>' + esc(o.org) + '</h3>'
@@ -373,6 +501,7 @@
   // 크게 보기
   var box = el("box");
   function show(cap) {
+    heroPause();                                 // 큰 화면 보는 동안 슬라이드쇼 멈춤
     var it = SHOTS[AT], img = el("boximg"), vid = el("boxvid");
     if (it.kind === "video") {
       img.hidden = true; img.removeAttribute("src");
@@ -389,6 +518,7 @@
     box.style.display = "none";
     el("boxvid").removeAttribute("src");
     el("boximg").removeAttribute("src");
+    heroResume();                                // 다시 자동재생
   }
   function step(d) {
     if (!SHOTS.length) return;
