@@ -10,13 +10,14 @@
   "use strict";
 
   var REPORT_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
+  var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
 
   var $ = function (id) { return document.getElementById(id); };
 
   // 클래스 이름 → 그 반의 반코드 모음 (그림책을 반과 이어 붙이는 데 쓴다)
   var codesByClass = {};
-  var books = null;        // storybooks 캐시
   var reportData = null;   // 비밀번호를 통과한 뒤의 사진 트리
   var currentClass = "";
 
@@ -121,43 +122,46 @@
     }).catch(function () {});
   }
 
-  function loadBooks() {
-    if (books) return Promise.resolve(books);
-    var d = db();
-    if (!d) { books = []; return Promise.resolve(books); }
-    return d.collection("storybooks").limit(400).get().then(function (snap) {
-      var out = [];
-      snap.forEach(function (doc) {
-        var b = doc.data() || {};
-        if (!b.bookId) return;                       // 아직 온라인에 안 올린 책
-        out.push({
-          bookId: b.bookId,
-          title: b.title || "제목 없는 그림책",
-          student: b.studentName || "",
-          classCode: b.classCode || "",
-          cover: b.thumbURL || (b.spreadThumbs && b.spreadThumbs[0]) || "",
-          at: b.updatedAt && b.updatedAt.seconds ? b.updatedAt.seconds : 0
+  // 반이름 → 발행 그림책 목록 캐시(GAS 재호출 줄이기)
+  var booksByClass = {};
+
+  /// 이 반의 온라인 발행 그림책을 GAS에서 가져온다(뷰어와 같은 출처).
+  /// Firestore storybooks 문서는 bookId가 비어 있어(발행 시 되쓰지 않음) 쓰지 않는다.
+  /// 반이 여러 반코드를 가질 수 있어(codesByClass) 코드별로 모아 bookId로 중복 제거한다.
+  function loadBooksForClass(className) {
+    if (booksByClass[className]) return Promise.resolve(booksByClass[className]);
+    var codes = Object.keys(codesByClass[className] || {});
+    // 코드 대신 반이름을 코드로 쓰는 반도 있어 함께 시도.
+    if (codes.indexOf(className) < 0) codes = codes.concat([className]);
+    if (!codes.length) return Promise.resolve([]);
+    return Promise.all(codes.map(function (code) {
+      return fetch(BOOKS_API + "?class=" + encodeURIComponent(code))
+        .then(function (r) { return r.json(); })
+        .then(function (j) { return (j && j.ok && j.books) ? j.books : []; })
+        .catch(function () { return []; });
+    })).then(function (lists) {
+      var seen = {}, out = [];
+      lists.forEach(function (books) {
+        (books || []).forEach(function (b) {
+          if (!b.bookId || seen[b.bookId]) return;
+          seen[b.bookId] = true;
+          out.push(b);
         });
       });
-      out.sort(function (a, b) { return b.at - a.at; });
-      books = out;
-      return books;
-    }).catch(function () { books = []; return books; });
+      booksByClass[className] = out;
+      return out;
+    });
   }
 
   // ---------- 📚 그림책 ----------
 
   function fillBooks(rail, className) {
-    loadBooks().then(function (all) {
-      var codes = codesByClass[className] || {};
-      var mine = all.filter(function (b) {
-        // 반코드가 맞거나, 반코드 자체가 클래스 이름인 경우(코드 대신 반이름을 쓰는 반)
-        return codes[b.classCode] || b.classCode === className;
-      });
+    loadBooksForClass(className).then(function (mine) {
       rail.track.innerHTML = "";
       if (!mine.length) { rail.section.hidden = true; return; }
       mine.forEach(function (b) {
-        rail.track.appendChild(tile(b.cover, b.title, b.student, function () {
+        var title = (b.title || "").trim() || "그림책";
+        rail.track.appendChild(tile(b.cover, title, b.student || "", function () {
           location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
         }));
       });
@@ -225,10 +229,24 @@
 
   /// 이 클래스(기관)에 해당하는 날짜만 골라 날짜 카드 + 사진 한 줄로.
   function renderPhotos(rail, className) {
-    var days = (reportData || []).map(function (day) {
+    // 같은 날짜(folder)가 여러 번 와도 한 줄만: folder로 묶어 프로그램만 합친다.
+    // (GAS가 같은 날짜를 두 번 돌려주면 날짜 카드가 두 줄로 중복되던 버그 방지)
+    var byFolder = {}, days = [];
+    (reportData || []).forEach(function (day) {
       var orgs = day.orgs.filter(function (o) { return o.org === className; });
-      return orgs.length ? { folder: day.folder, orgs: orgs } : null;
-    }).filter(Boolean);
+      if (!orgs.length) return;
+      if (byFolder[day.folder]) {
+        byFolder[day.folder].orgs = byFolder[day.folder].orgs.concat(orgs);
+      } else {
+        var entry = { folder: day.folder, orgs: orgs };
+        byFolder[day.folder] = entry;
+        days.push(entry);
+      }
+    });
+
+    // 이미 그려둔 날짜줄이 있으면 지우고 새로 그린다(중복 삽입 방지).
+    var stale = rail.section.querySelector(".rail-days");
+    while (stale) { stale.remove(); stale = rail.section.querySelector(".rail-days"); }
 
     if (!days.length) {
       rail.track.innerHTML = "";
@@ -333,7 +351,11 @@
     galleryEl.parentNode.insertBefore(artHead, galleryEl);
     galleryEl.parentNode.insertBefore(photoRail.section, galleryEl.nextSibling);
 
-    loadClassCodes();
+    loadClassCodes().then(function () {
+      // 반코드(반이름→반코드)가 늦게 로드되면, 지금 보고 있는 반의 그림책 레일만 다시 채운다.
+      // (첫 렌더 때 코드가 없어 비어 있던 캐시를 지우고 새로 가져온다)
+      if (currentClass) { delete booksByClass[currentClass]; fillBooks(bookRail, currentClass); }
+    });
 
     function apply() {
       var inClass = !head.hidden;
