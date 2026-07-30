@@ -197,7 +197,7 @@
       .then(function (d) {
         if (!d || !d.ok) {
           window.alert("삭제하지 못했어요" + (d && d.error ? " (" + d.error + ")" : "") +
-            ".\n\nGAS 스크립트 속성 STORYBOOK_ADMIN_KEY를 관리자 비밀번호와 같게 설정하고 재배포했는지 확인해 주세요.");
+            ".\n\n그림책 백엔드(Apps Script)를 최신 코드로 재배포했는지 확인해 주세요.");
           return;
         }
         if (booksByClass[className]) {
