@@ -20,6 +20,8 @@
   var codesByClass = {};
   var reportData = null;   // 비밀번호를 통과한 뒤의 사진 트리
   var currentClass = "";
+  var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
+  var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
 
   /// 가로로 부드럽게 옮긴다.
   /// scroll-behavior:smooth 와 scroll-snap 을 같이 쓰면 코드로 건 스크롤이 스냅 엔진에
@@ -81,13 +83,14 @@
     };
   }
 
-  function tile(imgUrl, line1, line2, onClick, isVideo) {
+  function tile(imgUrl, line1, line2, onClick, isVideo, onDelete) {
     var el = document.createElement("div");
     el.className = "rail-tile";
     el.innerHTML =
       '<div class="rail-thumb">' +
         (imgUrl ? '<img loading="lazy" alt="">' : '<div class="rail-noimg">🖼</div>') +
         (isVideo ? '<span class="rail-play">▶</span>' : "") +
+        (onDelete ? '<button class="rail-del" type="button" title="삭제" aria-label="삭제">🗑</button>' : "") +
       "</div>" +
       '<p class="rail-l1"></p>' + (line2 ? '<p class="rail-l2"></p>' : "");
     if (imgUrl) {
@@ -98,6 +101,12 @@
     el.querySelector(".rail-l1").textContent = line1 || "";
     if (line2) el.querySelector(".rail-l2").textContent = line2;
     if (onClick) el.addEventListener("click", onClick);
+    if (onDelete) {
+      el.querySelector(".rail-del").addEventListener("click", function (e) {
+        e.stopPropagation();   // 타일 클릭(뷰어 열기)과 분리
+        onDelete();
+      });
+    }
     return el;
   }
 
@@ -161,14 +170,42 @@
       if (!mine.length) { rail.section.hidden = true; return; }
       mine.forEach(function (b) {
         var title = (b.title || "").trim() || "그림책";
+        var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
         rail.track.appendChild(tile(b.cover, title, b.student || "", function () {
           location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
-        }));
+        }, false, del));
       });
-      rail.setCount(mine.length + "권");
+      rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));
       rail.section.hidden = false;
       rail.sync();
     });
+  }
+
+  /// 관리자: 온라인 그림책 삭제(GAS deleteBook → 드라이브 폴더 휴지통 + 시트 행 제거).
+  /// 업로드 secret이 아닌 별도 관리자 키(config.adminPassword)로 인증한다.
+  function deleteBookOnline(book, rail, className) {
+    var name = (book.title || "").trim() || "이 그림책";
+    if (!window.confirm("‘" + name + "’ 을(를) 온라인 그림책에서 삭제할까요?\n드라이브 휴지통으로 이동해요(30일 안에 복구 가능).")) return;
+    var CFG = window.GALLERY_CONFIG || {};
+    fetch(BOOKS_API, {
+      method: "POST",
+      // 프리플라이트 없이(GAS 단순요청) 보내려고 text/plain 사용.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "deleteBook", adminKey: CFG.adminPassword || "", bookId: book.bookId })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) {
+          window.alert("삭제하지 못했어요" + (d && d.error ? " (" + d.error + ")" : "") +
+            ".\n\nGAS 스크립트 속성 STORYBOOK_ADMIN_KEY를 관리자 비밀번호와 같게 설정하고 재배포했는지 확인해 주세요.");
+          return;
+        }
+        if (booksByClass[className]) {
+          booksByClass[className] = booksByClass[className].filter(function (x) { return x.bookId !== book.bookId; });
+        }
+        fillBooks(rail, className);
+      })
+      .catch(function () { window.alert("삭제 요청에 실패했어요(연결 오류)."); });
   }
 
   // ---------- 📷 수업 모습 ----------
@@ -341,7 +378,14 @@
     if (!galleryEl || !head) return;
 
     var bookRail = makeRail("railBooks", "📚", "그림책");
+    bookRailRef = bookRail;
     var photoRail = makeRail("railPhotos", "📷", "수업 모습");
+
+    // 관리자 모드 on/off 시 그림책 레일만 다시 그려 삭제 버튼을 붙이거나 없앤다.
+    document.addEventListener("gallery-admin", function (e) {
+      isAdmin = !!(e && e.detail);
+      if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
+    });
     var artHead = document.createElement("h2");
     artHead.className = "rail-title rail-standalone";
     artHead.textContent = "🎨 우리 그림";

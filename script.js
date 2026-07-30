@@ -563,6 +563,9 @@
     isAdmin = on;
     $("adminBanner").hidden = !on;
     $("adminToggle").textContent = on ? "🔓" : "🔒";
+    // 별도 스크립트(home-rails.js: 그림책 레일)도 관리자 상태를 알도록 알린다.
+    window.galleryAdmin = on;
+    document.dispatchEvent(new CustomEvent("gallery-admin", { detail: on }));
     refreshUI();
   }
 

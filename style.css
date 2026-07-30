@@ -368,6 +368,20 @@ html, body {
 .rail-l2 { font-size: 12px; margin: 1px 2px 0; color: #8a8a8a;
            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* 그림책 썸네일 — 도톰한 테두리로 '책 표지' 느낌 + 사진/작품 타일과 확실히 차별화 */
+#railBooks .rail-tile img,
+#railBooks .rail-noimg {
+  border: 4px solid var(--accent);
+  box-shadow: 0 3px 10px rgba(37, 99, 235, .22);
+}
+
+/* 관리자 삭제 버튼(그림책 타일) */
+.rail-del { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px;
+            border: none; border-radius: 50%; background: rgba(220, 38, 38, .92); color: #fff;
+            font-size: 15px; line-height: 30px; text-align: center; cursor: pointer; padding: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
+.rail-del:hover { background: #dc2626; }
+
 /* 수업 모습 — 비밀번호 */
 .rail-gate { background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 14px; }
 .rail-gate p { font-size: 13px; color: #8a8a8a; margin: 0 0 10px; }
