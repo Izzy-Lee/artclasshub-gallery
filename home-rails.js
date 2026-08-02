@@ -260,7 +260,9 @@
         }
         if (booksByClass[className]) {
           booksByClass[className] = booksByClass[className].filter(function (x) { return x.bookId !== book.bookId; });
+          writeBooksCache(className, booksByClass[className]);   // 브라우저 저장본도 갱신 — 새로고침 때 안 되살아나게
         }
+        prefetchByCode = {};                                     // 미리 받아둔 응답도 버린다
         fillBooks(rail, className);
       })
       .catch(function () { window.alert("삭제 요청에 실패했어요(연결 오류)."); });
