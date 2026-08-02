@@ -143,11 +143,15 @@
     // 코드 대신 반이름을 코드로 쓰는 반도 있어 함께 시도.
     if (codes.indexOf(className) < 0) codes = codes.concat([className]);
     if (!codes.length) return Promise.resolve([]);
+    var failed = false;   // GAS가 잠깐 실패한 건지, 정말 책이 없는 건지 구분한다
     return Promise.all(codes.map(function (code) {
       return fetch(BOOKS_API + "?class=" + encodeURIComponent(code))
         .then(function (r) { return r.json(); })
-        .then(function (j) { return (j && j.ok && j.books) ? j.books : []; })
-        .catch(function () { return []; });
+        .then(function (j) {
+          if (j && j.ok) return j.books || [];
+          failed = true; return [];
+        })
+        .catch(function () { failed = true; return []; });
     })).then(function (lists) {
       var seen = {}, out = [];
       lists.forEach(function (books) {
@@ -157,7 +161,8 @@
           out.push(b);
         });
       });
-      booksByClass[className] = out;
+      // 실패 섞인 빈 결과는 캐시하지 않는다 — 다음 렌더에서 다시 시도해 깜빡임을 막는다.
+      if (out.length || !failed) booksByClass[className] = out;
       return out;
     });
   }
@@ -166,8 +171,12 @@
 
   function fillBooks(rail, className) {
     loadBooksForClass(className).then(function (mine) {
+      // 빈 결과(서버 지연·일시 실패 포함)일 때 이미 그려둔 책이 있으면 그대로 둔다 — 깜빡임 방지.
+      if (!mine.length) {
+        if (!rail.track.childElementCount) rail.section.hidden = true;
+        return;
+      }
       rail.track.innerHTML = "";
-      if (!mine.length) { rail.section.hidden = true; return; }
       mine.forEach(function (b) {
         var title = (b.title || "").trim() || "그림책";
         var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
@@ -432,7 +441,14 @@
         currentClass = "";
         return;
       }
-      if (name === currentClass) return;   // 같은 반이면 다시 그리지 않는다
+      if (name === currentClass) {
+        // 같은 반이면 다시 그리지 않는다. 다만 화면 전환 때 숨겨둔 레일은
+        // 내용이 있으면 다시 보여준다(그림책 줄이 사라진 채 남는 문제 방지).
+        if (bookRail.track.childElementCount) bookRail.section.hidden = false;
+        if (photoRail.track.childElementCount ||
+            photoRail.section.querySelector(".rail-gate, .rail-days")) photoRail.section.hidden = false;
+        return;
+      }
       currentClass = name;
       fillBooks(bookRail, name);
       fillPhotos(photoRail, name);
