@@ -368,9 +368,13 @@ html, body {
 .rail-l2 { font-size: 12px; margin: 1px 2px 0; color: #8a8a8a;
            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 그림책 썸네일 — 연한 그레이 테두리로 '책 표지' 느낌 + 사진/작품 타일과 차별화 */
+/* 그림책 썸네일 — 연한 그레이 테두리로 '책 표지' 느낌 + 사진/작품 타일과 차별화
+   비율은 뷰어의 표지(단일 페이지)와 같은 3:4 세로. 표지가 3:4가 아닌 옛 책(펼침면 등)이
+   와도 잘리지 않도록 contain 으로 통째로 보여준다. */
 #railBooks .rail-tile img,
 #railBooks .rail-noimg {
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
   border: 3px solid #dcdce0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
 }
