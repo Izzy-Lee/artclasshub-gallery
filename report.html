@@ -25,9 +25,10 @@
   /* 제목 옆 미술 갤러리 바로가기 탭 */
   .titlerow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
   .gal-links { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .gal-label { font-size:14px; font-weight:800; color:var(--sub); }
-  .gal-links a { font-size:15px; font-weight:800; color:var(--pink); background:#fdeef5;
-                 padding:8px 16px; border-radius:999px; text-decoration:none; white-space:nowrap; }
+  .gal-label { font-size:15px; font-weight:800; color:var(--ink); }
+  .gal-links a { font-size:15px; font-weight:800; color:#fff; background:var(--pink);
+                 padding:9px 18px; border-radius:999px; text-decoration:none; white-space:nowrap;
+                 box-shadow:0 3px 10px rgba(243,90,160,.30); }
   .gal-links a:active { transform:scale(.96); }
 
   /* 맨 아래 요약 줄 (날짜 · 기관 · 사진 수) */
@@ -151,7 +152,7 @@
     <div class="titlerow">
       <h1>활동 보고</h1>
       <nav class="gal-links">
-        <span class="gal-label">🎨 미술 갤러리</span>
+        <span class="gal-label">미술 갤러리</span>
         <a href="index.html?school=백령종합사회복지관">백령종합사회복지관</a>
         <a href="index.html?school=영흥마을엔">영흥마을엔</a>
         <a href="index.html?school=영흥지역아동센터">영흥지역아동센터</a>
