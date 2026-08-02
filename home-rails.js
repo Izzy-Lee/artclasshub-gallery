@@ -202,14 +202,46 @@
 
   // ---------- 📚 그림책 ----------
 
+  /// 그림책 전용 타일 — 원본 첫 장은 [뒤표지|앞표지]가 붙은 펼침 이미지라,
+  /// 뷰어의 1페이지처럼 오른쪽 절반(앞표지)만 보여준다. 세로 이미지는 통째로.
+  function bookTile(coverUrl, line1, line2, onClick, onDelete) {
+    var el = document.createElement("div");
+    el.className = "rail-tile";
+    el.innerHTML =
+      '<div class="rail-thumb">' +
+        '<div class="rail-cover"></div>' +
+        (onDelete ? '<button class="rail-del" type="button" title="삭제" aria-label="삭제">🗑</button>' : "") +
+      "</div>" +
+      '<p class="rail-l1"></p>' + (line2 ? '<p class="rail-l2"></p>' : "");
+    var cov = el.querySelector(".rail-cover");
+    if (coverUrl) {
+      cov.style.backgroundImage = 'url("' + coverUrl + '")';
+      var probe = new Image();
+      probe.onload = function () {
+        if (probe.naturalWidth > probe.naturalHeight * 1.15) cov.classList.add("spread");
+      };
+      probe.src = coverUrl;
+    }
+    el.querySelector(".rail-l1").textContent = line1 || "";
+    if (line2) el.querySelector(".rail-l2").textContent = line2;
+    if (onClick) el.addEventListener("click", onClick);
+    if (onDelete) {
+      el.querySelector(".rail-del").addEventListener("click", function (e) {
+        e.stopPropagation();
+        onDelete();
+      });
+    }
+    return el;
+  }
+
   function renderBooks(rail, className, mine) {
     rail.track.innerHTML = "";
     mine.forEach(function (b) {
       var title = (b.title || "").trim() || "그림책";
       var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
-      rail.track.appendChild(tile(b.cover, title, b.student || "", function () {
+      rail.track.appendChild(bookTile(b.cover, title, b.student || "", function () {
         location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
-      }, false, del));
+      }, del));
     });
     rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));
     rail.section.hidden = false;
