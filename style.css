@@ -454,3 +454,6 @@ html, body {
 }
 .name-tab:hover { border-color: var(--accent); color: var(--accent); }
 .name-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.name-tab.rename { border-style: dashed; color: #b45309; border-color: #d9b88a; }
+.name-tab.rename:hover { border-color: #b45309; color: #92400e; }
+

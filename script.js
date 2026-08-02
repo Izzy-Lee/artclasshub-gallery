@@ -398,6 +398,42 @@
     };
     box.appendChild(mk("전체", ""));
     names.forEach((n) => box.appendChild(mk(n, n)));
+
+    // 관리자 + 특정 학생 선택 중이면 그 학생 작품 전체의 이름을 바꾸는 버튼을 붙인다.
+    // ('모름' 같은 임시 이름을 실제 이름으로 정리할 때)
+    if (isAdmin && nameFilter) {
+      const rn = document.createElement("button");
+      rn.type = "button";
+      rn.className = "name-tab rename";
+      rn.textContent = "✏️ 이름 바꾸기";
+      rn.addEventListener("click", renameStudent);
+      box.appendChild(rn);
+    }
+  }
+
+  // 지금 고른 학생(nameFilter)의 작품 전부를 새 이름으로 일괄 변경.
+  async function renameStudent() {
+    const oldName = nameFilter;
+    const input = window.prompt(`'${oldName}' 작품들을 어떤 이름으로 바꿀까요?`, "");
+    if (input === null) return;
+    const newName = input.trim();
+    if (!newName || newName === oldName) return;
+    const targets = scopedItems().filter((a) => (a.student || "").trim() === oldName);
+    if (!targets.length) { alert("바꿀 작품이 없어요."); return; }
+    if (!confirm(`작품 ${targets.length}개의 학생 이름을 '${oldName}' → '${newName}' 으로 바꿀까요?`)) return;
+    try {
+      const batch = db.batch();
+      targets.forEach((a) => batch.update(db.collection(COLLECTION).doc(a.id), { student_nickname: newName }));
+      await batch.commit();
+      targets.forEach((a) => { a.student = newName; });   // 실시간 스냅샷이 오기 전 화면 즉시 반영
+      nameFilter = newName;
+      emitNameFilter();
+      renderNameTabs();
+      applyFilters();
+    } catch (e) {
+      alert("이름을 바꾸지 못했어요: " + (e && e.message ? e.message : e)
+        + "\n\nFirestore 규칙이 쓰기를 막고 있으면 숨김/삭제처럼 쓰기 허용이 필요해요.");
+    }
   }
 
   function clearNameTabs() {
