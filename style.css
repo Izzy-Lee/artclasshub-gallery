@@ -404,6 +404,9 @@ html, body {
             box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
 .rail-del:hover { background: #dc2626; }
 
+/* 📷 수업 모습 — 위 '우리 그림' 그리드와 붙지 않게 여백 */
+#railPhotos { margin-top: 40px; }
+
 /* 수업 모습 — 비밀번호 */
 .rail-gate { background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 14px; }
 .rail-gate p { font-size: 13px; color: #8a8a8a; margin: 0 0 10px; }
