@@ -139,6 +139,21 @@
   var URL_CLASS = "";
   try { URL_CLASS = (new URLSearchParams(location.search).get("class") || "").trim(); } catch (e) {}
 
+  // 반코드를 아는 순간(페이지 로드 직후) 그림책 요청을 미리 쏘아 둔다.
+  // 화면이 그려질 때쯤엔 응답이 도착해 있어 기다림이 거의 없다.
+  var prefetchByCode = {};
+  function fetchBooksByCode(code) {
+    if (!prefetchByCode[code]) {
+      prefetchByCode[code] = fetch(BOOKS_API + "?class=" + encodeURIComponent(code))
+        .then(function (r) { return r.json(); });
+    }
+    return prefetchByCode[code].then(
+      function (j) { return j; },
+      function (err) { delete prefetchByCode[code]; throw err; }   // 실패한 프리페치는 버리고 다음에 다시
+    );
+  }
+  if (URL_CLASS) fetchBooksByCode(URL_CLASS).catch(function () {});
+
   // 브라우저에 마지막 목록을 저장해 두면 다음 방문(같은 기기)에서 즉시 그려진다.
   function booksCacheKey(className) { return "railBooks:" + className; }
   function readBooksCache(className) {
@@ -163,8 +178,7 @@
     if (!codes.length) return Promise.resolve([]);
     var failed = false;   // GAS가 잠깐 실패한 건지, 정말 책이 없는 건지 구분한다
     return Promise.all(codes.map(function (code) {
-      return fetch(BOOKS_API + "?class=" + encodeURIComponent(code))
-        .then(function (r) { return r.json(); })
+      return fetchBooksByCode(code)
         .then(function (j) {
           if (j && j.ok) return j.books || [];
           failed = true; return [];
