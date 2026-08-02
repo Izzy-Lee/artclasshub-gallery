@@ -368,6 +368,11 @@
     return list;
   }
 
+  // 이름 탭 선택을 다른 스크립트(그림책 레일)에도 알린다.
+  function emitNameFilter() {
+    document.dispatchEvent(new CustomEvent("gallery-namefilter", { detail: nameFilter }));
+  }
+
   // 아이 이름 탭 — 눌러서 그 아이 작품만 보기
   function renderNameTabs() {
     const box = $("nameTabs");
@@ -385,6 +390,7 @@
       b.addEventListener("click", () => {
         nameFilter = val;
         searchInput.value = "";
+        emitNameFilter();
         renderNameTabs();
         applyFilters();
       });
@@ -398,6 +404,7 @@
     const box = $("nameTabs");
     if (box) { box.hidden = true; box.innerHTML = ""; }
     nameFilter = "";
+    emitNameFilter();
   }
 
   // 학교 목록 홈: 학교별 카드(대표 이미지 + 작품 수)
@@ -654,7 +661,7 @@
   //  이벤트 + 유틸
   // =========================================================
   searchInput.addEventListener("input", debounce(() => {
-    if (searchInput.value.trim() && nameFilter) { nameFilter = ""; renderNameTabs(); }
+    if (searchInput.value.trim() && nameFilter) { nameFilter = ""; emitNameFilter(); renderNameTabs(); }
     applyFilters();
   }, 200));
   classFilter.addEventListener("change", applyFilters);

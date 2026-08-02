@@ -22,6 +22,7 @@
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
   var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
+  var studentFilter = "";                // 이름 탭에서 고른 학생('' = 전체) — 그림책도 같이 거른다
 
   /// 가로로 부드럽게 옮긴다.
   /// scroll-behavior:smooth 와 scroll-snap 을 같이 쓰면 코드로 건 스크롤이 스냅 엔진에
@@ -235,6 +236,16 @@
   }
 
   function renderBooks(rail, className, mine) {
+    // 이름 탭에서 학생을 골랐으면 그 학생 책만.
+    if (studentFilter) {
+      mine = mine.filter(function (b) { return (b.student || "").trim() === studentFilter; });
+    }
+    if (!mine.length) {
+      rail.track.innerHTML = "";
+      rail.setCount("");
+      rail.section.hidden = true;   // 이 학생 책이 없으면 줄을 감춘다
+      return;
+    }
     rail.track.innerHTML = "";
     mine.forEach(function (b) {
       var title = (b.title || "").trim() || "그림책";
@@ -517,6 +528,11 @@
     // 관리자 모드 on/off 시 그림책 레일만 다시 그려 삭제 버튼을 붙이거나 없앤다.
     document.addEventListener("gallery-admin", function (e) {
       isAdmin = !!(e && e.detail);
+      if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
+    });
+    // 이름 탭에서 학생을 고르면 그림책도 그 학생 것만 보여준다.
+    document.addEventListener("gallery-namefilter", function (e) {
+      studentFilter = String((e && e.detail) || "").trim();
       if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
     });
     var artHead = document.createElement("h2");
