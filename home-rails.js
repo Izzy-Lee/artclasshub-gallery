@@ -133,15 +133,33 @@
 
   // 반이름 → 발행 그림책 목록 캐시(GAS 재호출 줄이기)
   var booksByClass = {};
+  var lastBooksLoadFailed = false;   // 마지막 로드에 실패가 섞였는지(빈 결과 판정용)
+
+  // 공유 링크(?class=반코드)로 들어오면 그 코드로 즉시 조회한다 — Firestore 로드를 기다리지 않게.
+  var URL_CLASS = "";
+  try { URL_CLASS = (new URLSearchParams(location.search).get("class") || "").trim(); } catch (e) {}
+
+  // 브라우저에 마지막 목록을 저장해 두면 다음 방문(같은 기기)에서 즉시 그려진다.
+  function booksCacheKey(className) { return "railBooks:" + className; }
+  function readBooksCache(className) {
+    try { return JSON.parse(localStorage.getItem(booksCacheKey(className)) || "null"); }
+    catch (e) { return null; }
+  }
+  function writeBooksCache(className, books) {
+    try { localStorage.setItem(booksCacheKey(className), JSON.stringify(books)); } catch (e) {}
+  }
 
   /// 이 반의 온라인 발행 그림책을 GAS에서 가져온다(뷰어와 같은 출처).
   /// Firestore storybooks 문서는 bookId가 비어 있어(발행 시 되쓰지 않음) 쓰지 않는다.
   /// 반이 여러 반코드를 가질 수 있어(codesByClass) 코드별로 모아 bookId로 중복 제거한다.
   function loadBooksForClass(className) {
+    lastBooksLoadFailed = false;
     if (booksByClass[className]) return Promise.resolve(booksByClass[className]);
     var codes = Object.keys(codesByClass[className] || {});
     // 코드 대신 반이름을 코드로 쓰는 반도 있어 함께 시도.
     if (codes.indexOf(className) < 0) codes = codes.concat([className]);
+    // 공유 링크의 반코드는 Firestore 로드 전에도 바로 쓴다(첫 화면 지연 제거).
+    if (URL_CLASS && codes.indexOf(URL_CLASS) < 0) codes.push(URL_CLASS);
     if (!codes.length) return Promise.resolve([]);
     var failed = false;   // GAS가 잠깐 실패한 건지, 정말 책이 없는 건지 구분한다
     return Promise.all(codes.map(function (code) {
@@ -162,6 +180,7 @@
         });
       });
       // 실패 섞인 빈 결과는 캐시하지 않는다 — 다음 렌더에서 다시 시도해 깜빡임을 막는다.
+      lastBooksLoadFailed = failed;
       if (out.length || !failed) booksByClass[className] = out;
       return out;
     });
@@ -169,24 +188,40 @@
 
   // ---------- 📚 그림책 ----------
 
+  function renderBooks(rail, className, mine) {
+    rail.track.innerHTML = "";
+    mine.forEach(function (b) {
+      var title = (b.title || "").trim() || "그림책";
+      var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
+      rail.track.appendChild(tile(b.cover, title, b.student || "", function () {
+        location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
+      }, false, del));
+    });
+    rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));
+    rail.section.hidden = false;
+    rail.sync();
+  }
+
   function fillBooks(rail, className) {
+    // 지난 방문에 저장해 둔 목록이 있으면 먼저 그려서(즉시 표시) 서버 응답을 기다리지 않는다.
+    var cached = readBooksCache(className);
+    if (cached && cached.length && !rail.track.childElementCount) renderBooks(rail, className, cached);
+
     loadBooksForClass(className).then(function (mine) {
-      // 빈 결과(서버 지연·일시 실패 포함)일 때 이미 그려둔 책이 있으면 그대로 둔다 — 깜빡임 방지.
       if (!mine.length) {
-        if (!rail.track.childElementCount) rail.section.hidden = true;
+        if (!lastBooksLoadFailed) {
+          // 진짜 빈 반(책이 다 지워진 경우) — 저장본도 지우고 줄을 감춘다.
+          try { localStorage.removeItem(booksCacheKey(className)); } catch (e) {}
+          rail.track.innerHTML = "";
+          rail.section.hidden = true;
+        } else if (!rail.track.childElementCount) {
+          // 일시 실패인데 그려둔 것도 없으면 일단 감춘다(다음 렌더에서 재시도).
+          rail.section.hidden = true;
+        }
         return;
       }
-      rail.track.innerHTML = "";
-      mine.forEach(function (b) {
-        var title = (b.title || "").trim() || "그림책";
-        var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
-        rail.track.appendChild(tile(b.cover, title, b.student || "", function () {
-          location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
-        }, false, del));
-      });
-      rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));
-      rail.section.hidden = false;
-      rail.sync();
+      writeBooksCache(className, mine);
+      renderBooks(rail, className, mine);
     });
   }
 
