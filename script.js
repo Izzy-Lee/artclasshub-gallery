@@ -45,8 +45,17 @@
   // 현재 보고 있는 학교 (null = 학교 목록 홈)
   let currentSchool = null;
 
+  // 외부 공개용 URL 잠금: ?school= 또는 ?class= 가 있으면 그 학교/반만 보이고 홈(다른 학교)은 숨김
+  const _params = new URLSearchParams(location.search);
+  const lockSchool = (_params.get("school") || "").trim();
+  const lockClass = (_params.get("class") || "").trim();
+  const isLocked = !!(lockSchool || lockClass);
+  // 이름 탭으로 고른 학생('' = 전체)
+  let nameFilter = "";
+
   $("backHome").addEventListener("click", () => {
     currentSchool = null;
+    nameFilter = "";
     searchInput.value = "";
     refreshUI();
     window.scrollTo(0, 0);
@@ -62,6 +71,7 @@
       unlockedSchools.add(school);
     }
     currentSchool = school;
+    nameFilter = "";
     searchInput.value = "";
     refreshUI();
     window.scrollTo(0, 0);
@@ -315,14 +325,79 @@
   // =========================================================
   function refreshUI() {
     loading.hidden = true;
+
+    // 외부 공개 잠금: 홈/다른 학교를 숨기고 지정한 학교(반)만 보여준다.
+    if (isLocked) {
+      if (controls) controls.hidden = false;
+      schoolHeader.hidden = false;
+      const backBtn = $("backHome");
+      if (backBtn) backBtn.style.display = "none";   // 전체 학교로 나가는 버튼 숨김
+      schoolTitle.textContent = lockedTitle();
+      renderNameTabs();
+      applyFilters();
+      return;
+    }
+
     const home = currentSchool === null;
     // 홈에서는 검색/정렬 컨트롤 숨기고, 학교 상세에서는 표시
     if (controls) controls.hidden = home;
     schoolHeader.hidden = home;
-    if (!home) schoolTitle.textContent = currentSchool;
+    if (!home) { schoolTitle.textContent = currentSchool; renderNameTabs(); }
+    else clearNameTabs();
 
     if (home) renderHome();
     else applyFilters();
+  }
+
+  // 잠금 화면 제목: 학교명 우선, 없으면 반 코드로 찾은 학교명, 그래도 없으면 코드.
+  function lockedTitle() {
+    if (lockSchool) return lockSchool;
+    const one = allItems.find((a) => (a.classCode || "") === lockClass);
+    return (one && one.school) ? one.school : lockClass;
+  }
+
+  // 현재 화면 범위(잠금/선택 학교)에 해당하는 작품들 — 이름 탭 계산용
+  function scopedItems() {
+    let list = allItems.filter((a) => (isAdmin ? true : !a.hidden));
+    if (isLocked) {
+      if (lockClass) list = list.filter((a) => (a.classCode || "") === lockClass);
+      else if (lockSchool) list = list.filter((a) => (a.school || "") === lockSchool);
+    } else if (currentSchool) {
+      list = list.filter((a) => (a.school || "기타") === currentSchool);
+    }
+    return list;
+  }
+
+  // 아이 이름 탭 — 눌러서 그 아이 작품만 보기
+  function renderNameTabs() {
+    const box = $("nameTabs");
+    if (!box) return;
+    const names = [...new Set(scopedItems().map((a) => (a.student || "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "ko"));
+    if (names.length <= 1) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.innerHTML = "";
+    const mk = (label, val) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "name-tab" + (nameFilter === val ? " on" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => {
+        nameFilter = val;
+        searchInput.value = "";
+        renderNameTabs();
+        applyFilters();
+      });
+      return b;
+    };
+    box.appendChild(mk("전체", ""));
+    names.forEach((n) => box.appendChild(mk(n, n)));
+  }
+
+  function clearNameTabs() {
+    const box = $("nameTabs");
+    if (box) { box.hidden = true; box.innerHTML = ""; }
+    nameFilter = "";
   }
 
   // 학교 목록 홈: 학교별 카드(대표 이미지 + 작품 수)
@@ -382,7 +457,13 @@
     const sort = sortSelect.value;
 
     let list = allItems.filter((a) => (isAdmin ? true : !a.hidden));
-    if (currentSchool) list = list.filter((a) => (a.school || "기타") === currentSchool);
+    if (isLocked) {
+      if (lockClass) list = list.filter((a) => (a.classCode || "") === lockClass);
+      else if (lockSchool) list = list.filter((a) => (a.school || "") === lockSchool);
+    } else if (currentSchool) {
+      list = list.filter((a) => (a.school || "기타") === currentSchool);
+    }
+    if (nameFilter) list = list.filter((a) => (a.student || "") === nameFilter);
     if (q) list = list.filter((a) => a.student.toLowerCase().includes(q) || a.title.toLowerCase().includes(q));
 
     list.sort((a, b) => (sort === "oldest" ? a.date - b.date : b.date - a.date));
@@ -572,7 +653,10 @@
   // =========================================================
   //  이벤트 + 유틸
   // =========================================================
-  searchInput.addEventListener("input", debounce(applyFilters, 200));
+  searchInput.addEventListener("input", debounce(() => {
+    if (searchInput.value.trim() && nameFilter) { nameFilter = ""; renderNameTabs(); }
+    applyFilters();
+  }, 200));
   classFilter.addEventListener("change", applyFilters);
   sortSelect.addEventListener("change", applyFilters);
 

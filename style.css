@@ -419,3 +419,16 @@ html, body {
 
 /* 클래스 안 '우리 그림' 제목 (기존 작품 그리드 위) */
 .rail-standalone { max-width: 1240px; margin: 0 auto 8px; padding: 0 4px; font-size: 17px; }
+
+/* ===== 아이 이름 탭 ===== */
+.name-tabs {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  max-width: 1100px; margin: 4px auto 10px; padding: 0 16px;
+}
+.name-tab {
+  border: 1px solid var(--border); background: var(--card); color: var(--text-sub);
+  border-radius: 999px; padding: 7px 14px; font-size: 14px; cursor: pointer;
+  font-family: inherit; transition: all .15s;
+}
+.name-tab:hover { border-color: var(--accent); color: var(--accent); }
+.name-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
