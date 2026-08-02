@@ -216,20 +216,40 @@
     rail.sync();
   }
 
+  /// 데이터가 오기 전 빈 책 모양(스켈레톤)을 먼저 그려 자리를 잡아둔다.
+  function renderBookSkeleton(rail) {
+    rail.track.innerHTML = "";
+    for (var i = 0; i < 4; i++) {
+      var el = document.createElement("div");
+      el.className = "rail-tile rail-skel";
+      el.innerHTML = '<div class="rail-thumb"><div class="rail-skel-box"></div></div>'
+        + '<p class="rail-l1 rail-skel-line"></p>';
+      rail.track.appendChild(el);
+    }
+    rail.setCount("불러오는 중…");
+    rail.section.hidden = false;
+  }
+
   function fillBooks(rail, className) {
     // 지난 방문에 저장해 둔 목록이 있으면 먼저 그려서(즉시 표시) 서버 응답을 기다리지 않는다.
+    // 저장본조차 없으면 스켈레톤으로 자리부터 잡는다 — 늦게 불쑥 생기며 화면이 밀리지 않게.
     var cached = readBooksCache(className);
-    if (cached && cached.length && !rail.track.childElementCount) renderBooks(rail, className, cached);
+    if (!rail.track.childElementCount) {
+      if (cached && cached.length) renderBooks(rail, className, cached);
+      else renderBookSkeleton(rail);
+    }
 
     loadBooksForClass(className).then(function (mine) {
+      var hasReal = rail.track.childElementCount && !rail.track.querySelector(".rail-skel");
       if (!mine.length) {
         if (!lastBooksLoadFailed) {
           // 진짜 빈 반(책이 다 지워진 경우) — 저장본도 지우고 줄을 감춘다.
           try { localStorage.removeItem(booksCacheKey(className)); } catch (e) {}
           rail.track.innerHTML = "";
           rail.section.hidden = true;
-        } else if (!rail.track.childElementCount) {
-          // 일시 실패인데 그려둔 것도 없으면 일단 감춘다(다음 렌더에서 재시도).
+        } else if (!hasReal) {
+          // 일시 실패 + 스켈레톤뿐 → 감춘다(다음 렌더에서 재시도).
+          rail.track.innerHTML = "";
           rail.section.hidden = true;
         }
         return;

@@ -379,6 +379,16 @@ html, body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
 }
 
+/* 로딩 스켈레톤 — 데이터가 오기 전 자리만 잡아두는 빈 타일 */
+.rail-skel { pointer-events: none; }
+.rail-skel-box { width: 100%; aspect-ratio: 1; border-radius: 12px;
+  background: linear-gradient(100deg, #eee7ec 40%, #f7f2f5 50%, #eee7ec 60%);
+  background-size: 200% 100%; animation: railshimmer 1.2s linear infinite; }
+#railBooks .rail-skel-box { aspect-ratio: 3 / 4; border: 3px solid #e8e4ea; }
+.rail-skel-line { height: 12px; width: 70%; border-radius: 6px; background: #eee7ec; }
+@keyframes railshimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .rail-skel-box { animation: none; } }
+
 /* 관리자 삭제 버튼(그림책 타일) */
 .rail-del { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px;
             border: none; border-radius: 50%; background: rgba(220, 38, 38, .92); color: #fff;
