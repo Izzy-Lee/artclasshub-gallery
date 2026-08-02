@@ -250,12 +250,33 @@
             return;
           }
           localStorage.setItem("reportPw", pw);
-          reportData = d.dates || [];
+          reportData = sanitizeDates(d.dates || []);
           gate.remove();
           renderPhotos(rail, className);
         })
         .catch(function () { err.textContent = "연결에 실패했어요."; });
     }
+  }
+
+  /// 이름이 00_ 로 시작하는 폴더(00_inbox, 00_삭제요망 등 작업/임시 폴더)는 보고에서 뺀다.
+  function isHiddenFolder(name) {
+    return /^00_/.test(String(name == null ? "" : name).trim());
+  }
+  function sanitizeDates(dates) {
+    return (dates || [])
+      .filter(function (day) { return !isHiddenFolder(day.folder); })
+      .map(function (day) {
+        var orgs = (day.orgs || [])
+          .filter(function (o) { return !isHiddenFolder(o.org); })
+          .map(function (o) {
+            o.programs = (o.programs || []).filter(function (pr) { return !isHiddenFolder(pr.title); });
+            return o;
+          })
+          .filter(function (o) { return (o.programs || []).length; });
+        day.orgs = orgs;
+        return day;
+      })
+      .filter(function (day) { return (day.orgs || []).length; });
   }
 
   function dparts(f) {
