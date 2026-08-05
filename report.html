@@ -60,6 +60,10 @@
            background:#fff; color:#666; font-size:15px; cursor:pointer; display:flex;
            align-items:center; justify-content:center; }
   .arrow[disabled] { opacity:.3; cursor:default; }
+  /* 드라이브에 새 폴더를 넣고 바로 확인하고 싶을 때 — 캐시를 무시하고 다시 읽는다 */
+  .arrow.refresh { margin-left:6px; font-size:17px; }
+  .arrow.refresh.busy { animation:spin 1s linear infinite; opacity:.5; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 
   main { max-width:1240px; margin:0 auto; padding:18px 16px 40px; }
   .org { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
@@ -165,6 +169,7 @@
       <div class="daystrip" id="days"></div>
       <button class="arrow" id="dprev" aria-label="이전 날짜">&#8249;</button>
       <button class="arrow" id="dnext" aria-label="다음 날짜">&#8250;</button>
+      <button class="arrow refresh" id="dsync" aria-label="새 폴더 불러오기" title="드라이브에서 새 폴더 다시 읽기">&#8635;</button>
     </div>
   </div>
 </header>
@@ -262,13 +267,15 @@
     render();
   }
 
-  function openReport(pw, quiet) {
+  function openReport(pw, quiet, fresh, after) {
     if (!pw) return;
+    function done(changed) { if (after) after(changed); }
     var haveView = !el("main").hidden;              // 이미 (캐시로) 보여주는 중인가
     if (!quiet && !haveView) { el("err").textContent = ""; setLoading(true); }
     fetch(API, {
       method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "reportTree", secret: "artclasshub-2026", pw: pw })
+      // fresh=true 면 서버가 캐시를 버리고 드라이브를 다시 훑는다(새 폴더 즉시 반영).
+      body: JSON.stringify({ action: "reportTree", secret: "artclasshub-2026", pw: pw, fresh: !!fresh })
     })
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -278,17 +285,20 @@
             setLoading(false);
             el("err").textContent = d.message || "열지 못했어요.";
           }
+          done(false);
           return;
         }
         localStorage.setItem("reportPw", pw);
         var raw = JSON.stringify(d);
-        if (haveView && raw === localStorage.getItem("reportData")) return;   // 바뀐 게 없으면 다시 안 그림
+        if (haveView && raw === localStorage.getItem("reportData")) { done(false); return; }   // 바뀐 게 없으면 다시 안 그림
         localStorage.setItem("reportData", raw);
         setLoading(false);
         applyData(d);
+        done(true);
       })
       .catch(function () {
         if (!haveView) { setLoading(false); el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요."; }
+        done(false);
       });
   }
 
@@ -566,6 +576,23 @@
   el("dnext").addEventListener("click", function () { pageDays(1); });
   el("days").addEventListener("scroll", updateArrows);
   window.addEventListener("resize", updateArrows);
+
+  // 드라이브에 오늘 폴더를 막 넣었을 때 — 서버 캐시를 건너뛰고 다시 읽는다(몇 초 걸린다).
+  el("dsync").addEventListener("click", function () {
+    var btn = el("dsync");
+    if (btn.classList.contains("busy")) return;
+    btn.classList.add("busy");
+    var before = (DATA && DATA.dates ? DATA.dates.length : 0);
+    openReport(localStorage.getItem("reportPw") || el("pw").value.trim(), true, true, function (changed) {
+      btn.classList.remove("busy");
+      var now = (DATA && DATA.dates ? DATA.dates.length : 0);
+      if (!changed && now === before) {
+        btn.title = "새 폴더가 없어요 (사진이 든 폴더만 날짜가 생깁니다)";
+      } else {
+        btn.title = "드라이브에서 새 폴더 다시 읽기";
+      }
+    });
+  });
 
   // 크게 보기
   var box = el("box");
