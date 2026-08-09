@@ -6,7 +6,7 @@
   <title>Artable 미술 갤러리</title>
   <meta name="description" content="Artable 미술 수업 학생 작품 갤러리" />
   <link rel="preconnect" href="https://www.gstatic.com" />
-  <link rel="stylesheet" href="style.css?v=20260803d" />
+  <link rel="stylesheet" href="style.css?v=20260808a" />
 </head>
 <body>
 
@@ -106,6 +106,7 @@
           <a id="downloadBtn" class="btn btn-primary" download>⬇ 다운로드</a>
           <button id="shareBtn" class="btn btn-outline">↗ 공유</button>
           <button id="catBtn" class="btn btn-outline admin-only" hidden>🏷 분류 지정</button>
+          <button id="authBtn" class="btn btn-outline admin-only" hidden>✍️ 저작 표기</button>
           <button id="hideBtn" class="btn btn-ghost admin-only" hidden>🙈 숨김</button>
           <button id="deleteBtn" class="btn btn-danger admin-only" hidden>🗑 삭제</button>
         </div>
@@ -114,6 +115,12 @@
         <div id="catPicker" class="cat-picker" hidden>
           <p class="cat-picker-title">분류를 눌러 고르세요</p>
           <div id="catPickerList" class="cat-picker-list"></div>
+        </div>
+
+        <!-- 저작 표기 고르기 — 아이가 직접 그렸는지 / 밑그림 힌트를 썼는지 -->
+        <div id="authPicker" class="cat-picker" hidden>
+          <p class="cat-picker-title">저작 표기를 눌러 고르세요</p>
+          <div id="authPickerList" class="cat-picker-list"></div>
         </div>
       </div>
     </div>
@@ -124,8 +131,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <!-- 앱 스크립트 -->
-  <script src="config.js"></script>
-  <script src="script.js?v=20260803d"></script>
-  <script src="home-rails.js?v=20260803d"></script>
+  <script src="config.js?v=20260808a"></script>
+  <script src="script.js?v=20260808a"></script>
+  <script src="home-rails.js?v=20260808a"></script>
 </body>
 </html>

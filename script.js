@@ -56,7 +56,9 @@
   // ---------- 작품 분류(카테고리) ----------
   // 작품 문서의 category 필드로 나눠 본다. 분류 목록(마스터)은 설정 컬렉션의
   // 예약 문서 하나에 모아 둔다 — 아직 아무 작품에도 안 쓴 분류도 메뉴에 남기려고.
-  const CATEGORY_DOC = "__categories__";
+  // ⚠️ Firestore는 앞뒤가 __ 인 문서 ID(__categories__ 같은)를 예약어로 막는다.
+  //    학교 비번 문서와 섞이지 않으면서 학교 이름과 겹칠 일도 없는 이름을 쓴다.
+  const CATEGORY_DOC = "gallery-categories";
   const CAT_NONE = "__none__";          // '미분류' 탭 값 (실제 분류 이름과 겹칠 일 없게)
   let categories = [];                  // 관리자가 만든 분류 목록
   let catFilter = "";                   // '' = 전체
@@ -543,6 +545,16 @@
     bulk.addEventListener("click", bulkSetCategory);
     box.appendChild(bulk);
 
+    // 저작 표기(✍️ …)를 보이는 작품에서 한 번에 지우기 — 표기가 있는 작품이 있을 때만.
+    if (visibleItems().some((a) => a.authorship)) {
+      const clr = document.createElement("button");
+      clr.type = "button";
+      clr.className = "name-tab rename";
+      clr.textContent = "✍️ 표기 일괄 지우기";
+      clr.addEventListener("click", bulkClearAuthorship);
+      box.appendChild(clr);
+    }
+
     if (catFilter && catFilter !== CAT_NONE) {
       const ren = document.createElement("button");
       ren.type = "button";
@@ -588,14 +600,22 @@
     saveCategories(categories.concat([name]));
   }
 
-  /// 작품 여러 개의 분류를 한 번에 바꾼다(Firestore batch).
+  /// 작품 여러 개를 한 번에 고친다. Firestore batch는 한 번에 500개까지라 나눠서 커밋.
+  async function batchUpdate(items, data) {
+    const CHUNK = 400;
+    for (let i = 0; i < items.length; i += CHUNK) {
+      const batch = db.batch();
+      items.slice(i, i + CHUNK).forEach((a) => batch.update(db.collection(COLLECTION).doc(a.id), data));
+      await batch.commit();
+    }
+  }
+
+  /// 작품 여러 개의 분류를 한 번에 바꾼다.
   async function writeCategory(items, value) {
     items.forEach((a) => { a.category = value; });   // 스냅샷이 오기 전 화면 즉시 반영
     if (usingSample || !db) { renderCatTabs(); applyFilters(); return true; }
     try {
-      const batch = db.batch();
-      items.forEach((a) => batch.update(db.collection(COLLECTION).doc(a.id), { category: value }));
-      await batch.commit();
+      await batchUpdate(items, { category: value });
       renderCatTabs();
       applyFilters();
       return true;
@@ -777,6 +797,22 @@
   const modal = $("modal");
   let currentItem = null;
 
+  /// 작품 창의 설명줄과 관리자 버튼 라벨을 지금 값으로 다시 그린다.
+  /// (열 때 / 분류 바꿀 때 / 저작 표기 바꿀 때 같은 줄을 쓰므로 한 곳으로 모음)
+  function refreshModalInfo(item) {
+    $("modalMeta").textContent = [
+      item.school,
+      item.category ? "🏷 " + item.category : "",
+      typeLabel(item),
+      formatDate(item.date),
+      authorshipText(item)
+    ].filter(Boolean).join(" · ");
+    const catBtn = $("catBtn");
+    if (catBtn) catBtn.textContent = item.category ? "🏷 " + item.category : "🏷 분류 지정";
+    const authBtn = $("authBtn");
+    if (authBtn) authBtn.textContent = item.authorship ? "✍️ 표기 바꾸기" : "✍️ 저작 표기";
+  }
+
   function openModal(item) {
     currentItem = item;
     const modalImg = $("modalImage");
@@ -793,11 +829,10 @@
     const label = typeLabel(item);
     $("modalTitle").textContent = item.title || (label ? label : "");
     $("modalTitle").hidden = !item.title && !label;
-    $("modalMeta").textContent = [item.school, item.category ? "🏷 " + item.category : "",
-      label, formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
-    const catBtn = $("catBtn");
-    if (catBtn) catBtn.textContent = item.category ? "🏷 " + item.category : "🏷 분류 지정";
-    if ($("catPicker")) $("catPicker").hidden = true;   // 다른 작품을 열면 접힌 상태로 시작
+    refreshModalInfo(item);
+    // 다른 작품을 열면 고르기 창은 접힌 상태로 시작
+    if ($("catPicker")) $("catPicker").hidden = true;
+    if ($("authPicker")) $("authPicker").hidden = true;
 
     const dl = $("downloadBtn");
     dl.href = fileDownloadURL(item);
@@ -867,6 +902,7 @@
     const picker = $("catPicker");
     if (!picker || !currentItem) return;
     if (!picker.hidden) { picker.hidden = true; return; }   // 한 번 더 누르면 닫기
+    if ($("authPicker")) $("authPicker").hidden = true;     // 고르기 창은 한 번에 하나만
     renderCatPicker();
     picker.hidden = false;
   });
@@ -904,9 +940,95 @@
     if (!ok) return;
     if (value && categories.indexOf(value) < 0) await saveCategories(categories.concat([value]));
     $("catPicker").hidden = true;
-    $("catBtn").textContent = value ? "🏷 " + value : "🏷 분류 지정";
-    $("modalMeta").textContent = [item.school, value ? "🏷 " + value : "",
-      typeLabel(item), formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
+    refreshModalInfo(item);
+  }
+
+  // =========================================================
+  //  저작 표기 (✍️ 이야기·그림 학생 직접 / 🧚 밑그림 힌트 사용)
+  // =========================================================
+
+  /// 고를 수 있는 표기 3가지. value 가 작품 문서의 authorship 필드에 그대로 들어간다.
+  const AUTHORSHIP_CHOICES = [
+    { label: "✍️ 학생 직접",            value: { used_ai_hint: false } },
+    { label: "✍️ 학생 직접 · 🧚 힌트 사용", value: { used_ai_hint: true } },
+    { label: "표기 없음",                value: null }
+  ];
+
+  /// 지금 작품이 위 3가지 중 무엇인지.
+  function authorshipKey(a) {
+    if (!a) return "none";
+    return a.used_ai_hint === true ? "hint" : "self";
+  }
+  function choiceKey(v) {
+    if (!v) return "none";
+    return v.used_ai_hint === true ? "hint" : "self";
+  }
+
+  $("authBtn").addEventListener("click", () => {
+    const picker = $("authPicker");
+    if (!picker || !currentItem) return;
+    if (!picker.hidden) { picker.hidden = true; return; }   // 한 번 더 누르면 닫기
+    if ($("catPicker")) $("catPicker").hidden = true;       // 고르기 창은 한 번에 하나만
+    renderAuthPicker();
+    picker.hidden = false;
+  });
+
+  function renderAuthPicker() {
+    const box = $("authPickerList");
+    if (!box || !currentItem) return;
+    const cur = authorshipKey(currentItem.authorship);
+    box.innerHTML = "";
+    AUTHORSHIP_CHOICES.forEach((c) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "name-tab" + (choiceKey(c.value) === cur ? " on" : "");
+      b.textContent = c.label;
+      b.addEventListener("click", () => pickAuthorship(c.value));
+      box.appendChild(b);
+    });
+  }
+
+  /// 지금 보이는 작품 전부에서 저작 표기를 지운다.
+  /// (한 장씩 열지 않고 '✍️ 이야기·그림 학생 직접' 줄을 목록에서 걷어낼 때)
+  async function bulkClearAuthorship() {
+    const targets = visibleItems().filter((a) => a.authorship);
+    if (!targets.length) { alert("지금 보이는 작품에는 저작 표기가 없어요."); return; }
+    if (!confirm("지금 보이는 작품 " + targets.length + "개에서 '✍️ 이야기·그림 학생 직접' 표기를 지울까요?\n"
+      + "표기만 사라지고 작품은 그대로예요.")) return;
+
+    const before = targets.map((a) => a.authorship);
+    targets.forEach((a) => { a.authorship = null; });   // 화면 먼저 반영
+    if (!(usingSample || !db)) {
+      try {
+        await batchUpdate(targets, { authorship: null });
+      } catch (e) {
+        targets.forEach((a, i) => { a.authorship = before[i]; });   // 실패하면 되돌린다
+        alert("표기를 지우지 못했어요: " + (e && e.message ? e.message : e));
+        return;
+      }
+    }
+    renderCatTabs();
+    applyFilters();
+  }
+
+  async function pickAuthorship(value) {
+    if (!currentItem) return;
+    const item = currentItem;
+    const before = item.authorship;
+    item.authorship = value;                       // 스냅샷 전 화면 즉시 반영
+    if (!(usingSample || !db)) {
+      try {
+        await db.collection(COLLECTION).doc(item.id).update({ authorship: value });
+      } catch (e) {
+        item.authorship = before;                  // 실패하면 되돌린다
+        alert("저작 표기를 저장하지 못했어요: " + (e && e.message ? e.message : e)
+          + "\n\nFirestore 규칙이 쓰기를 막고 있으면 숨김/삭제처럼 쓰기 허용이 필요해요.");
+        return;
+      }
+    }
+    $("authPicker").hidden = true;
+    refreshModalInfo(item);
+    applyFilters();                                // 카드의 표기도 같이 갱신
   }
 
   // 숨김
