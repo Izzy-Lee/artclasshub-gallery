@@ -24,6 +24,11 @@
   const unlockedSchools = new Set();
   const SETTINGS_COLLECTION = "school_settings";
 
+  // 지금 브라우저가 실제로 실행 중인 코드의 버전.
+  // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
+  // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
+  const BUILD = "757cdb2";
+
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
   const gallery = $("gallery");
@@ -35,6 +40,7 @@
   const sortSelect = $("sortSelect");
   const countLabel = $("countLabel");
   const sourceNote = $("sourceNote");
+
   const controls = document.querySelector(".controls");
   const schoolHeader = $("schoolHeader");
   const schoolTitle = $("schoolTitle");
@@ -131,6 +137,7 @@
   }
 
   $("year").textContent = new Date().getFullYear();
+  if ($("buildStamp")) $("buildStamp").textContent = "버전 " + BUILD;
 
   // =========================================================
   //  샘플 데이터 (Firebase 없이도 화면 확인용)
