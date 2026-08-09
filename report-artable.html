@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Artable 리포트</title>
+<style>
+  :root{
+    --mint:#12BFAE; --mint-dark:#0A9A8C; --pink:#F35AA0;
+    --ink:#1B1D22; --sub:#7A828C; --line:#E7EAEE; --bg:#F7F9FA; --card:#fff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+       -webkit-text-size-adjust:100%}
+  .wrap{max-width:1040px; margin:0 auto; padding:20px 16px 60px}
+
+  /* 머리말 */
+  header{display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+  .brand{font-size:13px; font-weight:800; letter-spacing:.14em; color:var(--mint)}
+  h1{font-size:24px; font-weight:800; margin:2px 0 4px; line-height:1.25}
+  .meta{font-size:13px; color:var(--sub)}
+  .spacer{flex:1}
+  .btn{border:2px solid var(--mint); background:#fff; color:var(--mint-dark);
+       font-weight:800; font-size:14px; padding:10px 16px; border-radius:12px; cursor:pointer}
+  .btn:active{background:#F1FCFA}
+
+  /* 필터 */
+  .filters{margin:16px 0 8px; display:flex; flex-direction:column; gap:8px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{border:1px solid var(--line); background:#fff; color:#3C4450; font-size:14px; font-weight:600;
+        padding:8px 14px; border-radius:999px; cursor:pointer}
+  .chip.on{background:var(--mint); border-color:var(--mint); color:#fff}
+  .flabel{font-size:12px; font-weight:700; color:var(--sub)}
+
+  /* 요약 */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:16px 0 26px}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px}
+  .stat .n{font-size:26px; font-weight:800; line-height:1.1}
+  .stat .k{font-size:12px; color:var(--sub); margin-top:4px; font-weight:600}
+
+  /* 섹션 */
+  section{margin:0 0 34px}
+  h2{font-size:18px; font-weight:800; margin:0 0 4px; display:flex; align-items:center; gap:8px}
+  h2 .cnt{font-size:13px; font-weight:700; color:var(--sub)}
+  .hint{font-size:12px; color:var(--sub); margin:0 0 12px}
+  .day{margin:0 0 20px}
+  .day h3{font-size:15px; font-weight:800; margin:0 0 8px; color:var(--mint-dark)}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px}
+  .item{background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .item img{width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#EEF1F3}
+  .item .cap{padding:7px 9px; font-size:12px; color:#3C4450; font-weight:600;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .item .cap small{display:block; color:var(--sub); font-weight:500}
+  .book img{aspect-ratio:3/2; object-fit:contain; background:#fff}
+  a.book{text-decoration:none; color:inherit; display:block}
+  .empty{font-size:14px; color:var(--sub); padding:14px 0}
+  .msg{padding:40px 16px; text-align:center; color:var(--sub); font-size:15px; line-height:1.7}
+  .msg code{background:#fff; border:1px solid var(--line); border-radius:6px; padding:2px 6px; font-size:13px}
+  footer{border-top:1px solid var(--line); margin-top:30px; padding-top:16px;
+         font-size:12px; color:var(--sub); text-align:center}
+
+  /* 인쇄(A4 결과보고서 첨부용) */
+  @media print{
+    @page{size:A4; margin:14mm}
+    body{background:#fff}
+    .wrap{max-width:none; padding:0}
+    .btn,.filters{display:none !important}
+    .stats{grid-template-columns:repeat(5,1fr); gap:6px}
+    .stat{border-color:#CFD5DB}
+    .grid{grid-template-columns:repeat(3,1fr); gap:6px}
+    .item,.stat,.day{break-inside:avoid; page-break-inside:avoid}
+    section{break-before:auto}
+    h2{break-after:avoid}
+    a{color:inherit; text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">ARTABLE</div>
+      <h1 id="title">창의미술 수업 리포트</h1>
+      <div class="meta" id="meta">불러오는 중…</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" onclick="window.print()">🖨 인쇄 · PDF 저장</button>
+  </header>
+
+  <div id="guard" class="msg" hidden></div>
+  <div id="body" hidden>
+    <div class="filters">
+      <div>
+        <div class="flabel">기관</div>
+        <div class="chips" id="orgChips"></div>
+      </div>
+      <div>
+        <div class="flabel">학생</div>
+        <div class="chips" id="nameChips"></div>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <section id="secPhotos">
+      <h2>📷 회차별 수업 사진 <span class="cnt" id="cntPhotos"></span></h2>
+      <p class="hint">수업일별로 모은 활동 사진이에요.</p>
+      <div id="photos"></div>
+    </section>
+
+    <section id="secWorks">
+      <h2>🎨 학생 작품 <span class="cnt" id="cntWorks"></span></h2>
+      <div class="grid" id="works"></div>
+    </section>
+
+    <section id="secBooks">
+      <h2>📚 그림책 <span class="cnt" id="cntBooks"></span></h2>
+      <p class="hint">표지를 누르면 온라인 그림책이 열려요.</p>
+      <div class="grid" id="books"></div>
+    </section>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Artable · 창의미술 수업 리포트<br>
+    <span id="src"></span>
+  </footer>
+</div>
+
+<script type="module">
+// ───────────────────────────────────────────────────────────────────
+// 설정 — 여기만 고치면 됩니다.
+// ───────────────────────────────────────────────────────────────────
+const CONFIG = {
+  reportTitle: "창의미술 수업 리포트",
+
+  // ⬇️ Firebase 웹 설정. 갤러리 index.html 안의 firebaseConfig를 그대로 복사해 넣으세요.
+  //    "PASTE"가 남아 있으면 안내 화면만 나옵니다(빈 화면 대신).
+  firebase: {
+    apiKey: "PASTE",
+    authDomain: "PASTE",
+    projectId: "PASTE",
+    storageBucket: "PASTE",
+    messagingSenderId: "PASTE",
+    appId: "PASTE"
+  },
+
+  // 리포트에 포함할 수업명. 반 이름(class_name)에 이 말이 들어간 반만 집계합니다.
+  // 예: ["창의미술"] → 도자기·서예 등 다른 수업은 제외. []이면 전체 수업.
+  classNames: ["창의미술"],
+
+  // 대상 반 코드 화이트리스트(용역 리포트처럼 일부 기관만 넣을 때).
+  // 예: ["YH1234", "YH5678", "BR9012"]. []이면 classNames 조건에 맞는 반 전체.
+  classCodes: [],
+
+  // 집계 기간. "2026-01-01" 형식, 비우면 전체 기간.
+  period: { from: "", to: "" }
+};
+
+// URL로도 덮어쓸 수 있어요 (링크 하나로 필터된 리포트 공유용)
+//   ?name=창의미술&class=YH1234,YH5678&from=2026-03-01&to=2026-12-31&print=1
+const qp = new URLSearchParams(location.search);
+if (qp.get("name"))  CONFIG.classNames = qp.get("name").split(",").filter(Boolean);
+if (qp.get("class")) CONFIG.classCodes = qp.get("class").split(",").filter(Boolean);
+if (qp.get("from"))  CONFIG.period.from = qp.get("from");
+if (qp.get("to"))    CONFIG.period.to   = qp.get("to");
+if (qp.get("title")) CONFIG.reportTitle = qp.get("title");
+
+// 온라인 그림책 뷰어 (같은 GitHub Pages 폴더 기준)
+const VIEWER = "viewer.html";
+
+// ───────────────────────────────────────────────────────────────────
+const el = (id) => document.getElementById(id);
+el("year").textContent = new Date().getFullYear();
+el("title").textContent = CONFIG.reportTitle;
+
+function guard(html) { el("guard").innerHTML = html; el("guard").hidden = false; el("meta").textContent = ""; }
+
+if (String(CONFIG.firebase.projectId).indexOf("PASTE") === 0) {
+  guard('Firebase 설정이 아직 비어 있어요.<br>이 파일 위쪽 <code>CONFIG.firebase</code>에 갤러리 <code>index.html</code>의 <code>firebaseConfig</code>를 복사해 넣어 주세요.');
+} else {
+  main().catch((e) => guard("데이터를 불러오지 못했어요.<br><small>" + String(e) + "</small>"));
+}
+
+async function main() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const { getFirestore, collection, getDocs } =
+    await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+  const db = getFirestore(initializeApp(CONFIG.firebase));
+  const readAll = async (name) => (await getDocs(collection(db, name))).docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // 규모가 작아(수백 건) 전부 읽고 화면에서 걸러요 — 복합 인덱스가 필요 없어 운영이 단순합니다.
+  const [classes, materials, submissions, storybooks] = await Promise.all(
+    ["classes", "materials", "submissions", "storybooks"].map(readAll)
+  );
+
+  // 1) 대상 반 고르기
+  const nameOK = (s) => !CONFIG.classNames.length ||
+    CONFIG.classNames.some((n) => String(s || "").indexOf(n) >= 0);
+  const codeOK = (c) => !CONFIG.classCodes.length || CONFIG.classCodes.indexOf(String(c || "")) >= 0;
+  const target = classes.filter((c) => nameOK(c.class_name) && codeOK(c.class_code));
+
+  if (!target.length) {
+    guard("조건에 맞는 반이 없어요.<br><small>수업명: " + (CONFIG.classNames.join(", ") || "전체") + "</small>");
+    return;
+  }
+
+  const byId = {}, byCode = {}, codes = new Set(), ids = new Set();
+  target.forEach((c) => {
+    byId[c.id] = c; byCode[String(c.class_code || "")] = c;
+    ids.add(c.id); codes.add(String(c.class_code || ""));
+  });
+  const orgOf = (c) => (c && (c.school_name || c.class_name)) || "기타";
+  const orgs = [...new Set(target.map(orgOf))].sort();
+
+  // 2) 기간 필터
+  const toDate = (v) => (v && typeof v.toDate === "function") ? v.toDate() : (v ? new Date(v) : null);
+  const from = CONFIG.period.from ? new Date(CONFIG.period.from + "T00:00:00") : null;
+  const to   = CONFIG.period.to   ? new Date(CONFIG.period.to   + "T23:59:59") : null;
+  const inPeriod = (d) => !!d && (!from || d >= from) && (!to || d <= to);
+
+  // 3) 수업 사진 = materials(이미지). 반 id가 대상이거나, 반 이름이 조건에 맞을 때.
+  const photos = materials.map((m) => {
+    const cls = byId[m.class_id];
+    return {
+      date: toDate(m.uploaded_date),
+      url: m.thumbnail_url || m.google_drive_link || m.file_url || "",
+      className: m.class_name || (cls && cls.class_name) || "",
+      org: m.school_name || orgOf(cls),
+      isImage: String(m.file_type || "").toLowerCase() === "image" ||
+               ["jpg","jpeg","png","heic","gif","webp"].indexOf(String(m.file_extension || "").toLowerCase()) >= 0,
+      inScope: ids.has(m.class_id) || (nameOK(m.class_name) && !CONFIG.classCodes.length)
+    };
+  }).filter((p) => p.inScope && p.isImage && p.url && inPeriod(p.date) && nameOK(p.className));
+
+  // 4) 작품 = submissions, 그림책 = storybooks (둘 다 반코드 기준)
+  const works = submissions.filter((s) => codes.has(String(s.class_code || "")))
+    .map((s) => ({
+      date: toDate(s.created_at),
+      name: s.student_nickname || "익명",
+      org: orgOf(byCode[String(s.class_code || "")]),
+      url: s.thumbnail_url || s.google_drive_link || s.download_url || ""
+    })).filter((w) => w.url && inPeriod(w.date));
+
+  const books = storybooks.filter((b) => codes.has(String(b.classCode || "")))
+    .map((b) => ({
+      date: toDate(b.updatedAt) || toDate(b.createdAt),
+      name: b.studentName || "익명",
+      org: orgOf(byCode[String(b.classCode || "")]),
+      title: b.title || "제목 없음",
+      bookId: b.bookId || "",
+      cover: b.thumbURL || (Array.isArray(b.spreadThumbs) ? b.spreadThumbs.find(Boolean) : "") || ""
+    })).filter((b) => inPeriod(b.date));
+
+  // ⚠️ 학생 이름은 작품과 그림책을 합집합으로 — 한쪽만 보면 이름이 통째로 빠집니다.
+  const names = [...new Set(works.map((w) => w.name).concat(books.map((b) => b.name)))].sort((a, b) => a.localeCompare(b, "ko"));
+
+  // 5) 화면
+  let orgSel = "전체", nameSel = "전체";
+  el("body").hidden = false;
+  el("meta").textContent = [
+    (CONFIG.classNames.join("·") || "전체 수업"),
+    orgs.length + "개 기관",
+    (CONFIG.period.from || CONFIG.period.to)
+      ? ((CONFIG.period.from || "처음") + " ~ " + (CONFIG.period.to || "지금"))
+      : "전체 기간"
+  ].join(" · ");
+  el("src").textContent = "표시 중: 실시간 Firebase 데이터 · 대상 반 " + target.length + "곳";
+
+  chips("orgChips", ["전체"].concat(orgs), () => orgSel, (v) => { orgSel = v; render(); });
+  chips("nameChips", ["전체"].concat(names), () => nameSel, (v) => { nameSel = v; render(); });
+  render();
+  if (qp.get("print")) setTimeout(() => window.print(), 900);
+
+  function chips(hostId, values, get, set) {
+    const host = el(hostId); host.innerHTML = "";
+    if (values.length <= 1) { host.innerHTML = '<span class="empty">없음</span>'; return; }
+    values.forEach((v) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (get() === v ? " on" : "");
+      b.textContent = v;
+      b.onclick = () => { set(v); [...host.children].forEach((c) => c.classList.toggle("on", c.textContent === v)); };
+      host.appendChild(b);
+    });
+  }
+
+  function render() {
+    const orgHit  = (x) => orgSel === "전체" || x.org === orgSel;
+    const nameHit = (x) => nameSel === "전체" || x.name === nameSel;
+    const ph = photos.filter(orgHit);
+    const wk = works.filter((w) => orgHit(w) && nameHit(w));
+    const bk = books.filter((b) => orgHit(b) && nameHit(b));
+
+    const days = [...new Set(ph.map((p) => ymd(p.date)))].sort().reverse();
+    const students = new Set(wk.map((w) => w.name).concat(bk.map((b) => b.name)));
+
+    stats([
+      ["수업 회차", days.length],
+      ["참여 학생", students.size],
+      ["학생 작품", wk.length],
+      ["그림책", bk.length],
+      ["수업 사진", ph.length]
+    ]);
+
+    // 회차별 사진
+    const host = el("photos"); host.innerHTML = "";
+    el("cntPhotos").textContent = days.length ? days.length + "회차 · 사진 " + ph.length + "장" : "";
+    if (!days.length) host.innerHTML = '<div class="empty">이 조건에는 수업 사진이 없어요.</div>';
+    days.forEach((d) => {
+      const box = document.createElement("div"); box.className = "day";
+      const list = ph.filter((p) => ymd(p.date) === d);
+      box.innerHTML = "<h3>" + krDate(d) + " · " + list.length + "장</h3>";
+      const g = document.createElement("div"); g.className = "grid";
+      list.forEach((p) => g.appendChild(card(p.url, p.className || "수업", p.org)));
+      box.appendChild(g); host.appendChild(box);
+    });
+
+    // 작품
+    const wHost = el("works"); wHost.innerHTML = "";
+    el("cntWorks").textContent = wk.length ? wk.length + "점" : "";
+    if (!wk.length) wHost.innerHTML = '<div class="empty">이 조건에는 작품이 없어요.</div>';
+    wk.sort((a, b) => (b.date || 0) - (a.date || 0))
+      .forEach((w) => wHost.appendChild(card(w.url, w.name, ymd(w.date))));
+
+    // 그림책
+    const bHost = el("books"); bHost.innerHTML = "";
+    el("cntBooks").textContent = bk.length ? bk.length + "권" : "";
+    if (!bk.length) bHost.innerHTML = '<div class="empty">이 조건에는 그림책이 없어요.</div>';
+    bk.sort((a, b) => (b.date || 0) - (a.date || 0)).forEach((b) => {
+      const c = card(b.cover, b.title, b.name, true);
+      if (b.bookId) {
+        const a = document.createElement("a");
+        a.className = "book"; a.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
+        a.target = "_blank"; a.rel = "noopener";
+        a.appendChild(c); bHost.appendChild(a);
+      } else bHost.appendChild(c);
+    });
+  }
+
+  function stats(rows) {
+    el("stats").innerHTML = rows.map(([k, n]) =>
+      '<div class="stat"><div class="n">' + n + '</div><div class="k">' + k + '</div></div>').join("");
+  }
+
+  function card(url, cap, sub, isBook) {
+    const d = document.createElement("div");
+    d.className = "item" + (isBook ? " book" : "");
+    const img = document.createElement("img");
+    img.loading = "lazy"; img.alt = cap || "";
+    img.src = url || "";
+    img.onerror = () => { img.style.visibility = "hidden"; };
+    const c = document.createElement("div"); c.className = "cap";
+    c.textContent = cap || "";
+    if (sub) { const s = document.createElement("small"); s.textContent = sub; c.appendChild(s); }
+    d.appendChild(img); d.appendChild(c);
+    return d;
+  }
+
+  function ymd(d) {
+    if (!d) return "";
+    const p = (n) => (n < 10 ? "0" + n : "" + n);
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function krDate(s) {
+    const [y, m, d] = s.split("-");
+    return y + "년 " + Number(m) + "월 " + Number(d) + "일";
+  }
+}
+</script>
+</body>
+</html>

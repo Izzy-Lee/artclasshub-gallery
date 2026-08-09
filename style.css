@@ -460,3 +460,21 @@ html, body {
 .name-tab.rename { border-style: dashed; color: #b45309; border-color: #d9b88a; }
 .name-tab.rename:hover { border-color: #b45309; color: #92400e; }
 
+/* 분류 탭 줄 — 이름 탭과 구분되게 앞에 작은 라벨을 둔다 */
+.cat-tabs { margin-top: -4px; }
+.tabs-label {
+  align-self: center; font-size: 12px; font-weight: 700;
+  color: var(--text-sub); opacity: .75; margin-right: 2px;
+}
+.card-cat { margin: 3px 0 0; font-size: 12px; font-weight: 700; color: var(--accent-dark); }
+
+/* 작품 창 안의 분류 고르기 — 폰에서 눌러서 고르도록 칩으로 깐다 */
+.cat-picker {
+  margin-top: 12px; padding: 12px; border-radius: 14px;
+  background: var(--accent-soft, #f4f6f8); border: 1px solid var(--border);
+}
+.cat-picker-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--text-sub); }
+.cat-picker-list { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 지금 분류(.on)는 강조색을 그대로 두고, 나머지 칩만 흰 바탕으로 */
+.cat-picker-list .name-tab:not(.on) { background: var(--card); }
+

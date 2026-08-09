@@ -66,6 +66,9 @@
     <!-- 아이 이름 탭 (이름별로 그림 보기) -->
     <div id="nameTabs" class="name-tabs" hidden></div>
 
+    <!-- 작품 분류 탭 (분류별로 그림 보기 · 관리자는 분류 추가/정리) -->
+    <div id="catTabs" class="name-tabs cat-tabs" hidden></div>
+
     <!-- 로딩 -->
     <div id="loading" class="loading">
       <div class="spinner" aria-hidden="true"></div>
@@ -102,8 +105,15 @@
         <div class="modal-actions">
           <a id="downloadBtn" class="btn btn-primary" download>⬇ 다운로드</a>
           <button id="shareBtn" class="btn btn-outline">↗ 공유</button>
+          <button id="catBtn" class="btn btn-outline admin-only" hidden>🏷 분류 지정</button>
           <button id="hideBtn" class="btn btn-ghost admin-only" hidden>🙈 숨김</button>
           <button id="deleteBtn" class="btn btn-danger admin-only" hidden>🗑 삭제</button>
+        </div>
+
+        <!-- 분류 고르기 — '🏷 분류 지정'을 누르면 이 자리에서 눌러서 고른다 -->
+        <div id="catPicker" class="cat-picker" hidden>
+          <p class="cat-picker-title">분류를 눌러 고르세요</p>
+          <div id="catPickerList" class="cat-picker-list"></div>
         </div>
       </div>
     </div>

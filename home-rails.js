@@ -273,6 +273,18 @@
     rail.section.hidden = false;
   }
 
+  /// 이 반 그림책의 지은이 이름을 이름 탭(script.js)에 알린다.
+  /// 작품(submissions)은 없고 그림책만 만든 아이는 이름 탭에서 통째로 빠지던 문제를 막는다.
+  function emitBookNames(books) {
+    var seen = {}, names = [];
+    (books || []).forEach(function (b) {
+      var n = String((b && b.student) || "").trim();
+      if (!n || seen[n]) return;
+      seen[n] = true; names.push(n);
+    });
+    document.dispatchEvent(new CustomEvent("gallery-booknames", { detail: names }));
+  }
+
   function fillBooks(rail, className) {
     // 지난 방문에 저장해 둔 목록이 있으면 먼저 그려서(즉시 표시) 서버 응답을 기다리지 않는다.
     // 저장본조차 없으면 스켈레톤으로 자리부터 잡는다 — 늦게 불쑥 생기며 화면이 밀리지 않게.
@@ -281,8 +293,10 @@
       if (cached && cached.length) renderBooks(rail, className, cached);
       else renderBookSkeleton(rail);
     }
+    if (cached && cached.length) emitBookNames(cached);   // 저장본으로 이름 탭 먼저 채우기
 
     loadBooksForClass(className).then(function (mine) {
+      if (mine.length || !lastBooksLoadFailed) emitBookNames(mine);   // 일시 실패면 저장본 이름 유지
       var hasReal = rail.track.childElementCount && !rail.track.querySelector(".rail-skel");
       if (!mine.length) {
         if (!lastBooksLoadFailed) {
@@ -385,6 +399,20 @@
   function isHiddenFolder(name) {
     return /^00_/.test(String(name == null ? "" : name).trim());
   }
+
+  /// 갤러리에 보여줄 수업(프로그램)인지 — config.js의 photoPrograms 기준.
+  /// 폴더 이름에 그 말이 들어간 수업만 통과(예: ["창의미술"] → 도자기·서예 제외).
+  /// 비어 있으면 전체 통과. 날짜 탭의 개수도 이 필터를 거친 뒤 세진다.
+  function programAllowed(title) {
+    var allow = (window.GALLERY_CONFIG || {}).photoPrograms;
+    if (!allow || !allow.length) return true;
+    var t = String(title == null ? "" : title);
+    for (var i = 0; i < allow.length; i++) {
+      if (allow[i] && t.indexOf(allow[i]) >= 0) return true;
+    }
+    return false;
+  }
+
   function sanitizeDates(dates) {
     return (dates || [])
       .filter(function (day) { return !isHiddenFolder(day.folder); })
@@ -392,7 +420,9 @@
         var orgs = (day.orgs || [])
           .filter(function (o) { return !isHiddenFolder(o.org); })
           .map(function (o) {
-            o.programs = (o.programs || []).filter(function (pr) { return !isHiddenFolder(pr.title); });
+            o.programs = (o.programs || []).filter(function (pr) {
+              return !isHiddenFolder(pr.title) && programAllowed(pr.title);
+            });
             return o;
           })
           .filter(function (o) { return (o.programs || []).length; });
@@ -557,6 +587,7 @@
       if (!inClass) {
         bookRail.section.hidden = true;
         photoRail.section.hidden = true;
+        emitBookNames([]);   // 홈으로 나가면 그림책 이름은 지운다(다른 반 이름이 남지 않게)
         currentClass = "";
         return;
       }

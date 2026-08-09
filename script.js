@@ -53,9 +53,18 @@
   // 이름 탭으로 고른 학생('' = 전체)
   let nameFilter = "";
 
+  // ---------- 작품 분류(카테고리) ----------
+  // 작품 문서의 category 필드로 나눠 본다. 분류 목록(마스터)은 설정 컬렉션의
+  // 예약 문서 하나에 모아 둔다 — 아직 아무 작품에도 안 쓴 분류도 메뉴에 남기려고.
+  const CATEGORY_DOC = "__categories__";
+  const CAT_NONE = "__none__";          // '미분류' 탭 값 (실제 분류 이름과 겹칠 일 없게)
+  let categories = [];                  // 관리자가 만든 분류 목록
+  let catFilter = "";                   // '' = 전체
+
   $("backHome").addEventListener("click", () => {
     currentSchool = null;
     nameFilter = "";
+    catFilter = "";
     searchInput.value = "";
     refreshUI();
     window.scrollTo(0, 0);
@@ -72,6 +81,7 @@
     }
     currentSchool = school;
     nameFilter = "";
+    catFilter = "";
     searchInput.value = "";
     refreshUI();
     window.scrollTo(0, 0);
@@ -190,6 +200,8 @@
       type,
       ext,
       fileName,
+      // 작품 분류(관리자가 지정) — 없으면 '미분류'
+      category: String(d.category || "").trim(),
       hidden: d.hidden === true,
       date,
       imageURL: url,
@@ -276,6 +288,12 @@
         const map = {};
         snap.forEach((doc) => {
           const d = doc.data() || {};
+          // 분류 목록은 학교 비번과 같은 컬렉션의 예약 문서에 들어 있다.
+          if (doc.id === CATEGORY_DOC) {
+            categories = (Array.isArray(d.list) ? d.list : [])
+              .map((c) => String(c || "").trim()).filter(Boolean);
+            return;
+          }
           const name = d.school || doc.id;
           if (d.password) map[name] = d.password;
         });
@@ -316,6 +334,7 @@
     usingSample = true;
     allItems = sampleData();
     loadLocalPasswords();
+    loadLocalCategories();
     sourceNote.textContent = "표시 중: 샘플 데이터 (Firebase 미연결)";
     refreshUI();
   }
@@ -334,6 +353,7 @@
       if (backBtn) backBtn.style.display = "none";   // 전체 학교로 나가는 버튼 숨김
       schoolTitle.textContent = lockedTitle();
       renderNameTabs();
+      renderCatTabs();
       applyFilters();
       return;
     }
@@ -342,7 +362,7 @@
     // 홈에서는 검색/정렬 컨트롤 숨기고, 학교 상세에서는 표시
     if (controls) controls.hidden = home;
     schoolHeader.hidden = home;
-    if (!home) { schoolTitle.textContent = currentSchool; renderNameTabs(); }
+    if (!home) { schoolTitle.textContent = currentSchool; renderNameTabs(); renderCatTabs(); }
     else clearNameTabs();
 
     if (home) renderHome();
@@ -373,11 +393,23 @@
     document.dispatchEvent(new CustomEvent("gallery-namefilter", { detail: nameFilter }));
   }
 
-  // 아이 이름 탭 — 눌러서 그 아이 작품만 보기
+  // 지금 보고 있는 반의 그림책 지은이들 (home-rails.js가 알려준다).
+  // 작품(submissions)만 보면 그림책만 만든 아이가 이름 탭에서 통째로 빠진다.
+  let bookStudents = [];
+  document.addEventListener("gallery-booknames", (e) => {
+    const next = [...new Set((Array.isArray(e.detail) ? e.detail : [])
+      .map((n) => String(n || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+    if (next.join("|") === bookStudents.join("|")) return;   // 같은 목록이면 다시 그리지 않는다
+    bookStudents = next;
+    renderNameTabs();
+  });
+
+  // 아이 이름 탭 — 눌러서 그 아이 작품만 보기 (작품 + 그림책 지은이 합집합)
   function renderNameTabs() {
     const box = $("nameTabs");
     if (!box) return;
-    const names = [...new Set(scopedItems().map((a) => (a.student || "").trim()).filter(Boolean))]
+    const names = [...new Set(scopedItems().map((a) => (a.student || "").trim()).filter(Boolean)
+      .concat(bookStudents))]
       .sort((a, b) => a.localeCompare(b, "ko"));
     if (names.length <= 1) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
@@ -441,6 +473,188 @@
     if (box) { box.hidden = true; box.innerHTML = ""; }
     nameFilter = "";
     emitNameFilter();
+    const cbox = $("catTabs");
+    if (cbox) { cbox.hidden = true; cbox.innerHTML = ""; }
+    catFilter = "";
+  }
+
+  // =========================================================
+  //  작품 분류 (분류별로 보기 + 관리자 분류 메뉴)
+  // =========================================================
+
+  /// 이 화면에서 실제로 쓰이고 있는 분류들.
+  function usedCategories() {
+    return [...new Set(scopedItems().map((a) => (a.category || "").trim()).filter(Boolean))];
+  }
+  /// 메뉴에 보일 분류 = 관리자가 만든 목록 + 실제로 쓰인 분류(직접 넣은 값도 사라지지 않게).
+  function allCategories() {
+    return [...new Set(categories.concat(usedCategories()))].sort((a, b) => a.localeCompare(b, "ko"));
+  }
+
+  // 분류 탭 — 눌러서 그 분류 작품만 보기. 관리자면 분류 추가/이름변경/삭제까지.
+  function renderCatTabs() {
+    const box = $("catTabs");
+    if (!box) return;
+    const list = allCategories();
+    const hasNone = scopedItems().some((a) => !(a.category || "").trim());
+    // 볼 게 없고 관리자도 아니면 줄 자체를 감춘다(학부모 화면이 복잡해지지 않게).
+    if (!list.length && !isAdmin) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.innerHTML = "";
+
+    const label = document.createElement("span");
+    label.className = "tabs-label";
+    label.textContent = "분류";
+    box.appendChild(label);
+
+    const mk = (text, val, extraClass) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "name-tab" + (extraClass ? " " + extraClass : "") + (catFilter === val ? " on" : "");
+      b.textContent = text;
+      if (val !== null) {
+        b.addEventListener("click", () => {
+          catFilter = val;
+          renderCatTabs();
+          applyFilters();
+        });
+      }
+      return b;
+    };
+
+    box.appendChild(mk("전체", ""));
+    list.forEach((c) => box.appendChild(mk(c, c)));
+    if (hasNone) box.appendChild(mk("미분류", CAT_NONE));
+
+    if (!isAdmin) return;
+
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "name-tab rename";
+    add.textContent = "➕ 분류 추가";
+    add.addEventListener("click", addCategory);
+    box.appendChild(add);
+
+    // 보이는 작품 전부에 한 번에 분류 달기 — 한 장씩 여는 것보다 빠르다.
+    const bulk = document.createElement("button");
+    bulk.type = "button";
+    bulk.className = "name-tab rename";
+    bulk.textContent = "🏷 보이는 작품 분류 지정";
+    bulk.addEventListener("click", bulkSetCategory);
+    box.appendChild(bulk);
+
+    if (catFilter && catFilter !== CAT_NONE) {
+      const ren = document.createElement("button");
+      ren.type = "button";
+      ren.className = "name-tab rename";
+      ren.textContent = "✏️ 분류 이름 바꾸기";
+      ren.addEventListener("click", () => renameCategory(catFilter));
+      box.appendChild(ren);
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "name-tab rename";
+      del.textContent = "🗑 분류 없애기";
+      del.addEventListener("click", () => removeCategory(catFilter));
+      box.appendChild(del);
+    }
+  }
+
+  /// 분류 목록(마스터) 저장. 온라인이면 설정 문서에, 샘플/오프라인이면 이 브라우저에.
+  async function saveCategories(next) {
+    categories = [...new Set(next.map((c) => String(c || "").trim()).filter(Boolean))];
+    if (db && !usingSample) {
+      try {
+        await db.collection(SETTINGS_COLLECTION).doc(CATEGORY_DOC).set({ list: categories }, { merge: true });
+      } catch (e) {
+        alert("분류 목록을 저장하지 못했어요: " + (e && e.message ? e.message : e));
+      }
+    } else {
+      try { localStorage.setItem("galleryCategories", JSON.stringify(categories)); } catch (_) {}
+    }
+    renderCatTabs();
+  }
+
+  function loadLocalCategories() {
+    try { categories = JSON.parse(localStorage.getItem("galleryCategories") || "[]") || []; }
+    catch (_) { categories = []; }
+  }
+
+  function addCategory() {
+    const name = (window.prompt("새 분류 이름을 입력하세요.\n예: 크로키 · 명화 따라그리기 · 자유화 · 그림책 삽화", "") || "").trim();
+    if (!name) return;
+    if (name === CAT_NONE) { alert("그 이름은 쓸 수 없어요."); return; }
+    if (allCategories().indexOf(name) >= 0) { alert("이미 있는 분류예요."); return; }
+    saveCategories(categories.concat([name]));
+  }
+
+  /// 작품 여러 개의 분류를 한 번에 바꾼다(Firestore batch).
+  async function writeCategory(items, value) {
+    items.forEach((a) => { a.category = value; });   // 스냅샷이 오기 전 화면 즉시 반영
+    if (usingSample || !db) { renderCatTabs(); applyFilters(); return true; }
+    try {
+      const batch = db.batch();
+      items.forEach((a) => batch.update(db.collection(COLLECTION).doc(a.id), { category: value }));
+      await batch.commit();
+      renderCatTabs();
+      applyFilters();
+      return true;
+    } catch (e) {
+      alert("분류를 저장하지 못했어요: " + (e && e.message ? e.message : e)
+        + "\n\nFirestore 규칙이 쓰기를 막고 있으면 숨김/삭제처럼 쓰기 허용이 필요해요.");
+      return false;
+    }
+  }
+
+  /// 분류 고르기 창 — 번호로 고르거나 새 이름을 그대로 적는다.
+  function askCategory(current) {
+    const list = allCategories();
+    const menu = list.map((c, i) => `${i + 1}. ${c}`).join("\n");
+    const ans = window.prompt(
+      "분류를 고르세요.\n\n" + (menu ? menu + "\n" : "") + "0. 미분류로 두기\n\n" +
+      "번호를 넣거나, 새 분류 이름을 그대로 적으세요.",
+      current || "");
+    if (ans === null) return null;                 // 취소
+    const t = ans.trim();
+    if (t === "" || t === "0") return "";          // 미분류
+    if (/^\d+$/.test(t)) {
+      const pick = list[parseInt(t, 10) - 1];
+      if (!pick) { alert("그 번호의 분류가 없어요."); return null; }
+      return pick;
+    }
+    return t;                                      // 새 분류 이름
+  }
+
+  /// 지금 화면에 보이는 작품 전부에 분류를 단다.
+  async function bulkSetCategory() {
+    const list = visibleItems();
+    if (!list.length) { alert("지금 보이는 작품이 없어요."); return; }
+    const value = askCategory("");
+    if (value === null) return;
+    const what = value ? `'${value}'` : "미분류";
+    if (!confirm(`지금 보이는 작품 ${list.length}개의 분류를 ${what} 으로 바꿀까요?`)) return;
+    const ok = await writeCategory(list, value);
+    if (ok && value && categories.indexOf(value) < 0) await saveCategories(categories.concat([value]));
+  }
+
+  async function renameCategory(oldName) {
+    const next = (window.prompt(`'${oldName}' 분류를 어떤 이름으로 바꿀까요?`, oldName) || "").trim();
+    if (!next || next === oldName) return;
+    const targets = allItems.filter((a) => (a.category || "") === oldName);
+    if (!confirm(`분류 이름을 '${oldName}' → '${next}' 로 바꿀까요?\n(작품 ${targets.length}개에 함께 적용돼요)`)) return;
+    if (targets.length && !(await writeCategory(targets, next))) return;
+    catFilter = next;
+    await saveCategories(categories.filter((c) => c !== oldName).concat([next]));
+    applyFilters();
+  }
+
+  async function removeCategory(name) {
+    const targets = allItems.filter((a) => (a.category || "") === name);
+    if (!confirm(`'${name}' 분류를 없앨까요?\n작품 ${targets.length}개는 지워지지 않고 '미분류'로 돌아가요.`)) return;
+    if (targets.length && !(await writeCategory(targets, ""))) return;
+    catFilter = "";
+    await saveCategories(categories.filter((c) => c !== name));
+    applyFilters();
   }
 
   // 학교 목록 홈: 학교별 카드(대표 이미지 + 작품 수)
@@ -495,22 +709,22 @@
     gallery.appendChild(frag);
   }
 
-  function applyFilters() {
+  /// 지금 화면에 보이는 작품들(학교·이름·분류·검색 필터를 모두 거친 목록).
+  /// 관리자 일괄 작업도 이 목록을 그대로 쓴다 — 보이는 것과 바뀌는 것이 어긋나지 않게.
+  function visibleItems() {
     const q = searchInput.value.trim().toLowerCase();
-    const sort = sortSelect.value;
-
-    let list = allItems.filter((a) => (isAdmin ? true : !a.hidden));
-    if (isLocked) {
-      if (lockClass) list = list.filter((a) => (a.classCode || "") === lockClass);
-      else if (lockSchool) list = list.filter((a) => (a.school || "") === lockSchool);
-    } else if (currentSchool) {
-      list = list.filter((a) => (a.school || "기타") === currentSchool);
-    }
+    let list = scopedItems();
     if (nameFilter) list = list.filter((a) => (a.student || "") === nameFilter);
+    if (catFilter === CAT_NONE) list = list.filter((a) => !(a.category || "").trim());
+    else if (catFilter) list = list.filter((a) => (a.category || "") === catFilter);
     if (q) list = list.filter((a) => a.student.toLowerCase().includes(q) || a.title.toLowerCase().includes(q));
+    return list;
+  }
 
+  function applyFilters() {
+    const sort = sortSelect.value;
+    const list = visibleItems().slice();
     list.sort((a, b) => (sort === "oldest" ? a.date - b.date : b.date - a.date));
-
     render(list);
   }
 
@@ -543,6 +757,7 @@
         </div>
         <div class="card-body">
           <p class="card-student">${escapeHtml(item.student)}</p>
+          ${item.category ? `<p class="card-cat">🏷 ${escapeHtml(item.category)}</p>` : ""}
           ${item.title ? `<p class="card-title">${escapeHtml(item.title)}</p>` : ""}
           <p class="card-date">${formatDate(item.date)}</p>
           ${authorshipText(item) ? `<p class="card-author" style="font-size:11px;color:#7A4FE0;font-weight:700;margin-top:2px">${escapeHtml(authorshipText(item))}</p>` : ""}
@@ -578,7 +793,11 @@
     const label = typeLabel(item);
     $("modalTitle").textContent = item.title || (label ? label : "");
     $("modalTitle").hidden = !item.title && !label;
-    $("modalMeta").textContent = [item.school, label, formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
+    $("modalMeta").textContent = [item.school, item.category ? "🏷 " + item.category : "",
+      label, formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
+    const catBtn = $("catBtn");
+    if (catBtn) catBtn.textContent = item.category ? "🏷 " + item.category : "🏷 분류 지정";
+    if ($("catPicker")) $("catPicker").hidden = true;   // 다른 작품을 열면 접힌 상태로 시작
 
     const dl = $("downloadBtn");
     dl.href = fileDownloadURL(item);
@@ -641,6 +860,54 @@
       }
     } catch (_) { /* 사용자가 취소 */ }
   });
+
+  // 분류 지정 (관리자) — 작품 창 안에서 눌러서 고른다.
+  // 폰에서 번호를 받아 적는 입력창은 불편해서, 분류를 칩으로 깔아 한 번에 고르게 한다.
+  $("catBtn").addEventListener("click", () => {
+    const picker = $("catPicker");
+    if (!picker || !currentItem) return;
+    if (!picker.hidden) { picker.hidden = true; return; }   // 한 번 더 누르면 닫기
+    renderCatPicker();
+    picker.hidden = false;
+  });
+
+  function renderCatPicker() {
+    const box = $("catPickerList");
+    if (!box || !currentItem) return;
+    const cur = currentItem.category || "";
+    box.innerHTML = "";
+
+    const mk = (text, val, extra) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "name-tab" + (extra ? " " + extra : "") + (val !== null && cur === val ? " on" : "");
+      b.textContent = text;
+      b.addEventListener("click", () => pickCategoryForCurrent(val));
+      return b;
+    };
+
+    allCategories().forEach((c) => box.appendChild(mk(c, c)));
+    box.appendChild(mk("미분류로", ""));
+    box.appendChild(mk("➕ 새 분류", null, "rename"));
+  }
+
+  /// 작품 창에서 고른 분류를 그 작품에 바로 적용. val === null 이면 새 이름을 묻는다.
+  async function pickCategoryForCurrent(val) {
+    if (!currentItem) return;
+    const item = currentItem;
+    let value = val;
+    if (value === null) {
+      value = (window.prompt("새 분류 이름을 입력하세요.\n예: 크로키 · 명화 따라그리기 · 자유화", "") || "").trim();
+      if (!value) return;
+    }
+    const ok = await writeCategory([item], value);
+    if (!ok) return;
+    if (value && categories.indexOf(value) < 0) await saveCategories(categories.concat([value]));
+    $("catPicker").hidden = true;
+    $("catBtn").textContent = value ? "🏷 " + value : "🏷 분류 지정";
+    $("modalMeta").textContent = [item.school, value ? "🏷 " + value : "",
+      typeLabel(item), formatDate(item.date), authorshipText(item)].filter(Boolean).join(" · ");
+  }
 
   // 숨김
   $("hideBtn").addEventListener("click", async () => {
