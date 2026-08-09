@@ -9,7 +9,11 @@
 (function () {
   "use strict";
 
-  var REPORT_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  // 📷 수업 모습 사진을 가져올 웹앱.
+  // config.js 의 photoApi 가 있으면 그걸 쓰고(갤러리 전용 · 리포트와 별개 루트),
+  // 없으면 기존 용역 리포트 웹앱을 그대로 본다.
+  var REPORT_API = (window.GALLERY_CONFIG || {}).photoApi
+    || "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
   // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";

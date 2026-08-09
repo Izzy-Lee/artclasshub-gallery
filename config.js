@@ -38,5 +38,10 @@ window.GALLERY_CONFIG = {
   // 사진 폴더 이름에 이 말이 들어간 수업만 보여줍니다.
   //   ["창의미술"] → 도자기·서예 등 다른 수업 사진은 갤러리에 안 나옵니다.
   //   []           → 전체 수업(필터 없음).
-  photoPrograms: ["창의미술"]
+  photoPrograms: ["창의미술"],
+
+  // 📷 '수업 모습' 사진을 가져올 웹앱 주소.
+  // 갤러리 전용 사진 웹앱(gas-gallery-photos)을 배포했다면 그 /exec 주소를 넣으세요.
+  // 비워 두면 기존 용역 리포트 웹앱의 사진을 그대로 씁니다.
+  photoApi: "https://script.google.com/macros/s/AKfycbzr1e2FoQRlOhCIu3tUQHio-hOe4qxv3xYmeDC5O0hukL5fYCpurc_5z1tm8Mb0-u7-/exec"
 };
