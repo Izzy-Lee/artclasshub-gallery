@@ -31,6 +31,7 @@
   var reportData = null;   // 한 번 받아 둔 사진 트리(자격이 바뀌기 전까지 재사용)
   var reportCred = "";     // 그 사진을 받을 때 쓴 자격(표·관리자·반) — 같으면 다시 안 받는다
   var photosLoading = false;
+  var revalidating = false;
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
   var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
@@ -370,12 +371,14 @@
   // ---------- 📷 수업 모습 ----------
 
   /// 사진 웹앱에 목록을 물어본다. 표(token)나 관리자 키로 여는 길 — 비밀번호 칸이 필요 없다.
-  function askPhotos(token, adminPw, done) {
+  function askPhotos(token, adminPw, done, live) {
     fetch(photoApiFor(classInfo), {
       method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "reportTree", secret: "artclasshub-2026",
         token: token || undefined, pw: adminPw || undefined,
+        // live=true 면 정리해 둔 목록 대신 드라이브를 그 자리에서 훑는다(방금 옮긴 사진도 바로).
+        live: live || undefined,
         // 선생님(관리자 키)으로 열 때는 지금 보고 있는 반만 내려받는다.
         "class": (classInfo && (classInfo.code || classInfo.name)) || ""
       })
@@ -410,22 +413,44 @@
       b.disabled = true;
       var keep = b.textContent;
       b.textContent = "읽는 중…";
-      fetch(REPORT_API_LEGACY, {
-        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "warmReport", secret: "artclasshub-2026",
-          adminKey: (window.GALLERY_CONFIG || {}).adminPassword || ""
-        })
-      })
-        .then(function (r) { return r.json(); })
-        .catch(function () { return null; })
-        .then(function () {
-          reportData = null; reportCred = "";        // 다시 받아오게
-          b.disabled = false; b.textContent = keep;
-          fillPhotos(rail, currentClass || className);
-        });
+      var token = (classInfo && classInfo.photoToken) || null;
+      var adminPw = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
+      askPhotos(token, adminPw, function (d) {
+        b.disabled = false; b.textContent = keep;
+        if (!d || !d.ok) return;
+        reportData = sanitizeDates(d.dates || []);
+        reportCred = photoCred();
+        renderPhotos(rail, currentClass || className);
+      }, true);
     });
     head.appendChild(b);
+  }
+
+  /// 사진 묶음이 실제로 달라졌는지(날짜·장수) 가볍게 비교한다.
+  function photoStamp(dates) {
+    return (dates || []).map(function (d) {
+      var n = 0;
+      (d.orgs || []).forEach(function (o) {
+        (o.programs || []).forEach(function (p) { n += (p.photos || []).length; });
+      });
+      return d.folder + ':' + n;
+    }).join(',');
+  }
+
+  /// 화면에는 정리해 둔 목록을 먼저 띄우고(빠름), 뒤에서 드라이브를 다시 훑어(정확)
+  /// 달라진 게 있으면 조용히 바꿔 끼운다. 그래서 방금 옮긴 사진도 몇 초 뒤 저절로 나타난다.
+  function revalidatePhotos(rail, className, token, adminPw) {
+    if (photoApiFor(classInfo) !== REPORT_API_LEGACY) return;   // 갤러리 전용 웹앱은 원래 바로 읽는다
+    if (revalidating) return;
+    revalidating = true;
+    askPhotos(token, adminPw, function (d) {
+      revalidating = false;
+      if (!d || !d.ok) return;
+      var next = sanitizeDates(d.dates || []);
+      if (photoStamp(next) === photoStamp(reportData)) return;  // 달라진 게 없으면 그대로 둔다
+      reportData = next;
+      renderPhotos(rail, className);
+    }, true);
   }
 
   function fillPhotos(rail, className) {
@@ -440,7 +465,12 @@
     if (have) renderPhotos(rail, className);          // 있는 건 먼저 그대로 보여준다
 
     var cred = photoCred();
-    if (have && cred === reportCred) return;          // 자격도 그대로면 다시 받을 이유가 없다
+    if (have && cred === reportCred) {
+      var t0 = (classInfo && classInfo.photoToken) || null;
+      var a0 = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
+      revalidatePhotos(rail, className, t0, a0);      // 화면은 그대로 두고 최신인지만 확인
+      return;
+    }
     if (photosLoading) return;                        // 이미 받는 중이면 중복 요청하지 않는다
 
     // 반 비번을 이미 넣고 들어온 사람은 사진 앞에서 또 묻지 않는다.
@@ -462,6 +492,7 @@
         reportData = sanitizeDates(d.dates || []);
         reportCred = cred;
         renderPhotos(rail, className);
+        revalidatePhotos(rail, className, token, adminPw);   // 뒤에서 최신인지 확인
       });
       return;
     }
