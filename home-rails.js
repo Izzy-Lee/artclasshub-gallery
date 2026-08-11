@@ -12,8 +12,19 @@
   // 📷 수업 모습 사진을 가져올 웹앱.
   // config.js 의 photoApi 가 있으면 그걸 쓰고(갤러리 전용 · 리포트와 별개 루트),
   // 없으면 기존 용역 리포트 웹앱을 그대로 본다.
-  var REPORT_API = (window.GALLERY_CONFIG || {}).photoApi
-    || "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  // 기존 활동보고 웹앱(날짜 ▸ 기관 ▸ 프로그램). "클래스" 시트 F열이 report 인 반은 여기서 사진을 가져온다.
+  var REPORT_API_LEGACY = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  var REPORT_API = (window.GALLERY_CONFIG || {}).photoApi || REPORT_API_LEGACY;
+
+  /// 이 반의 사진을 어디서 가져올지. 시트 F열 사진출처가 report 면 기존 리포트 웹앱.
+  function photoApiFor(info) {
+    return (info && String(info.src || "").indexOf("report") === 0) ? REPORT_API_LEGACY : REPORT_API;
+  }
+  /// 기존 리포트는 폴더 자체가 수업별로 나뉘어 있어(줄놀이·독서문해력…) 수업명 필터를 걸지 않는다.
+  /// 갤러리 전용 사진 웹앱만 config.photoPrograms 로 거른다.
+  function usesProgramFilter(info) {
+    return photoApiFor(info) !== REPORT_API_LEGACY;
+  }
   // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
@@ -32,6 +43,8 @@
   //   · org  : 드라이브의 기관 폴더 이름. 반 제목과 폴더 이름이 달라도 사진이 이어진다.
   //   · pw   : 반 비번을 통과했으면 그 비번으로 사진도 바로 열어 본다(두 번 묻지 않게).
   var classInfo = window.galleryClass || null;
+  // 반 비밀번호 화면이 떠 있는 동안(또는 잠금 여부를 아직 모를 때)은 그림책·사진을 한 장도 그리지 않는다.
+  var locked = window.galleryLocked !== false;
 
   /// 가로로 부드럽게 옮긴다.
   /// scroll-behavior:smooth 와 scroll-snap 을 같이 쓰면 코드로 건 스크롤이 스냅 엔진에
@@ -245,6 +258,7 @@
   }
 
   function renderBooks(rail, className, mine) {
+    if (locked) { rail.track.innerHTML = ""; rail.section.hidden = true; return; }
     // 이름 탭에서 학생을 골랐으면 그 학생 책만.
     if (studentFilter) {
       mine = mine.filter(function (b) { return (b.student || "").trim() === studentFilter; });
@@ -291,10 +305,12 @@
       if (!n || seen[n]) return;
       seen[n] = true; names.push(n);
     });
+    if (locked) return;
     document.dispatchEvent(new CustomEvent("gallery-booknames", { detail: names }));
   }
 
   function fillBooks(rail, className) {
+    if (locked) { rail.track.innerHTML = ""; rail.section.hidden = true; return; }
     // 지난 방문에 저장해 둔 목록이 있으면 먼저 그려서(즉시 표시) 서버 응답을 기다리지 않는다.
     // 저장본조차 없으면 스켈레톤으로 자리부터 잡는다 — 늦게 불쑥 생기며 화면이 밀리지 않게.
     var cached = readBooksCache(className);
@@ -358,11 +374,13 @@
 
   /// 사진 웹앱에 목록을 물어본다. 표(token)나 관리자 키로 여는 길 — 비밀번호 칸이 필요 없다.
   function askPhotos(token, adminPw, done) {
-    fetch(REPORT_API, {
+    fetch(photoApiFor(classInfo), {
       method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "reportTree", secret: "artclasshub-2026",
-        token: token || undefined, pw: adminPw || undefined
+        token: token || undefined, pw: adminPw || undefined,
+        // 선생님(관리자 키)으로 열 때는 지금 보고 있는 반만 내려받는다.
+        "class": (classInfo && (classInfo.code || classInfo.name)) || ""
       })
     })
       .then(function (r) { return r.json(); })
@@ -372,6 +390,7 @@
 
   function fillPhotos(rail, className) {
     rail.track.innerHTML = "";
+    if (locked) { rail.section.hidden = true; return; }
     var old = rail.section.querySelector(".rail-gate, .rail-days");
     while (old) { old.remove(); old = rail.section.querySelector(".rail-gate, .rail-days"); }
     rail.section.hidden = false;
@@ -388,7 +407,7 @@
       rail.setCount("불러오는 중…");
       askPhotos(token, adminPw, function (d) {
         if (!d || !d.ok) { rail.section.hidden = true; return; }
-        reportData = sanitizeDates(d.dates || []);
+        reportData = sanitizeDates(d.dates || [], usesProgramFilter(classInfo));
         renderPhotos(rail, className);
       });
       return;
@@ -416,7 +435,7 @@
     function open(pw, quiet) {
       if (!pw) return;
       if (!quiet) err.textContent = "여는 중…";
-      fetch(REPORT_API, {
+      fetch(photoApiFor(classInfo), {
         method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         // class 를 같이 보내면 그 반 비번으로도 열린다(그 반 사진만 내려온다).
         body: JSON.stringify({
@@ -432,7 +451,7 @@
             return;
           }
           if (pw !== classPw) localStorage.setItem("reportPw", pw);
-          reportData = sanitizeDates(d.dates || []);
+          reportData = sanitizeDates(d.dates || [], usesProgramFilter(classInfo));
           gate.remove();
           renderPhotos(rail, className);
         })
@@ -458,7 +477,7 @@
     return false;
   }
 
-  function sanitizeDates(dates) {
+  function sanitizeDates(dates, filterPrograms) {
     return (dates || [])
       .filter(function (day) { return !isHiddenFolder(day.folder); })
       .map(function (day) {
@@ -466,7 +485,7 @@
           .filter(function (o) { return !isHiddenFolder(o.org); })
           .map(function (o) {
             o.programs = (o.programs || []).filter(function (pr) {
-              return !isHiddenFolder(pr.title) && programAllowed(pr.title);
+              return !isHiddenFolder(pr.title) && (!filterPrograms || programAllowed(pr.title));
             });
             return o;
           })
@@ -485,6 +504,7 @@
 
   /// 이 클래스(기관)에 해당하는 날짜만 골라 날짜 카드 + 사진 한 줄로.
   function renderPhotos(rail, className) {
+    if (locked) { rail.track.innerHTML = ""; rail.section.hidden = true; return; }
     // 같은 날짜(folder)가 여러 번 와도 한 줄만: folder로 묶어 프로그램만 합친다.
     // (GAS가 같은 날짜를 두 번 돌려주면 날짜 카드가 두 줄로 중복되던 버그 방지)
     // 드라이브의 기관 폴더 이름이 반 제목과 다를 수 있다(예: 반 '온마을학교 2기' ↔ 폴더 '부일초등학교').
@@ -603,6 +623,22 @@
     bookRailRef = bookRail;
     var photoRail = makeRail("railPhotos", "📷", "수업 모습");
     photoRailRef = photoRail;
+
+    // 비번 화면이 뜨면 그림책·사진 줄을 즉시 닫고, 통과하면 다시 채운다.
+    document.addEventListener("gallery-locked", function (e) {
+      var next = !!(e && e.detail);
+      if (next === locked) return;
+      locked = next;
+      if (locked) {
+        bookRail.track.innerHTML = ""; bookRail.section.hidden = true;
+        photoRail.track.innerHTML = ""; photoRail.section.hidden = true;
+        var g = photoRail.section.querySelector(".rail-gate, .rail-days");
+        while (g) { g.remove(); g = photoRail.section.querySelector(".rail-gate, .rail-days"); }
+        currentClass = "";              // 열리면 처음부터 다시 채우도록
+      } else if (!currentClass) {
+        apply();
+      }
+    });
 
     // 반이 열리면(비번 통과 등) 그 반 비번·폴더 이름으로 사진을 다시 열어 본다.
     document.addEventListener("gallery-class", function (e) {

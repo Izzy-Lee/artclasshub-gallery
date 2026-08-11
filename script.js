@@ -35,13 +35,14 @@
   let classByCode = {};      // 소문자 코드 → { name, code, org, locked }
   let classByName = {};      // 소문자 클래스명/사진폴더명 → 같은 객체
   const unlockedClasses = new Set();   // 이번 방문에 비번을 통과한 반(코드 소문자)
+  let classRegistryLoaded = false;     // 시트를 아직 못 읽었으면 '잠긴 반일 수도' 있다고 본다
   // 반 코드 → 반 이름 (Firestore classes 컬렉션 — 시트에 줄이 없어도 이름은 제대로 나오게)
   let classNamesFromDB = {};
 
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "ccc47e4";
+  const BUILD = "58e1961";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -165,7 +166,7 @@
   //    반 이름 / 반마다 다른 비밀번호 / 사진 폴더 이름을 여기 한 장에서 관리한다.
   // =========================================================
   function loadClassRegistry() {
-    if (!CLASS_API) return Promise.resolve();
+    if (!CLASS_API) { classRegistryLoaded = true; return Promise.resolve(); }
     return fetch(CLASS_API + "?classes=1")
       .then((r) => r.json())
       .then((d) => {
@@ -176,9 +177,9 @@
           if (c.name) classByName[String(c.name).toLowerCase()] = c;
           if (c.org) classByName[String(c.org).toLowerCase()] = c;
         });
-        refreshUI();
       })
-      .catch(() => { /* 시트를 못 읽어도 갤러리는 그대로 열린다 */ });
+      .catch(() => { /* 시트를 못 읽어도 갤러리는 그대로 열린다 */ })
+      .then(() => { classRegistryLoaded = true; refreshUI(); });
   }
 
   /// 관리자 모드로 들어오면 앱에서 만든 반 목록을 "클래스" 탭에 채워 넣는다.
@@ -224,6 +225,17 @@
     return null;
   }
 
+  /// 잠금 상태를 다른 스크립트(home-rails.js: 그림책·수업사진 줄)에도 알린다.
+  /// 비번을 넣기 전에는 그림책 표지·아이 이름이 한 장도 보이면 안 된다.
+  let lockedNow = null;              // null = 아직 한 번도 안 알림(첫 판단은 반드시 알린다)
+  function setLocked(on) {
+    if (lockedNow === on) return;
+    lockedNow = on;
+    window.galleryLocked = on;
+    document.dispatchEvent(new CustomEvent("gallery-locked", { detail: on }));
+  }
+  function isGateUp() { return lockedNow !== false; }
+
   function regKey(reg) { return String(reg.code || reg.name || "").toLowerCase(); }
   function savedPwKey(reg) { return "classPw:" + regKey(reg); }
 
@@ -259,6 +271,7 @@
   function announceClass(reg, pw) {
     window.galleryClass = reg ? {
       name: reg.name || "", code: reg.code || "", org: reg.org || reg.name || "",
+      src: reg.src || "",              // 시트 F열: report = 기존 리포트 웹앱에서 사진을 가져온다
       pw: pw || "", photoToken: photoToken, admin: isAdmin
     } : null;
     document.dispatchEvent(new CustomEvent("gallery-class", { detail: window.galleryClass }));
@@ -554,16 +567,22 @@
     loading.hidden = true;
 
     // 반 비밀번호(스프레드시트 "클래스" 탭)가 걸려 있으면 통과할 때까지 아무것도 안 보여준다.
+    // 시트를 아직 못 읽었을 때도(잠긴 반인지 모를 때) 일단 가린다 —
+    // 그렇지 않으면 비번을 넣기 전에 그림책·이름표가 잠깐 보였다 사라진다.
     const reg = currentScopeReg();
-    if (reg && !classUnlocked(reg)) {
+    const waiting = isLocked && !classRegistryLoaded && !isAdmin;
+    if (waiting || (reg && !classUnlocked(reg))) {
+      setLocked(true);
       if (controls) controls.hidden = true;
       schoolHeader.hidden = true;       // 줄(그림책·수업모습)도 같이 닫힌다
       clearNameTabs();
       gallery.hidden = true;
       emptyState.hidden = true;
-      showGate(reg);
+      loading.hidden = !waiting;        // 아직 확인 중이면 '불러오는 중'을 남겨 둔다
+      if (!waiting) showGate(reg);
       return;
     }
+    setLocked(false);
     hideGate();
     if (reg && (!window.galleryClass || window.galleryClass.code !== reg.code)) {
       let pw = "";
@@ -629,6 +648,7 @@
   // 작품(submissions)만 보면 그림책만 만든 아이가 이름 탭에서 통째로 빠진다.
   let bookStudents = [];
   document.addEventListener("gallery-booknames", (e) => {
+    if (isGateUp()) return;             // 비번 화면에서는 이름표도 만들지 않는다
     const next = [...new Set((Array.isArray(e.detail) ? e.detail : [])
       .map((n) => String(n || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
     if (next.join("|") === bookStudents.join("|")) return;   // 같은 목록이면 다시 그리지 않는다
