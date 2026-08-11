@@ -42,7 +42,7 @@
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "cfa40ff";
+  const BUILD = "7ab9fc2";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -271,6 +271,7 @@
   function announceClass(reg, pw) {
     window.galleryClass = reg ? {
       name: reg.name || "", code: reg.code || "", org: reg.org || reg.name || "",
+      orgs: reg.orgs || [],            // 사진 폴더 이름들(쉼표로 여러 개 적을 수 있음)
       src: reg.src || "",              // 시트 F열: report = 기존 리포트 웹앱에서 사진을 가져온다
       pw: pw || "", photoToken: photoToken, admin: isAdmin
     } : null;

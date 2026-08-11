@@ -506,10 +506,14 @@
     // (GAS가 같은 날짜를 두 번 돌려주면 날짜 카드가 두 줄로 중복되던 버그 방지)
     // 드라이브의 기관 폴더 이름이 반 제목과 다를 수 있다(예: 반 '온마을학교 2기' ↔ 폴더 '부일초등학교').
     // 스프레드시트 "클래스" 탭 D열(사진폴더명)에 적어 두면 그 이름으로도 이어 준다.
-    var org = (classInfo && classInfo.org) || className;
+    // 날짜마다 폴더 이름이 달리 적혀 있으면 쉼표로 여러 개 적을 수 있다.
+    var names = {};
+    names[className] = true;
+    ((classInfo && classInfo.orgs) || String((classInfo && classInfo.org) || "").split(/[,·|\/]/))
+      .forEach(function (v) { v = String(v || "").trim(); if (v) names[v] = true; });
     var byFolder = {}, days = [];
     (reportData || []).forEach(function (day) {
-      var orgs = day.orgs.filter(function (o) { return o.org === org || o.org === className; });
+      var orgs = day.orgs.filter(function (o) { return names[String(o.org || "").trim()] === true; });
       if (!orgs.length) return;
       if (byFolder[day.folder]) {
         byFolder[day.folder].orgs = byFolder[day.folder].orgs.concat(orgs);
