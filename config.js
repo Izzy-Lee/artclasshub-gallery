@@ -42,6 +42,10 @@ window.GALLERY_CONFIG = {
   classApi: "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec",
   classSecret: "artclasshub-2026",
 
+  // 📚 그림책 웹앱(뷰어와 같은 Apps Script). 관리자가 학생을 다른 반으로 옮길 때도 쓴다.
+  booksApi: "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec",
+  booksSecret: "artclasshub-storybook",
+
   // 📷 '수업 모습'에 보여줄 수업(프로그램) 이름.
   // 사진 폴더 이름에 이 말이 들어간 수업만 보여줍니다.
   //   ["창의미술"] → 도자기·서예 등 다른 수업 사진은 갤러리에 안 나옵니다.

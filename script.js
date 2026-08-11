@@ -42,7 +42,7 @@
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "00862cc";
+  const BUILD = "831f821";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -693,7 +693,72 @@
       rn.textContent = "✏️ 이름 바꾸기";
       rn.addEventListener("click", renameStudent);
       box.appendChild(rn);
+
+      const mv = document.createElement("button");
+      mv.type = "button";
+      mv.className = "name-tab rename";
+      mv.textContent = "🔀 반 옮기기";
+      mv.addEventListener("click", moveStudent);
+      box.appendChild(mv);
     }
+  }
+
+  /// 지금 고른 학생의 작품과 그림책을 다른 반으로 통째로 옮긴다.
+  /// (아이가 반을 옮겼거나, 처음에 반을 잘못 골라 들어간 경우)
+  async function moveStudent() {
+    const who = nameFilter;
+    const reg = currentScopeReg();
+    const list = Object.keys(classByCode).map((k) => classByCode[k])
+      .filter((c) => !reg || c.code !== reg.code)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ko"));
+    if (!list.length) { alert("옮길 반 목록을 불러오지 못했어요."); return; }
+
+    const menu = list.map((c, i) => `${i + 1}. ${c.name} (${c.code})`).join("\n");
+    const pick = window.prompt(`'${who}' 학생을 어느 반으로 옮길까요?\n\n${menu}\n\n번호나 반 코드를 넣어 주세요.`, "");
+    if (pick === null) return;
+    const key = String(pick).trim();
+    const target = /^\d+$/.test(key) ? list[Number(key) - 1]
+      : list.find((c) => c.code.toLowerCase() === key.toLowerCase() || c.name === key);
+    if (!target) { alert("그런 반을 찾지 못했어요."); return; }
+
+    const works = scopedItems().filter((a) => (a.student || "").trim() === who);
+    if (!confirm(`'${who}' 학생을 ${target.name} 으로 옮길까요?\n\n· 작품 ${works.length}점\n· 그림책도 함께 옮겨집니다`)) return;
+
+    // ① 작품(Firestore) — 반 코드와 반 이름을 함께 바꿔야 화면에서도 그 반으로 묶인다.
+    try {
+      if (works.length) {
+        await batchUpdate(works, {
+          class_code: target.code,
+          class_name: target.name,
+          school_name: works.some((w) => w.school && w.school !== w.classCode) ? target.name : ""
+        });
+      }
+    } catch (e) {
+      alert("작품을 옮기지 못했어요: " + (e && e.message ? e.message : e));
+      return;
+    }
+
+    // ② 그림책(Apps Script 기록 시트)
+    let books = 0;
+    if (CFG.booksApi) {
+      try {
+        const res = await fetch(CFG.booksApi, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "moveBook", secret: CFG.booksSecret || "",
+            adminKey: CFG.adminPassword || "",
+            student: who, fromClass: reg ? reg.code : "", toClass: target.code
+          })
+        }).then((r) => r.json());
+        books = (res && res.moved) || 0;
+      } catch (e) { /* 그림책이 없으면 그냥 넘어간다 */ }
+    }
+
+    alert(`${target.name} 으로 옮겼어요.\n\n· 작품 ${works.length}점\n· 그림책 ${books}권`);
+    nameFilter = "";
+    emitNameFilter();
+    location.reload();      // 목록·레일을 새로 읽는다
   }
 
   // 지금 고른 학생(nameFilter)의 작품 전부를 새 이름으로 일괄 변경.
