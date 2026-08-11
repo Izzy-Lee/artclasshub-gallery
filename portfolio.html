@@ -231,8 +231,8 @@
 
     // 표지 사진 3장
     $("heroStrip").innerHTML = photos.slice(0, 3).map(function (p) {
-      return '<div class="shot' + (p.face === "sticker" ? "" : " raw") + '"><img loading="lazy" src="'
-           + IMG(p.id, 800) + '" alt=""></div>';
+      return '<div class="shot' + (p.face === "sticker" ? "" : " raw") + '"><img decoding="async" src="'
+           + IMG(p.id, 900) + '" alt=""></div>';
     }).join("");
 
     // 수업 현장 — 기관별 필터
