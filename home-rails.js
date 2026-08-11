@@ -396,6 +396,38 @@
 
   /// 한 번 불러온 사진은 그대로 두고, 필요할 때만 조용히 새로 받아 바꿔 끼운다.
   /// (예전에는 자격이 조금만 바뀌어도 줄을 비우고 '불러오는 중…'으로 되돌려 화면이 깜박였다)
+  /// 선생님(관리자)에게만 보이는 ↻ — 드라이브에서 폴더를 옮긴 직후 바로 반영시키는 버튼.
+  /// (평소에도 10분마다 자동으로 바뀐 날짜를 찾아 다시 읽는다)
+  function addRefreshButton(rail) {
+    var head = rail.section.querySelector(".rail-head");
+    if (!head || head.querySelector(".rail-refresh")) return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rail-refresh";
+    b.textContent = "↻ 새로고침";
+    b.title = "드라이브에서 사진을 다시 읽어옵니다";
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      var keep = b.textContent;
+      b.textContent = "읽는 중…";
+      fetch(REPORT_API_LEGACY, {
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "warmReport", secret: "artclasshub-2026",
+          adminKey: (window.GALLERY_CONFIG || {}).adminPassword || ""
+        })
+      })
+        .then(function (r) { return r.json(); })
+        .catch(function () { return null; })
+        .then(function () {
+          reportData = null; reportCred = "";        // 다시 받아오게
+          b.disabled = false; b.textContent = keep;
+          fillPhotos(rail, currentClass || className);
+        });
+    });
+    head.appendChild(b);
+  }
+
   function fillPhotos(rail, className) {
     if (locked) {
       rail.track.innerHTML = "";
@@ -403,6 +435,7 @@
       return;
     }
 
+    if (classInfo && classInfo.admin) addRefreshButton(rail);
     var have = !!(reportData && reportData.length !== undefined);
     if (have) renderPhotos(rail, className);          // 있는 건 먼저 그대로 보여준다
 

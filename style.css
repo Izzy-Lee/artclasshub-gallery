@@ -501,3 +501,10 @@ html, body {
 .class-gate-err { font-size: 13px; color: #d7443e; min-height: 18px; margin: 10px 0 0; }
 /* 관리자 카드에 '비번은 시트에서' 안내 */
 .school-pw-note { font-size: 11px; color: var(--text-sub); margin-top: 6px; }
+
+/* 수업 모습 줄의 선생님용 ↻ 새로고침 */
+.rail-refresh { margin-left: 8px; font: inherit; font-size: 12px; cursor: pointer;
+                border: 1px solid var(--border); background: var(--card); color: var(--text-sub);
+                border-radius: 999px; padding: 4px 10px; }
+.rail-refresh:hover { border-color: var(--accent); color: var(--accent); }
+.rail-refresh:disabled { opacity: .6; cursor: default; }
