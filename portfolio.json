@@ -1,66 +1,447 @@
 {
-  "generatedAt": "2026-08-11",
+  "generatedAt": "2026-08-12",
   "note": "얼굴 처리 파이프라인이 이 파일을 다시 만든다. photos[].face 가 raw 면 페이지가 흐리게 가린다.",
   "photoFolder": "1ASBcpea6pPHVPssYr2lMG9TMDNOR65x8",
   "stats": {
-    "orgs": 8,
-    "days": 18,
-    "students": 64,
+    "hours": 799,
+    "clients": 14,
+    "sessions": 759,
+    "ageGroups": 5,
     "works": 299,
     "books": 33,
-    "photos": 1062
+    "since": 2020
   },
   "orgs": [
-    { "name": "부일초등학교", "kind": "학교", "region": "인천 남부" },
-    { "name": "논곡초 한국어학급", "kind": "학교", "region": "인천" },
-    { "name": "임학중 빅피쳐", "kind": "학교", "region": "인천" },
-    { "name": "백령종합사회복지관", "kind": "복지관", "region": "백령도" },
-    { "name": "영흥도 다함께돌봄센터", "kind": "돌봄센터", "region": "영흥도" },
-    { "name": "옹진군가족센터", "kind": "가족센터", "region": "옹진군" },
-    { "name": "온마을학교 2기", "kind": "마을학교", "region": "인천" },
-    { "name": "주말학교2026", "kind": "주말학교", "region": "인천" }
+    {
+      "name": "미추홀구 평생학습관",
+      "kind": "평생학습",
+      "region": "인천 미추홀구"
+    },
+    {
+      "name": "미추홀 여성인력개발센터",
+      "kind": "직업교육",
+      "region": "인천 미추홀구"
+    },
+    {
+      "name": "부평 여성새로일하기센터",
+      "kind": "직업교육",
+      "region": "인천 부평구"
+    },
+    {
+      "name": "남동산단 여성새로일하기센터",
+      "kind": "직업교육",
+      "region": "인천 남동구"
+    },
+    {
+      "name": "인천광역시교육청 온마을학교",
+      "kind": "진로체험",
+      "region": "인천 미추홀구"
+    },
+    {
+      "name": "인천관광공사",
+      "kind": "관광 콘텐츠",
+      "region": "인천 중구"
+    },
+    {
+      "name": "인천테크노파크",
+      "kind": "청년사업",
+      "region": "인천 연수구"
+    },
+    {
+      "name": "인천비즈니스고등학교",
+      "kind": "고등학교",
+      "region": "인천 남동구"
+    },
+    {
+      "name": "인천 논곡초등학교",
+      "kind": "초등학교",
+      "region": "인천 남동구"
+    },
+    {
+      "name": "임학중학교",
+      "kind": "중학교",
+      "region": "인천 계양구"
+    },
+    {
+      "name": "인천신월초등학교",
+      "kind": "초등학교",
+      "region": "인천 서구"
+    },
+    {
+      "name": "인천송천초등학교",
+      "kind": "초등학교",
+      "region": "인천 부평구"
+    },
+    {
+      "name": "부일초등학교",
+      "kind": "초등학교",
+      "region": "인천 부평구"
+    },
+    {
+      "name": "영흥면 행정복지센터",
+      "kind": "행정복지센터",
+      "region": "인천 옹진군 영흥면"
+    },
+    {
+      "name": "영흥도 다함께돌봄센터",
+      "kind": "돌봄센터",
+      "region": "인천 옹진군 영흥면"
+    },
+    {
+      "name": "옹진군가족센터",
+      "kind": "가족센터",
+      "region": "인천 옹진군"
+    },
+    {
+      "name": "백령종합사회복지관",
+      "kind": "복지관",
+      "region": "인천 옹진군 백령면"
+    }
   ],
   "programs": [
-    { "title": "창의미술", "desc": "수채화·아크릴·드로잉으로 기초를 다지는 정규 수업" },
-    { "title": "그림책 만들기", "desc": "아이가 이야기를 쓰고 그려 한 권으로 엮는 프로젝트" },
-    { "title": "디지털 드로잉", "desc": "아이패드로 그리고 바로 갤러리에 올리는 수업" },
-    { "title": "협동 작업", "desc": "퍼즐 벽화·이어그리기·색깔 빙고 같은 함께 만드는 활동" },
-    { "title": "굿즈 만들기", "desc": "에코백·스티커·엽서로 내 그림을 물건으로" }
+    {
+      "title": "창의미술",
+      "desc": "수채화·아크릴·드로잉으로 기초를 다지는 정규 수업"
+    },
+    {
+      "title": "그림책 만들기",
+      "desc": "아이가 이야기를 쓰고 그려 한 권으로 엮는 프로젝트"
+    },
+    {
+      "title": "디지털 드로잉",
+      "desc": "아이패드로 그리고 바로 갤러리에 올리는 수업"
+    },
+    {
+      "title": "협동 작업",
+      "desc": "퍼즐 벽화·이어그리기·색깔 빙고 같은 함께 만드는 활동"
+    },
+    {
+      "title": "굿즈 만들기",
+      "desc": "에코백·스티커·엽서로 내 그림을 물건으로"
+    }
   ],
   "categories": [
-    { "name": "수채화", "count": 64 },
-    { "name": "디지털드로잉", "count": 50 },
-    { "name": "아크릴화", "count": 24 },
-    { "name": "드로잉", "count": 19 },
-    { "name": "스티커", "count": 18 },
-    { "name": "레터링", "count": 13 },
-    { "name": "에코백", "count": 4 },
-    { "name": "그림책일러스트", "count": 2 },
-    { "name": "엽서", "count": 1 }
+    {
+      "name": "수채화",
+      "count": 64
+    },
+    {
+      "name": "디지털드로잉",
+      "count": 50
+    },
+    {
+      "name": "아크릴화",
+      "count": 24
+    },
+    {
+      "name": "드로잉",
+      "count": 19
+    },
+    {
+      "name": "스티커",
+      "count": 18
+    },
+    {
+      "name": "레터링",
+      "count": 13
+    },
+    {
+      "name": "에코백",
+      "count": 4
+    },
+    {
+      "name": "그림책일러스트",
+      "count": 2
+    },
+    {
+      "name": "엽서",
+      "count": 1
+    }
   ],
   "photos": [
-    { "id": "11oBPU0BJ5nla6Nk-x_Bv24xKqDJbV2Hm", "date": "20260612", "org": "부일초등학교", "face": "raw" },
-    { "id": "1XpK92LEZ8QRV1BppnFdAkTLM3kZFK6zc", "date": "20260703", "org": "부일초등학교", "face": "raw" },
-    { "id": "1oKtqSoCsS_95DPK_Vik5IMEsrSdJ9RwB", "date": "20260724", "org": "부일초등학교", "face": "raw" },
-    { "id": "1E28ZmK3n9LgewQSRBWAFmywwQWIsPYc0", "date": "20260807", "org": "부일초등학교", "face": "raw" },
-    { "id": "18pjGGpHG4rbD9Jv5OFZPfQxt_wm4FKAy", "date": "20260807", "org": "부일초등학교", "face": "raw" },
-    { "id": "1J9Ajw9fkY1rJ80T7cGCMTc-84pQJa31b", "date": "20260807", "org": "부일초등학교", "face": "raw" },
-    { "id": "1FRAeb-7hIn_jgJQMclJGS89dIPs1AR5s", "date": "20260807", "org": "부일초등학교", "face": "raw" },
-    { "id": "1cnxG4pDBL6_I5HrO9QBPQfKb-yO4FJsx", "date": "20260801", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1S1XLKoxUz9bd0xETyuRxBT_G855ZAv6C", "date": "20260801", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1GXZZMHzp0ZEbMvtRX1JYbz1So4D-RPJm", "date": "20260801", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1dZAXEXJs-GuC5uHmKsbdMUQr1iN07W-t", "date": "20260801", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1KwR1Uwg8Sul4oiI952bFK4CxD87duifN", "date": "20260808", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "184KfZ_vc9HQarWK0jgf7FFejcsFS_lLB", "date": "20260808", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1zIaOQWe6QOpoOAtNgxQwp-KVvscwHkAz", "date": "20260808", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1Mj7XImjQSmkxTvphTJRuUedJdwyM43cC", "date": "20260808", "org": "온마을학교 2기", "face": "raw" },
-    { "id": "1gPcF87G2sAd8nnB-itqLElV422HvVrRU", "date": "20260801", "org": "주말학교2026", "face": "raw" },
-    { "id": "1ayADeDD6D2iph4HZJjFEzrmILjMAFNio", "date": "20260801", "org": "주말학교2026", "face": "raw" },
-    { "id": "1G41Mtn8qP3V3YyieE1k-ZDViHINp7J1W", "date": "20260801", "org": "주말학교2026", "face": "raw" },
-    { "id": "1zICayDbyD-w2fciTYXaZPQQJKFTtXuOS", "date": "20260801", "org": "주말학교2026", "face": "raw" },
-    { "id": "1ZN7KZW8XZ5v0l-izQZZlKcsG665eeS1j", "date": "20260808", "org": "주말학교2026", "face": "raw" },
-    { "id": "1qgF7I6oekf9pXAJd7jMVK4YOLoJf4-5w", "date": "20260808", "org": "주말학교2026", "face": "raw" },
-    { "id": "1VrLh2fDJnZvlREGmffjID02i9YZ9MgA0", "date": "20260808", "org": "주말학교2026", "face": "raw" },
-    { "id": "1JX-cZUJrFO8KTROPPcKCEMzbN-KfgexO", "date": "20260808", "org": "주말학교2026", "face": "raw" }
+    {
+      "id": "11oBPU0BJ5nla6Nk-x_Bv24xKqDJbV2Hm",
+      "date": "20260612",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1XpK92LEZ8QRV1BppnFdAkTLM3kZFK6zc",
+      "date": "20260703",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1oKtqSoCsS_95DPK_Vik5IMEsrSdJ9RwB",
+      "date": "20260724",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1E28ZmK3n9LgewQSRBWAFmywwQWIsPYc0",
+      "date": "20260807",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "18pjGGpHG4rbD9Jv5OFZPfQxt_wm4FKAy",
+      "date": "20260807",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1J9Ajw9fkY1rJ80T7cGCMTc-84pQJa31b",
+      "date": "20260807",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1FRAeb-7hIn_jgJQMclJGS89dIPs1AR5s",
+      "date": "20260807",
+      "org": "부일초등학교",
+      "face": "raw"
+    },
+    {
+      "id": "1cnxG4pDBL6_I5HrO9QBPQfKb-yO4FJsx",
+      "date": "20260801",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1S1XLKoxUz9bd0xETyuRxBT_G855ZAv6C",
+      "date": "20260801",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1GXZZMHzp0ZEbMvtRX1JYbz1So4D-RPJm",
+      "date": "20260801",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1dZAXEXJs-GuC5uHmKsbdMUQr1iN07W-t",
+      "date": "20260801",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1KwR1Uwg8Sul4oiI952bFK4CxD87duifN",
+      "date": "20260808",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "184KfZ_vc9HQarWK0jgf7FFejcsFS_lLB",
+      "date": "20260808",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1zIaOQWe6QOpoOAtNgxQwp-KVvscwHkAz",
+      "date": "20260808",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1Mj7XImjQSmkxTvphTJRuUedJdwyM43cC",
+      "date": "20260808",
+      "org": "온마을학교 2기",
+      "face": "raw"
+    },
+    {
+      "id": "1gPcF87G2sAd8nnB-itqLElV422HvVrRU",
+      "date": "20260801",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1ayADeDD6D2iph4HZJjFEzrmILjMAFNio",
+      "date": "20260801",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1G41Mtn8qP3V3YyieE1k-ZDViHINp7J1W",
+      "date": "20260801",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1zICayDbyD-w2fciTYXaZPQQJKFTtXuOS",
+      "date": "20260801",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1ZN7KZW8XZ5v0l-izQZZlKcsG665eeS1j",
+      "date": "20260808",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1qgF7I6oekf9pXAJd7jMVK4YOLoJf4-5w",
+      "date": "20260808",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1VrLh2fDJnZvlREGmffjID02i9YZ9MgA0",
+      "date": "20260808",
+      "org": "주말학교2026",
+      "face": "raw"
+    },
+    {
+      "id": "1JX-cZUJrFO8KTROPPcKCEMzbN-KfgexO",
+      "date": "20260808",
+      "org": "주말학교2026",
+      "face": "raw"
+    }
+  ],
+  "career": {
+    "byAudience": [
+      {
+        "name": "성인",
+        "hours": 495
+      },
+      {
+        "name": "영유아",
+        "hours": 144
+      },
+      {
+        "name": "초등",
+        "hours": 108
+      },
+      {
+        "name": "고등",
+        "hours": 28
+      },
+      {
+        "name": "중등",
+        "hours": 24
+      }
+    ],
+    "byField": [
+      {
+        "name": "문화예술 강의",
+        "hours": 399
+      },
+      {
+        "name": "마케팅·실무 교육",
+        "hours": 237
+      },
+      {
+        "name": "사진촬영·포토샵·상세페이지",
+        "hours": 102
+      },
+      {
+        "name": "산학겸임교사",
+        "hours": 28
+      }
+    ],
+    "highlights": [
+      {
+        "year": "2025~2026",
+        "title": "인천시 청년도전지원사업 · 제물포 공방코스",
+        "org": "인천테크노파크",
+        "note": "수채화 기초"
+      },
+      {
+        "year": "2025",
+        "title": "인천 원도심 관광 콘텐츠 공모 · 인천붓길투어",
+        "org": "인천관광공사",
+        "note": "도보여행 후 수채화로 기록 · 21회"
+      },
+      {
+        "year": "2024~2025",
+        "title": "공유경제기업 수채화로 꽃그림 그리기",
+        "org": "인천광역시",
+        "note": "누적 410회 운영"
+      },
+      {
+        "year": "2024~2025",
+        "title": "온마을학교 디자이너·일러스트레이터 진로체험",
+        "org": "인천광역시교육청",
+        "note": "초·중 48회"
+      },
+      {
+        "year": "2025~2026",
+        "title": "유아 미술 교육 (36회·144시간)",
+        "org": "영흥면 행정복지센터",
+        "note": "섬마을 영유아 정규 수업"
+      },
+      {
+        "year": "2025",
+        "title": "한국어학급 동아리 미술지도 (32회·64시간)",
+        "org": "인천 논곡초등학교",
+        "note": "다문화 학생 대상"
+      },
+      {
+        "year": "2025",
+        "title": "전자상거래 실무·일반",
+        "org": "인천비즈니스고등학교",
+        "note": "산학겸임교사"
+      }
+    ]
+  },
+  "media": [
+    {
+      "name": "수채화",
+      "cat": "수채화",
+      "desc": "물감 번짐으로 시작하는 기초 회화",
+      "count": 64
+    },
+    {
+      "name": "디지털 드로잉",
+      "cat": "디지털드로잉",
+      "desc": "아이패드로 그리고 바로 갤러리에",
+      "count": 50
+    },
+    {
+      "name": "아크릴화",
+      "cat": "아크릴화",
+      "desc": "캔버스에 두껍게 올리는 색",
+      "count": 24
+    },
+    {
+      "name": "드로잉",
+      "cat": "드로잉",
+      "desc": "관찰하고 선으로 옮기기",
+      "count": 19
+    },
+    {
+      "name": "스티커",
+      "cat": "스티커",
+      "desc": "내 그림을 붙일 수 있는 물건으로",
+      "count": 18
+    },
+    {
+      "name": "레터링",
+      "cat": "레터링",
+      "desc": "글씨도 그림이 된다",
+      "count": 13
+    },
+    {
+      "name": "에코백·굿즈",
+      "cat": "에코백",
+      "desc": "그림이 들고 다니는 물건이 되는 수업",
+      "count": 4
+    },
+    {
+      "name": "그림책 일러스트",
+      "cat": "그림책일러스트",
+      "desc": "이야기를 그림으로 엮기",
+      "count": 2
+    }
+  ],
+  "classCodes": [
+    "KHGUKC",
+    "F4MD28",
+    "S753Z4",
+    "F7DRCX",
+    "FZHBPA",
+    "6APJVY",
+    "BPGJXL",
+    "TEYNFZ"
   ]
 }
