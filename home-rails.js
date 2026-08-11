@@ -356,6 +356,20 @@
 
   // ---------- 📷 수업 모습 ----------
 
+  /// 사진 웹앱에 목록을 물어본다. 표(token)나 관리자 키로 여는 길 — 비밀번호 칸이 필요 없다.
+  function askPhotos(token, adminPw, done) {
+    fetch(REPORT_API, {
+      method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "reportTree", secret: "artclasshub-2026",
+        token: token || undefined, pw: adminPw || undefined
+      })
+    })
+      .then(function (r) { return r.json(); })
+      .then(done)
+      .catch(function () { done(null); });
+  }
+
   function fillPhotos(rail, className) {
     rail.track.innerHTML = "";
     var old = rail.section.querySelector(".rail-gate, .rail-days");
@@ -364,8 +378,23 @@
 
     if (reportData) { renderPhotos(rail, className); return; }
 
-    // 반 비번을 이미 통과했다면 그 비번으로 조용히 열어 본다(부모님께 두 번 묻지 않게).
-    var classPw = (classInfo && classInfo.pw) || "";
+    // 반 비번을 이미 넣고 들어온 사람은 사진 앞에서 또 묻지 않는다.
+    //   · 반 비번을 맞히면 서버가 준 '사진 열람 표'(photoToken)로 바로 연다.
+    //   · 선생님(관리자 모드)은 관리자 키로 연다.
+    // 비번이 걸려 있지 않은(공개) 반에서만 아래 비밀번호 칸이 나온다.
+    var token = (classInfo && classInfo.photoToken) || null;
+    var adminPw = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
+    if (token || adminPw) {
+      rail.setCount("불러오는 중…");
+      askPhotos(token, adminPw, function (d) {
+        if (!d || !d.ok) { rail.section.hidden = true; return; }
+        reportData = sanitizeDates(d.dates || []);
+        renderPhotos(rail, className);
+      });
+      return;
+    }
+
+    var classPw = "";
 
     var gate = document.createElement("div");
     gate.className = "rail-gate";
@@ -578,10 +607,13 @@
     // 반이 열리면(비번 통과 등) 그 반 비번·폴더 이름으로 사진을 다시 열어 본다.
     document.addEventListener("gallery-class", function (e) {
       var next = (e && e.detail) || null;
-      var was = (classInfo && classInfo.pw) || "";
+      var key = function (c) {
+        return [(c && c.pw) || "", (c && c.photoToken && c.photoToken.sig) || "", !!(c && c.admin)].join("|");
+      };
+      var was = key(classInfo);
       classInfo = next;
-      if (((next && next.pw) || "") !== was) {
-        reportData = null;                                   // 비번이 바뀌면 사진도 다시 받는다
+      if (key(next) !== was) {
+        reportData = null;                    // 열람 자격이 바뀌었으면 사진도 다시 받는다
         if (currentClass && photoRailRef) fillPhotos(photoRailRef, currentClass);
       }
     });

@@ -41,7 +41,7 @@
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "712bc9f";
+  const BUILD = "ccc47e4";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -227,6 +227,9 @@
   function regKey(reg) { return String(reg.code || reg.name || "").toLowerCase(); }
   function savedPwKey(reg) { return "classPw:" + regKey(reg); }
 
+  // 반 비번을 맞히면 서버가 주는 '사진 열람 표'({org, exp, sig}). 수업 사진을 열 때 같이 보낸다.
+  let photoToken = null;
+
   // 서버(Apps Script)에 비밀번호를 물어본다. 맞으면 true.
   function verifyClassPassword(reg, pw) {
     if (!CLASS_API) return Promise.resolve(false);
@@ -239,7 +242,11 @@
       })
     })
       .then((r) => r.json())
-      .then((d) => !!(d && d.ok))
+      .then((d) => {
+        if (!d || !d.ok) return false;
+        if (d.photo) photoToken = d.photo;
+        return true;
+      })
       .catch(() => false);
   }
 
@@ -251,7 +258,8 @@
   // 열린 반 정보를 다른 스크립트(home-rails.js)에도 알린다 — 사진 줄이 같은 비번·폴더 이름을 쓰도록.
   function announceClass(reg, pw) {
     window.galleryClass = reg ? {
-      name: reg.name || "", code: reg.code || "", org: reg.org || reg.name || "", pw: pw || ""
+      name: reg.name || "", code: reg.code || "", org: reg.org || reg.name || "",
+      pw: pw || "", photoToken: photoToken, admin: isAdmin
     } : null;
     document.dispatchEvent(new CustomEvent("gallery-class", { detail: window.galleryClass }));
   }
@@ -1328,6 +1336,7 @@
     // 별도 스크립트(home-rails.js: 그림책 레일)도 관리자 상태를 알도록 알린다.
     window.galleryAdmin = on;
     document.dispatchEvent(new CustomEvent("gallery-admin", { detail: on }));
+    window.galleryClass = null;     // 관리자 여부가 바뀌었으니 반 정보를 다시 알린다(사진 줄이 따라온다)
     if (on) syncClassesToSheet();   // 새로 만든 반을 "클래스" 시트에 자동 등록
     refreshUI();
   }
