@@ -41,7 +41,7 @@
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "75d8506";
+  const BUILD = "712bc9f";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -487,10 +487,11 @@
         const map = {};
         snap.forEach((doc) => {
           const d = doc.data() || {};
-          // 분류 목록은 학교 비번과 같은 컬렉션의 예약 문서에 들어 있다.
+          // 예전에 Firestore에 저장해 둔 분류가 있으면 합쳐만 준다("분류" 시트 목록을 지우지 않게).
           if (doc.id === CATEGORY_DOC) {
-            categories = (Array.isArray(d.list) ? d.list : [])
+            const old = (Array.isArray(d.list) ? d.list : [])
               .map((c) => String(c || "").trim()).filter(Boolean);
+            categories = [...new Set(categories.concat(old))];
             return;
           }
           const name = d.school || doc.id;
@@ -794,11 +795,23 @@
   }
 
   /// 분류 목록(마스터) 저장. 온라인이면 설정 문서에, 샘플/오프라인이면 이 브라우저에.
+  /// 분류 목록은 스프레드시트 "분류" 탭에 둔다 — 모든 반이 같은 목록을 쓰고,
+  /// 브라우저를 바꿔도 그대로 보인다.
+  /// (예전엔 Firestore school_settings에 뒀는데 규칙이 그 컬렉션을 막고 있어 읽기·쓰기가 모두 실패했고,
+  ///  결국 목록이 이 브라우저에만 남아 반마다 달라 보였다.)
   async function saveCategories(next) {
     categories = [...new Set(next.map((c) => String(c || "").trim()).filter(Boolean))];
-    if (db && !usingSample) {
+    if (CLASS_API) {
       try {
-        await db.collection(SETTINGS_COLLECTION).doc(CATEGORY_DOC).set({ list: categories }, { merge: true });
+        const res = await fetch(CLASS_API, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "setCategories", secret: CFG.classSecret || "",
+            adminKey: CFG.adminPassword || "", categories: categories
+          })
+        }).then((r) => r.json());
+        if (!res || !res.ok) throw new Error((res && res.error) || "저장 실패");
       } catch (e) {
         alert("분류 목록을 저장하지 못했어요: " + (e && e.message ? e.message : e));
       }
@@ -806,6 +819,19 @@
       try { localStorage.setItem("galleryCategories", JSON.stringify(categories)); } catch (_) {}
     }
     renderCatTabs();
+  }
+
+  /// "분류" 탭에서 목록을 읽어 온다(모든 반 공용).
+  function loadCategories() {
+    if (!CLASS_API) { loadLocalCategories(); return Promise.resolve(); }
+    return fetch(CLASS_API + "?categories=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || !d.ok) return;
+        categories = (d.categories || []).map((c) => String(c || "").trim()).filter(Boolean);
+        refreshUI();
+      })
+      .catch(() => {});
   }
 
   function loadLocalCategories() {
@@ -1334,6 +1360,7 @@
   //  시작
   // =========================================================
   loadClassRegistry();   // 반 이름·잠금 여부·사진폴더명(스프레드시트 "클래스" 탭)
+  loadCategories();      // 작품 분류 목록(스프레드시트 "분류" 탭 — 모든 반 공용)
 
   if (firebaseUsable()) {
     startFirebase();
