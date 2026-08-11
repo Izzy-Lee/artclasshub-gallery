@@ -20,11 +20,6 @@
   function photoApiFor(info) {
     return (info && String(info.src || "").indexOf("report") === 0) ? REPORT_API_LEGACY : REPORT_API;
   }
-  /// 기존 리포트는 폴더 자체가 수업별로 나뉘어 있어(줄놀이·독서문해력…) 수업명 필터를 걸지 않는다.
-  /// 갤러리 전용 사진 웹앱만 config.photoPrograms 로 거른다.
-  function usesProgramFilter(info) {
-    return photoApiFor(info) !== REPORT_API_LEGACY;
-  }
   // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
@@ -407,7 +402,7 @@
       rail.setCount("불러오는 중…");
       askPhotos(token, adminPw, function (d) {
         if (!d || !d.ok) { rail.section.hidden = true; return; }
-        reportData = sanitizeDates(d.dates || [], usesProgramFilter(classInfo));
+        reportData = sanitizeDates(d.dates || []);
         renderPhotos(rail, className);
       });
       return;
@@ -451,7 +446,7 @@
             return;
           }
           if (pw !== classPw) localStorage.setItem("reportPw", pw);
-          reportData = sanitizeDates(d.dates || [], usesProgramFilter(classInfo));
+          reportData = sanitizeDates(d.dates || []);
           gate.remove();
           renderPhotos(rail, className);
         })
@@ -465,6 +460,8 @@
   }
 
   /// 갤러리에 보여줄 수업(프로그램)인지 — config.js의 photoPrograms 기준.
+  /// 기존 리포트(F열 report)에서 가져온 사진에도 똑같이 적용한다 —
+  /// 같은 기관이라도 댄스·도자기·드론 같은 다른 수업 사진은 미술 갤러리에 올리지 않는다.
   /// 폴더 이름에 그 말이 들어간 수업만 통과(예: ["창의미술"] → 도자기·서예 제외).
   /// 비어 있으면 전체 통과. 날짜 탭의 개수도 이 필터를 거친 뒤 세진다.
   function programAllowed(title) {
@@ -477,7 +474,7 @@
     return false;
   }
 
-  function sanitizeDates(dates, filterPrograms) {
+  function sanitizeDates(dates) {
     return (dates || [])
       .filter(function (day) { return !isHiddenFolder(day.folder); })
       .map(function (day) {
@@ -485,7 +482,7 @@
           .filter(function (o) { return !isHiddenFolder(o.org); })
           .map(function (o) {
             o.programs = (o.programs || []).filter(function (pr) {
-              return !isHiddenFolder(pr.title) && (!filterPrograms || programAllowed(pr.title));
+              return !isHiddenFolder(pr.title) && programAllowed(pr.title);
             });
             return o;
           })
