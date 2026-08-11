@@ -34,6 +34,14 @@ window.GALLERY_CONFIG = {
   // ⚠️ 진짜 보안이 아닙니다. 삭제/숨김을 실제로 막으려면 Firebase Auth + 규칙을 쓰세요.
   adminPassword: "181818",
 
+  // 클래스(반) 등록부 = 구글 스프레드시트 "클래스" 탭.
+  //   A 클래스명 | B 코드 | C 비번 | D 사진폴더명 | E 메모
+  //   · 반 이름과 반마다 다른 비밀번호를 여기서 읽어 옵니다
+  //     (비번 대조는 Apps Script에서만 — 브라우저로는 내려오지 않습니다).
+  //   · D열 사진폴더명은 드라이브 기관 폴더 이름이 반 제목과 다를 때만 적습니다.
+  classApi: "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec",
+  classSecret: "artclasshub-2026",
+
   // 📷 '수업 모습'에 보여줄 수업(프로그램) 이름.
   // 사진 폴더 이름에 이 말이 들어간 수업만 보여줍니다.
   //   ["창의미술"] → 도자기·서예 등 다른 수업 사진은 갤러리에 안 나옵니다.

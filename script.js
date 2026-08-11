@@ -19,15 +19,29 @@
   let usingSample = false;
   let db = null;
   // 학교별 비밀번호 { 학교명: 비번 } — 걸린 학교만 들어있음
+  // (예전 방식. 스프레드시트 "클래스" 탭에 줄이 있는 반은 그쪽이 우선입니다.)
   let schoolPasswords = {};
   // 이번 방문에서 비번을 통과해 열어 둔 학교
   const unlockedSchools = new Set();
   const SETTINGS_COLLECTION = "school_settings";
 
+  // ---------- 클래스(반) 등록부 = 스프레드시트 "클래스" 탭 ----------
+  //   A 클래스명 | B 코드 | C 비번 | D 사진폴더명 | E 메모
+  //   · 반 이름: ?class=코드 링크의 제목을 코드가 아니라 반 이름으로 보여준다.
+  //   · 비번   : 반마다 다른 비밀번호. 대조는 Apps Script에서만 하고,
+  //              브라우저로는 '잠김/공개'만 내려온다.
+  //   · 사진폴더명: 드라이브의 기관 폴더 이름이 반 이름과 다를 때 이어 준다.
+  const CLASS_API = CFG.classApi || "";
+  let classByCode = {};      // 소문자 코드 → { name, code, org, locked }
+  let classByName = {};      // 소문자 클래스명/사진폴더명 → 같은 객체
+  const unlockedClasses = new Set();   // 이번 방문에 비번을 통과한 반(코드 소문자)
+  // 반 코드 → 반 이름 (Firestore classes 컬렉션 — 시트에 줄이 없어도 이름은 제대로 나오게)
+  let classNamesFromDB = {};
+
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "868f040";
+  const BUILD = "75d8506";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -80,6 +94,16 @@
 
   // 학교 갤러리로 들어가기 (비번이 걸려 있으면 확인)
   function enterSchool(school) {
+    // "클래스" 시트에 줄이 있는 반은 그쪽 비번을 쓴다 — refreshUI가 비밀번호 화면을 띄운다.
+    if (regForGroup(school)) {
+      currentSchool = school;
+      nameFilter = "";
+      catFilter = "";
+      searchInput.value = "";
+      refreshUI();
+      window.scrollTo(0, 0);
+      return;
+    }
     const pw = schoolPasswords[school];
     if (pw && !isAdmin && !unlockedSchools.has(school)) {
       const entered = prompt(`🔒 ${school} 갤러리\n\n비밀번호를 입력하세요`);
@@ -135,6 +159,159 @@
       }
     }
   }
+
+  // =========================================================
+  //  클래스(반) 등록부 — 스프레드시트 "클래스" 탭
+  //    반 이름 / 반마다 다른 비밀번호 / 사진 폴더 이름을 여기 한 장에서 관리한다.
+  // =========================================================
+  function loadClassRegistry() {
+    if (!CLASS_API) return Promise.resolve();
+    return fetch(CLASS_API + "?classes=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || !d.ok) return;
+        classByCode = {}; classByName = {};
+        (d.classes || []).forEach((c) => {
+          if (c.code) classByCode[String(c.code).toLowerCase()] = c;
+          if (c.name) classByName[String(c.name).toLowerCase()] = c;
+          if (c.org) classByName[String(c.org).toLowerCase()] = c;
+        });
+        refreshUI();
+      })
+      .catch(() => { /* 시트를 못 읽어도 갤러리는 그대로 열린다 */ });
+  }
+
+  /// 관리자 모드로 들어오면 앱에서 만든 반 목록을 "클래스" 탭에 채워 넣는다.
+  /// (이미 있는 코드는 서버가 건너뛰므로 비번·사진폴더명 칸은 그대로 보존된다.)
+  function syncClassesToSheet() {
+    if (!CLASS_API) return;
+    const list = Object.keys(classNamesFromDB).map((code) => ({
+      code: code.toUpperCase(), name: classNamesFromDB[code]
+    }));
+    if (!list.length) return;
+    fetch(CLASS_API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "syncClasses", secret: CFG.classSecret || "", classes: list })
+    })
+      .then((r) => r.json())
+      .then((d) => { if (d && d.ok && d.added) loadClassRegistry(); })
+      .catch(() => {});
+  }
+
+  // 코드·반이름·사진폴더명 아무거나로 등록부 한 줄 찾기
+  function regFor(key) {
+    const k = String(key || "").trim().toLowerCase();
+    if (!k) return null;
+    return classByCode[k] || classByName[k] || null;
+  }
+
+  // 화면에 묶인 이름(학교/반 이름)으로 찾기 — 이름이 안 맞으면 그 그룹 작품의 반코드로도 찾아본다.
+  function regForGroup(name) {
+    let r = regFor(name);
+    if (r) return r;
+    const codes = new Set(allItems
+      .filter((a) => (a.school || "기타") === name)
+      .map((a) => a.classCode).filter(Boolean));
+    for (const c of codes) { r = regFor(c); if (r) return r; }
+    return null;
+  }
+
+  // 지금 보고 있는 범위(링크로 잠긴 반 / 고른 학교)의 등록부 줄
+  function currentScopeReg() {
+    if (isLocked) return regFor(lockClass || lockSchool);
+    if (currentSchool) return regForGroup(currentSchool);
+    return null;
+  }
+
+  function regKey(reg) { return String(reg.code || reg.name || "").toLowerCase(); }
+  function savedPwKey(reg) { return "classPw:" + regKey(reg); }
+
+  // 서버(Apps Script)에 비밀번호를 물어본다. 맞으면 true.
+  function verifyClassPassword(reg, pw) {
+    if (!CLASS_API) return Promise.resolve(false);
+    return fetch(CLASS_API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },   // 프리플라이트 없이(GAS 단순요청)
+      body: JSON.stringify({
+        action: "classAuth", secret: CFG.classSecret || "",
+        code: reg.code || "", "class": reg.name || "", pw: pw
+      })
+    })
+      .then((r) => r.json())
+      .then((d) => !!(d && d.ok))
+      .catch(() => false);
+  }
+
+  // 이 반이 열려 있는지(공개이거나 이미 비번을 통과했는지)
+  function classUnlocked(reg) {
+    return !reg || !reg.locked || isAdmin || unlockedClasses.has(regKey(reg));
+  }
+
+  // 열린 반 정보를 다른 스크립트(home-rails.js)에도 알린다 — 사진 줄이 같은 비번·폴더 이름을 쓰도록.
+  function announceClass(reg, pw) {
+    window.galleryClass = reg ? {
+      name: reg.name || "", code: reg.code || "", org: reg.org || reg.name || "", pw: pw || ""
+    } : null;
+    document.dispatchEvent(new CustomEvent("gallery-class", { detail: window.galleryClass }));
+  }
+
+  // 비밀번호 화면 — 반 갤러리 전체를 가린다(작품·그림책·사진 모두).
+  let gateBox = null;
+  function showGate(reg) {
+    if (!gateBox) {
+      gateBox = document.createElement("div");
+      gateBox.className = "class-gate";
+      gateBox.innerHTML =
+        '<div class="class-gate-card">' +
+          '<div class="class-gate-emoji">🔒</div>' +
+          '<h2 class="class-gate-title"></h2>' +
+          "<p class=\"class-gate-sub\">우리 반 비밀번호를 넣으면 작품과 수업 사진을 볼 수 있어요.</p>" +
+          '<div class="class-gate-row">' +
+            '<input type="password" placeholder="비밀번호" autocomplete="current-password" />' +
+            "<button type=\"button\">열기</button>" +
+          "</div>" +
+          '<p class="class-gate-err"></p>' +
+        "</div>";
+      document.querySelector("main.container").appendChild(gateBox);
+
+      const input = gateBox.querySelector("input");
+      const btn = gateBox.querySelector("button");
+      const err = gateBox.querySelector(".class-gate-err");
+      const submit = () => {
+        const reg2 = currentScopeReg();
+        const pw = input.value.trim();
+        if (!reg2 || !pw) return;
+        err.textContent = "여는 중…";
+        verifyClassPassword(reg2, pw).then((ok) => {
+          if (!ok) { err.textContent = "비밀번호가 올바르지 않아요."; return; }
+          err.textContent = "";
+          input.value = "";
+          unlockedClasses.add(regKey(reg2));
+          try { localStorage.setItem(savedPwKey(reg2), pw); } catch (e) {}
+          announceClass(reg2, pw);
+          refreshUI();
+        });
+      };
+      btn.addEventListener("click", submit);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    }
+    gateBox.querySelector(".class-gate-title").textContent = reg.name || "우리 반 갤러리";
+    gateBox.hidden = false;
+    // 지난번에 넣어 둔 비번이 있으면 조용히 한 번 시도한다(부모님이 매번 안 넣도록).
+    let saved = "";
+    try { saved = localStorage.getItem(savedPwKey(reg)) || ""; } catch (e) {}
+    if (saved && !gateBox.dataset.tried) {
+      gateBox.dataset.tried = "1";
+      verifyClassPassword(reg, saved).then((ok) => {
+        if (!ok) { try { localStorage.removeItem(savedPwKey(reg)); } catch (e) {} return; }
+        unlockedClasses.add(regKey(reg));
+        announceClass(reg, saved);
+        refreshUI();
+      });
+    }
+  }
+  function hideGate() { if (gateBox) gateBox.hidden = true; }
 
   $("year").textContent = new Date().getFullYear();
   if ($("buildStamp")) $("buildStamp").textContent = "버전 " + BUILD;
@@ -291,6 +468,19 @@
       return;
     }
 
+    // 반 목록(앱이 만든 반) — 작품이 아직 없는 새 반도 이름이 제대로 보이게.
+    db.collection("classes").get()
+      .then((snap) => {
+        snap.forEach((doc) => {
+          const c = doc.data() || {};
+          const code = String(c.class_code || "").toLowerCase();
+          const name = c.class_name || c.school_name || "";
+          if (code && name) classNamesFromDB[code] = name;
+        });
+        refreshUI();
+      })
+      .catch(() => {});
+
     // 학교별 비밀번호 실시간 구독 (관리자 페이지에서 설정한 값)
     db.collection(SETTINGS_COLLECTION).onSnapshot(
       (snap) => {
@@ -354,6 +544,24 @@
   function refreshUI() {
     loading.hidden = true;
 
+    // 반 비밀번호(스프레드시트 "클래스" 탭)가 걸려 있으면 통과할 때까지 아무것도 안 보여준다.
+    const reg = currentScopeReg();
+    if (reg && !classUnlocked(reg)) {
+      if (controls) controls.hidden = true;
+      schoolHeader.hidden = true;       // 줄(그림책·수업모습)도 같이 닫힌다
+      clearNameTabs();
+      gallery.hidden = true;
+      emptyState.hidden = true;
+      showGate(reg);
+      return;
+    }
+    hideGate();
+    if (reg && (!window.galleryClass || window.galleryClass.code !== reg.code)) {
+      let pw = "";
+      try { pw = localStorage.getItem(savedPwKey(reg)) || ""; } catch (e) {}
+      announceClass(reg, pw);
+    }
+
     // 외부 공개 잠금: 홈/다른 학교를 숨기고 지정한 학교(반)만 보여준다.
     if (isLocked) {
       if (controls) controls.hidden = false;
@@ -378,9 +586,15 @@
     else applyFilters();
   }
 
-  // 잠금 화면 제목: 학교명 우선, 없으면 반 코드로 찾은 학교명, 그래도 없으면 코드.
+  // 잠금 화면 제목: 학교명 → 등록부("클래스" 시트) 반 이름 → Firestore 반 이름
+  //               → 그 반 작품의 학교명 → 그래도 없으면 코드.
+  // (작품이 아직 한 점도 없는 새 반은 예전엔 코드 'TEYNFZ'가 그대로 보였다)
   function lockedTitle() {
     if (lockSchool) return lockSchool;
+    const reg = regFor(lockClass);
+    if (reg && reg.name) return reg.name;
+    const fromDB = classNamesFromDB[String(lockClass).toLowerCase()];
+    if (fromDB) return fromDB;
     const one = allItems.find((a) => (a.classCode || "") === lockClass);
     return (one && one.school) ? one.school : lockClass;
   }
@@ -714,7 +928,8 @@
       const coverHTML = cover && isPreviewable(cover)
         ? `<img loading="lazy" src="${escapeAttr(cover.imageURL)}" alt="${escapeAttr(school)}" />`
         : docTileHTML(cover || {});
-      const locked = !!schoolPasswords[school];
+      const reg = regForGroup(school);
+      const locked = reg ? !!reg.locked : !!schoolPasswords[school];
       card.innerHTML = `
         <div class="card-thumb">
           ${coverHTML}
@@ -724,7 +939,8 @@
         <div class="card-body">
           <p class="card-student">🏫 ${escapeHtml(school)}</p>
           <p class="card-date">최근 ${formatDate(sorted[0].date)}</p>
-          ${isAdmin ? `<button class="school-pw-btn">${locked ? "🔒 비밀번호 변경/해제" : "🔓 비밀번호 걸기"}</button>` : ""}
+          ${isAdmin && !reg ? `<button class="school-pw-btn">${locked ? "🔒 비밀번호 변경/해제" : "🔓 비밀번호 걸기"}</button>` : ""}
+          ${isAdmin && reg ? `<p class="school-pw-note">비번은 스프레드시트 “클래스” 탭에서 (${escapeHtml(reg.code || reg.name)})</p>` : ""}
         </div>`;
       const img = card.querySelector(".card-thumb img");
       if (img) img.addEventListener("error", () => { img.outerHTML = docTileHTML(cover || {}); });
@@ -787,8 +1003,8 @@
           ${item.category ? `<p class="card-cat">🏷 ${escapeHtml(item.category)}</p>` : ""}
           ${item.title ? `<p class="card-title">${escapeHtml(item.title)}</p>` : ""}
           <p class="card-date">${formatDate(item.date)}</p>
-          ${authorshipText(item) ? `<p class="card-author" style="font-size:11px;color:#7A4FE0;font-weight:700;margin-top:2px">${escapeHtml(authorshipText(item))}</p>` : ""}
         </div>`;
+      // ✍️ 저작 구분(이야기·그림 학생 직접)은 목록에서 빼고, 작품을 크게 볼 때(모달)만 보여준다.
       // 이미지 로드 실패 시 깨진 이미지 대신 문서/플레이스홀더 타일로 대체
       const img = card.querySelector(".card-thumb img");
       if (img) img.addEventListener("error", () => { img.outerHTML = docTileHTML(item); });
@@ -1086,6 +1302,7 @@
     // 별도 스크립트(home-rails.js: 그림책 레일)도 관리자 상태를 알도록 알린다.
     window.galleryAdmin = on;
     document.dispatchEvent(new CustomEvent("gallery-admin", { detail: on }));
+    if (on) syncClassesToSheet();   // 새로 만든 반을 "클래스" 시트에 자동 등록
     refreshUI();
   }
 
@@ -1116,6 +1333,8 @@
   // =========================================================
   //  시작
   // =========================================================
+  loadClassRegistry();   // 반 이름·잠금 여부·사진폴더명(스프레드시트 "클래스" 탭)
+
   if (firebaseUsable()) {
     startFirebase();
   } else {

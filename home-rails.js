@@ -26,7 +26,12 @@
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
   var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
+  var photoRailRef = null;               // 반이 바뀌면 사진 레일을 다시 채우기 위한 참조
   var studentFilter = "";                // 이름 탭에서 고른 학생('' = 전체) — 그림책도 같이 거른다
+  // 지금 열린 반(스프레드시트 "클래스" 탭) — { name, code, org, pw }.
+  //   · org  : 드라이브의 기관 폴더 이름. 반 제목과 폴더 이름이 달라도 사진이 이어진다.
+  //   · pw   : 반 비번을 통과했으면 그 비번으로 사진도 바로 열어 본다(두 번 묻지 않게).
+  var classInfo = window.galleryClass || null;
 
   /// 가로로 부드럽게 옮긴다.
   /// scroll-behavior:smooth 와 scroll-snap 을 같이 쓰면 코드로 건 스크롤이 스냅 엔진에
@@ -359,6 +364,9 @@
 
     if (reportData) { renderPhotos(rail, className); return; }
 
+    // 반 비번을 이미 통과했다면 그 비번으로 조용히 열어 본다(부모님께 두 번 묻지 않게).
+    var classPw = (classInfo && classInfo.pw) || "";
+
     var gate = document.createElement("div");
     gate.className = "rail-gate";
     gate.innerHTML =
@@ -371,8 +379,8 @@
 
     var input = gate.querySelector("input"), btn = gate.querySelector("button"),
         err = gate.querySelector(".rail-gate-err");
-    var saved = localStorage.getItem("reportPw");
-    if (saved) { input.value = saved; open(saved, true); }
+    var saved = classPw || localStorage.getItem("reportPw");
+    if (saved) { if (!classPw) input.value = saved; open(saved, true); }
     btn.addEventListener("click", function () { open(input.value.trim(), false); });
     input.addEventListener("keydown", function (e) { if (e.key === "Enter") btn.click(); });
 
@@ -381,16 +389,20 @@
       if (!quiet) err.textContent = "여는 중…";
       fetch(REPORT_API, {
         method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "reportTree", secret: "artclasshub-2026", pw: pw })
+        // class 를 같이 보내면 그 반 비번으로도 열린다(그 반 사진만 내려온다).
+        body: JSON.stringify({
+          action: "reportTree", secret: "artclasshub-2026", pw: pw,
+          "class": (classInfo && (classInfo.code || classInfo.name)) || className
+        })
       })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (!d.ok) {
-            localStorage.removeItem("reportPw");
-            err.textContent = d.message || "열지 못했어요.";
+            if (pw !== classPw) localStorage.removeItem("reportPw");
+            err.textContent = quiet ? "" : (d.message || "열지 못했어요.");
             return;
           }
-          localStorage.setItem("reportPw", pw);
+          if (pw !== classPw) localStorage.setItem("reportPw", pw);
           reportData = sanitizeDates(d.dates || []);
           gate.remove();
           renderPhotos(rail, className);
@@ -446,9 +458,12 @@
   function renderPhotos(rail, className) {
     // 같은 날짜(folder)가 여러 번 와도 한 줄만: folder로 묶어 프로그램만 합친다.
     // (GAS가 같은 날짜를 두 번 돌려주면 날짜 카드가 두 줄로 중복되던 버그 방지)
+    // 드라이브의 기관 폴더 이름이 반 제목과 다를 수 있다(예: 반 '온마을학교 2기' ↔ 폴더 '부일초등학교').
+    // 스프레드시트 "클래스" 탭 D열(사진폴더명)에 적어 두면 그 이름으로도 이어 준다.
+    var org = (classInfo && classInfo.org) || className;
     var byFolder = {}, days = [];
     (reportData || []).forEach(function (day) {
-      var orgs = day.orgs.filter(function (o) { return o.org === className; });
+      var orgs = day.orgs.filter(function (o) { return o.org === org || o.org === className; });
       if (!orgs.length) return;
       if (byFolder[day.folder]) {
         byFolder[day.folder].orgs = byFolder[day.folder].orgs.concat(orgs);
@@ -558,6 +573,18 @@
     var bookRail = makeRail("railBooks", "📚", "그림책");
     bookRailRef = bookRail;
     var photoRail = makeRail("railPhotos", "📷", "수업 모습");
+    photoRailRef = photoRail;
+
+    // 반이 열리면(비번 통과 등) 그 반 비번·폴더 이름으로 사진을 다시 열어 본다.
+    document.addEventListener("gallery-class", function (e) {
+      var next = (e && e.detail) || null;
+      var was = (classInfo && classInfo.pw) || "";
+      classInfo = next;
+      if (((next && next.pw) || "") !== was) {
+        reportData = null;                                   // 비번이 바뀌면 사진도 다시 받는다
+        if (currentClass && photoRailRef) fillPhotos(photoRailRef, currentClass);
+      }
+    });
 
     // 관리자 모드 on/off 시 그림책 레일만 다시 그려 삭제 버튼을 붙이거나 없앤다.
     document.addEventListener("gallery-admin", function (e) {
@@ -576,6 +603,10 @@
 
     galleryEl.parentNode.insertBefore(bookRail.section, galleryEl);
     galleryEl.parentNode.insertBefore(artHead, galleryEl);
+    // '작품이 없어요' 안내는 그리드가 있던 자리(🎨 우리 그림 아래)로 옮긴다.
+    // 안 그러면 그림이 없는 반에서 안내문이 📚 그림책 위로 올라와 줄 순서가 뒤바뀐 것처럼 보인다.
+    var emptyEl = document.getElementById("emptyState");
+    if (emptyEl) galleryEl.parentNode.insertBefore(emptyEl, galleryEl);
     galleryEl.parentNode.insertBefore(photoRail.section, galleryEl.nextSibling);
 
     loadClassCodes().then(function () {

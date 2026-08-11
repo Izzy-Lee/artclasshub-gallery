@@ -478,3 +478,26 @@ html, body {
 /* 지금 분류(.on)는 강조색을 그대로 두고, 나머지 칩만 흰 바탕으로 */
 .cat-picker-list .name-tab:not(.on) { background: var(--card); }
 
+
+/* ===== 반 비밀번호 화면 (스프레드시트 "클래스" 탭의 비번) ===== */
+.class-gate { display: flex; justify-content: center; padding: 40px 16px 60px; }
+.class-gate-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 32px 28px; max-width: 420px; width: 100%; text-align: center;
+  box-shadow: 0 8px 28px rgba(0,0,0,.06);
+}
+.class-gate-emoji { font-size: 40px; line-height: 1; }
+.class-gate-title { font-size: 22px; margin: 12px 0 6px; }
+.class-gate-sub { font-size: 14px; color: var(--text-sub); margin: 0 0 18px; }
+.class-gate-row { display: flex; gap: 8px; }
+.class-gate-row input {
+  flex: 1; font: inherit; font-size: 16px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 12px;
+}
+.class-gate-row button {
+  font: inherit; font-weight: 800; color: #fff; background: var(--accent);
+  border: 0; border-radius: 12px; padding: 12px 22px; cursor: pointer;
+}
+.class-gate-err { font-size: 13px; color: #d7443e; min-height: 18px; margin: 10px 0 0; }
+/* 관리자 카드에 '비번은 시트에서' 안내 */
+.school-pw-note { font-size: 11px; color: var(--text-sub); margin-top: 6px; }
