@@ -243,7 +243,7 @@
       var list = cur ? photos.filter(function (p) { return p.org === cur; }) : photos;
       $("photos").innerHTML = list.map(function (p) {
         return '<div class="shot' + (p.face === "sticker" ? "" : " raw") + '">'
-             + '<img loading="lazy" src="' + IMG(p.id, 800) + '" alt="">'
+             + '<img loading="lazy" decoding="async" src="' + IMG(p.id, 500) + '" alt="">'
              + '<span class="tag">' + p.org + ' · ' + prettyDate(p.date) + '</span>'
              + (p.face === "sticker" ? "" : '<span class="pending">얼굴 처리 전</span>')
              + '</div>';
@@ -304,7 +304,7 @@
         // 분류가 붙은 작품을 앞으로, 최대 24점
         items.sort(function (a, b) { return (b.cat ? 1 : 0) - (a.cat ? 1 : 0); });
         $("works").innerHTML = items.slice(0, 24).map(function (w) {
-          return '<div class="work"><img loading="lazy" src="' + w.url + '" alt="">'
+          return '<div class="work"><img loading="lazy" decoding="async" src="' + w.url + '" alt="">'
                + '<div class="meta">' + (w.cat || "작품") + '</div></div>';
         }).join("");
       });
