@@ -28,7 +28,9 @@
 
   // 클래스 이름 → 그 반의 반코드 모음 (그림책을 반과 이어 붙이는 데 쓴다)
   var codesByClass = {};
-  var reportData = null;   // 비밀번호를 통과한 뒤의 사진 트리
+  var reportData = null;   // 한 번 받아 둔 사진 트리(자격이 바뀌기 전까지 재사용)
+  var reportCred = "";     // 그 사진을 받을 때 쓴 자격(표·관리자·반) — 같으면 다시 안 받는다
+  var photosLoading = false;
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
   var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
@@ -383,14 +385,30 @@
       .catch(function () { done(null); });
   }
 
-  function fillPhotos(rail, className) {
-    rail.track.innerHTML = "";
-    if (locked) { rail.section.hidden = true; return; }
-    var old = rail.section.querySelector(".rail-gate, .rail-days");
-    while (old) { old.remove(); old = rail.section.querySelector(".rail-gate, .rail-days"); }
-    rail.section.hidden = false;
+  /// 지금 사진을 볼 수 있는 자격(표·관리자·반). 이 값이 그대로면 다시 받지 않는다.
+  /// 표를 새로 받아도(같은 반이면) 사진은 그대로다 — 서명값이 아니라 '표가 있는지'만 본다.
+  /// 그래서 페이지를 다시 열 때마다 사진을 다시 받아 깜박이는 일이 없다.
+  function photoCred() {
+    var t = classInfo && classInfo.photoToken;
+    return [t ? "token" : "", (classInfo && classInfo.admin) ? "admin" : "",
+            (classInfo && classInfo.code) || "", (classInfo && classInfo.src) || ""].join("|");
+  }
 
-    if (reportData) { renderPhotos(rail, className); return; }
+  /// 한 번 불러온 사진은 그대로 두고, 필요할 때만 조용히 새로 받아 바꿔 끼운다.
+  /// (예전에는 자격이 조금만 바뀌어도 줄을 비우고 '불러오는 중…'으로 되돌려 화면이 깜박였다)
+  function fillPhotos(rail, className) {
+    if (locked) {
+      rail.track.innerHTML = "";
+      rail.section.hidden = true;
+      return;
+    }
+
+    var have = !!(reportData && reportData.length !== undefined);
+    if (have) renderPhotos(rail, className);          // 있는 건 먼저 그대로 보여준다
+
+    var cred = photoCred();
+    if (have && cred === reportCred) return;          // 자격도 그대로면 다시 받을 이유가 없다
+    if (photosLoading) return;                        // 이미 받는 중이면 중복 요청하지 않는다
 
     // 반 비번을 이미 넣고 들어온 사람은 사진 앞에서 또 묻지 않는다.
     //   · 반 비번을 맞히면 서버가 준 '사진 열람 표'(photoToken)로 바로 연다.
@@ -399,15 +417,28 @@
     var token = (classInfo && classInfo.photoToken) || null;
     var adminPw = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
     if (token || adminPw) {
-      rail.setCount("불러오는 중…");
+      if (!have) {                                    // 처음 받을 때만 '불러오는 중…'
+        rail.track.innerHTML = "";
+        rail.section.hidden = false;
+        rail.setCount("불러오는 중…");
+      }
+      photosLoading = true;
       askPhotos(token, adminPw, function (d) {
-        if (!d || !d.ok) { rail.section.hidden = true; return; }
+        photosLoading = false;
+        if (!d || !d.ok) { if (!have) rail.section.hidden = true; return; }   // 실패해도 있던 사진은 안 지운다
         reportData = sanitizeDates(d.dates || []);
+        reportCred = cred;
         renderPhotos(rail, className);
       });
       return;
     }
 
+    if (have) return;                                 // 자격이 없어도 이미 받아둔 사진은 그대로 둔다
+
+    rail.track.innerHTML = "";
+    var old = rail.section.querySelector(".rail-gate, .rail-days");
+    while (old) { old.remove(); old = rail.section.querySelector(".rail-gate, .rail-days"); }
+    rail.section.hidden = false;
     var classPw = "";
 
     var gate = document.createElement("div");
@@ -447,6 +478,7 @@
           }
           if (pw !== classPw) localStorage.setItem("reportPw", pw);
           reportData = sanitizeDates(d.dates || []);
+          reportCred = photoCred();
           gate.remove();
           renderPhotos(rail, className);
         })
@@ -645,14 +677,14 @@
     document.addEventListener("gallery-class", function (e) {
       var next = (e && e.detail) || null;
       var key = function (c) {
-        return [(c && c.pw) || "", (c && c.photoToken && c.photoToken.sig) || "", !!(c && c.admin)].join("|");
+        // 표는 있는지만 본다(서명이 바뀌었다고 사진을 다시 받지 않게).
+        return [(c && c.pw) ? "pw" : "", (c && c.photoToken) ? "token" : "",
+                !!(c && c.admin), (c && c.code) || ""].join("|");
       };
       var was = key(classInfo);
       classInfo = next;
-      if (key(next) !== was) {
-        reportData = null;                    // 열람 자격이 바뀌었으면 사진도 다시 받는다
-        if (currentClass && photoRailRef) fillPhotos(photoRailRef, currentClass);
-      }
+      // 자격이 바뀌면 조용히 다시 받는다(있던 사진은 그대로 두고 바꿔 끼운다).
+      if (key(next) !== was && currentClass && photoRailRef) fillPhotos(photoRailRef, currentClass);
     });
 
     // 관리자 모드 on/off 시 그림책 레일만 다시 그려 삭제 버튼을 붙이거나 없앤다.
