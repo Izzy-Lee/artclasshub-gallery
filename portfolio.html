@@ -4,327 +4,519 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>이영지 · 미술 강사 포트폴리오</title>
-<meta name="description" content="인천 기반 미술 강사 · 학교/복지관/섬마을 6년차 — 기관 14곳, 영유아부터 성인까지" />
+<meta name="description" content="인천 기반 미술 강사 · 학교/복지관/섬마을 6년차 — 아이가 그린 것이 작품이 되고 책이 되게" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb; --bg:#ffffff; --soft:#f6f8fc;
-    --accent:#2563eb; --accent-soft:#eff4ff; --warm:#F35AA0; --radius:18px;
+    --paper:#FAF7F2;      /* 종이 크림 */
+    --paper-2:#FFFDFA;    /* 밝은 종이 */
+    --ink:#2A2622;        /* 먹 */
+    --ink-2:#6F655C;      /* 흐린 먹 */
+    --line:#E7DFD4;       /* 종이 결 선 */
+    --terra:#C2603F;      /* 테라코타 (메인) */
+    --terra-soft:#F3E2DA;
+    --sage:#7C8F6B;       /* 세이지 (보조) */
+    --deep:#2F3A32;       /* 딥 그린 (풀블리드) */
+    --r:16px;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;
-       line-height:1.65;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-  section{padding:58px 0;border-top:1px solid var(--line)}
-  h2{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
-  h2 .ko{display:block;font-size:14px;color:var(--sub);font-weight:600;letter-spacing:0;margin-top:4px}
-  .lead{color:var(--sub);margin:6px 0 24px}
-  a{color:var(--accent)}
+  html{scroll-behavior:smooth;scroll-padding-top:74px}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;
+       line-height:1.68;-webkit-font-smoothing:antialiased}
+  img{max-width:100%}
+  a{color:var(--terra)}
   [hidden]{display:none !important}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  .serif{font-family:"Nanum Myeongjo","Apple SD Gothic Neo",serif}
 
-  .notice{background:#fff7ed;border-bottom:1px solid #fed7aa;color:#9a3412;
-          font-size:14px;padding:10px 20px;text-align:center}
-  .notice b{color:#c2410c}
+  /* ── 스티키 내비 ── */
+  .nav{position:sticky;top:0;z-index:40;background:rgba(250,247,242,.92);
+       backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px}
+  .logo{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:18px;letter-spacing:-.4px;
+        text-decoration:none;color:var(--ink);white-space:nowrap}
+  .logo small{display:block;font-family:inherit;font-weight:400;font-size:11px;color:var(--ink-2);letter-spacing:0}
+  .nav ul{list-style:none;display:flex;gap:18px;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
+  .nav ul::-webkit-scrollbar{display:none}
+  .nav a.link{color:var(--ink-2);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;
+              border-bottom:2px solid transparent}
+  .nav a.link:hover,.nav a.link.on{color:var(--terra);border-color:var(--terra)}
+  .nav .cta{margin-left:auto}
+  .btn{display:inline-block;background:var(--terra);color:#fff;text-decoration:none;font-weight:700;
+       border-radius:999px;padding:10px 20px;font-size:14.5px;border:0;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:#a94f31}
+  .btn.ghost{background:transparent;color:var(--terra);border:1.5px solid var(--terra)}
+  .btn.light{background:#fff;color:var(--terra)}
+  @media (max-width:760px){ .nav ul{display:none} }
 
-  /* 표지 */
-  .hero{padding:56px 0 48px;background:linear-gradient(180deg,var(--accent-soft),#fff)}
-  .hero-top{display:flex;gap:22px;align-items:center;margin-bottom:26px;flex-wrap:wrap}
-  .avatar{width:92px;height:92px;border-radius:50%;background:#fff;border:1px solid var(--line);
-          display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;
-          color:var(--accent);overflow:hidden;flex:0 0 auto}
-  .avatar img{width:100%;height:100%;object-fit:cover}
-  .idline b{font-size:22px;display:block;line-height:1.3}
-  .idline span{color:var(--sub);font-size:15px}
-  .hero h1{font-size:38px;line-height:1.25;margin:0 0 14px;letter-spacing:-.6px}
-  .hero p.desc{font-size:17px;color:var(--sub);margin:0 0 22px;max-width:660px}
-  .contactbar{display:flex;flex-wrap:wrap;gap:10px}
-  .contactbar a,.contactbar span{background:#fff;border:1px solid var(--line);border-radius:999px;
-        padding:8px 16px;font-size:14px;text-decoration:none;color:var(--ink)}
-  .contactbar a:hover{border-color:var(--accent);color:var(--accent)}
+  /* 모바일 하단 문의 버튼 */
+  .fab{position:fixed;left:16px;right:16px;bottom:16px;z-index:39;display:none;
+       text-align:center;box-shadow:0 8px 22px rgba(194,96,63,.35)}
+  @media (max-width:760px){ .fab{display:block} body{padding-bottom:64px} }
 
-  /* 숫자 */
-  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-  .num{background:var(--soft);border-radius:var(--radius);padding:20px 16px}
-  .num b{display:block;font-size:30px;line-height:1.15;color:var(--accent)}
-  .num strong{display:block;font-size:15px;margin-top:2px}
-  .num span{font-size:13px;color:var(--sub)}
-  .subnums{margin-top:14px;color:var(--sub);font-size:14px}
-  .subnums b{color:var(--ink)}
+  /* ── 섹션 리듬 ── */
+  section{padding:74px 0}
+  .band-paper{background:var(--paper)}
+  .band-white{background:var(--paper-2)}
+  .band-deep{background:var(--deep);color:#F4F1EA}
+  .band-deep .kicker,.band-deep .sect-en{color:#B9C6B4}
+  .band-deep .lead{color:#CFD6CA}
 
-  /* 카드 */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
-  .card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:#fff}
-  .card h3{margin:0 0 5px;font-size:16px}
-  .card p{margin:0;color:var(--sub);font-size:13.5px}
-  .chip{display:inline-block;font-size:11.5px;color:var(--accent);background:var(--accent-soft);
-        border-radius:999px;padding:3px 9px;margin-bottom:8px}
-  .card.click{cursor:pointer;transition:.15s}
-  .card.click:hover{border-color:var(--accent);transform:translateY(-2px)}
-  .card .cnt{float:right;color:var(--accent);font-weight:800;font-size:15px}
+  .sect-h{margin:0 0 6px;font-size:31px;line-height:1.3;letter-spacing:-.6px;
+          font-family:"Nanum Myeongjo",serif;font-weight:800;position:relative;display:inline-block}
+  .sect-h .ul{position:absolute;left:0;right:-6px;bottom:-9px;height:10px;color:var(--terra);opacity:.5}
+  .sect-en{display:block;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--ink-2);font-weight:700;margin-bottom:10px}
+  .lead{color:var(--ink-2);margin:14px 0 30px;max-width:660px}
 
-  /* 자격 */
-  .creds{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-  .cred{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
-  .cred h3{margin:0 0 10px;font-size:15px;color:var(--accent)}
+  /* ── 히어로 ── */
+  .hero{position:relative;overflow:hidden;padding:44px 0 64px}
+  .hero .blob{position:absolute;pointer-events:none;opacity:.5}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center;position:relative}
+  .hero-grid > *{min-width:0}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);
+          background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin-bottom:20px}
+  .kicker b{color:var(--terra)}
+  .hero h1{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:46px;line-height:1.32;
+           margin:0 0 18px;letter-spacing:-1px}
+  .hl{position:relative;white-space:nowrap}
+  .hl > span{position:relative;z-index:1}
+  .hl i{position:absolute;left:-4px;right:-4px;bottom:2px;height:.52em;background:var(--terra-soft);
+        border-radius:6px 10px 8px 12px;transform:rotate(-.6deg);z-index:0;display:block}
+  .hl.sage i{background:#E4EADD}
+  .hero p.desc{color:var(--ink-2);font-size:16.5px;margin:0 0 26px;max-width:520px}
+  .hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hero-cta .who{font-size:13.5px;color:var(--ink-2)}
+
+  /* 폴라로이드 콜라주 */
+  .collage-wrap{position:relative;width:100%;min-width:0;overflow:hidden}
+  .collage{position:absolute;left:0;top:0;width:460px;height:520px;transform-origin:top left}
+  .pola{position:absolute;background:#fff;padding:10px 10px 34px;border-radius:3px;
+        box-shadow:0 14px 28px rgba(60,45,35,.18);transition:transform .25s}
+  .pola img{display:block;width:100%;height:100%;object-fit:cover;border-radius:2px;background:var(--line)}
+  .pola span{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:11.5px;color:var(--ink-2)}
+  .pola:hover{transform:rotate(0deg) scale(1.03) !important;z-index:9}
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;gap:26px}
+    .hero h1{font-size:34px}
+  }
+
+  /* ── 스탯 ── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:22px 20px;position:relative}
+  .stat b{display:block;font-family:"Nanum Myeongjo",serif;font-size:38px;line-height:1.05;color:var(--terra)}
+  .stat strong{display:block;font-size:15px;margin-top:6px}
+  .stat span{font-size:13px;color:var(--ink-2)}
+  .stat .ic{position:absolute;right:16px;top:16px;opacity:.28}
+
+  /* ── 지도 ── */
+  .mapbox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px 10px 6px;overflow:hidden}
+  .mapbox svg{width:100%;height:auto;display:block}
+  .mk{cursor:pointer}
+  .mk:hover circle{r:11}
+  .orggroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:22px}
+  .grp{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .grp summary{cursor:pointer;padding:14px 18px;font-weight:700;font-size:15px;list-style:none;
+               display:flex;align-items:center;gap:8px}
+  .grp summary::-webkit-details-marker{display:none}
+  .grp summary .n{margin-left:auto;color:var(--terra);font-size:13.5px}
+  .grp ul{margin:0;padding:0 18px 16px 34px}
+  .grp li{font-size:14px;color:var(--ink-2);margin-bottom:5px}
+  .grp.island summary{background:var(--terra-soft)}
+
+  /* ── 경력 ── */
+  .agecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .agecard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px 16px;text-align:center}
+  .agecard .ic{height:38px;margin-bottom:6px}
+  .agecard b{display:block;font-family:"Nanum Myeongjo",serif;font-size:27px;color:var(--ink)}
+  .agecard span{font-size:13.5px;color:var(--ink-2)}
+  .fields{margin-top:16px;color:var(--ink-2);font-size:14px}
+  .fields b{color:var(--ink)}
+  .tline{margin-top:34px;position:relative;padding-left:26px}
+  .tline .spine{position:absolute;left:6px;top:6px;bottom:6px;width:12px;color:var(--sage);opacity:.7}
+  .tl{padding:12px 0 12px 6px;position:relative}
+  .tl::before{content:"";position:absolute;left:-24px;top:20px;width:11px;height:11px;border-radius:50%;
+              background:var(--paper);border:2.5px solid var(--terra)}
+  .tl .y{color:var(--terra);font-weight:700;font-size:13px;letter-spacing:.02em}
+  .tl b{display:block;font-size:16px;margin:2px 0 2px}
+  .tl span{color:var(--ink-2);font-size:14px}
+
+  /* ── 자격 ── */
+  .creds{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .cred{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px}
+  .cred h3{margin:0 0 10px;font-size:15px;color:var(--terra)}
   .cred ul{margin:0;padding-left:18px}
   .cred li{font-size:14.5px;margin-bottom:6px}
-  .cred li.empty{list-style:none;margin-left:-18px;color:#b0b6c0;border:1px dashed var(--line);
+  .cred li.empty{list-style:none;margin-left:-18px;color:#BEB4A8;border:1px dashed var(--line);
                  border-radius:8px;padding:6px 10px}
 
-  /* 경력 */
-  .bars{display:grid;gap:10px;max-width:640px}
-  .bar{display:grid;grid-template-columns:96px 1fr 74px;align-items:center;gap:10px;font-size:14px}
-  .bar .track{height:12px;background:var(--soft);border-radius:99px;overflow:hidden}
-  .bar .fill{height:100%;background:var(--accent);border-radius:99px}
-  .bar .h{color:var(--sub);text-align:right}
-  .timeline{margin-top:24px;display:grid;gap:2px}
-  .tl{display:grid;grid-template-columns:118px 1fr;gap:12px;padding:12px 0;border-top:1px dashed var(--line)}
-  .tl .y{color:var(--accent);font-weight:700;font-size:13.5px}
-  .tl b{display:block;font-size:15px}
-  .tl span{color:var(--sub);font-size:13.5px}
-
-  /* 프로그램(커리큘럼) */
-  .prog{border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:14px}
-  .prog .head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin-bottom:6px}
-  .prog h3{margin:0;font-size:19px}
-  .prog .meta{color:var(--accent);font-size:13.5px;font-weight:700}
-  .prog .goal{color:var(--sub);font-size:14px;margin:0 0 16px}
-  .steps{display:grid;gap:0}
-  .step{display:grid;grid-template-columns:92px 150px 1fr;gap:12px;padding:10px 0;
-        border-top:1px solid var(--line);font-size:14.5px;align-items:baseline}
-  .step .s{color:var(--accent);font-weight:700;font-size:13.5px}
+  /* ── 프로그램 ── */
+  .prog{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:14px}
+  .prog .head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+  .prog h3{margin:0;font-family:"Nanum Myeongjo",serif;font-size:22px}
+  .prog .meta{color:var(--sage);font-size:13.5px;font-weight:700}
+  .prog .goal{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .step{display:grid;grid-template-columns:92px 160px 1fr;gap:12px;padding:11px 0;
+        border-top:1px dashed var(--line);font-size:14.5px;align-items:baseline}
+  .step .s{color:var(--terra);font-weight:700;font-size:13.5px}
   .step .t{font-weight:700}
-  .step .d{color:var(--sub)}
-  @media (max-width:640px){ .step{grid-template-columns:80px 1fr;} .step .d{grid-column:2} }
+  .step .d{color:var(--ink-2)}
+  @media (max-width:640px){ .step{grid-template-columns:78px 1fr} .step .d{grid-column:2} }
 
-  /* 레일 */
-  .railhead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-  .railhead .arrows{margin-left:auto;display:flex;gap:6px}
-  .arrow{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;
-         cursor:pointer;font-size:15px;color:var(--sub)}
-  .arrow:hover{border-color:var(--accent);color:var(--accent)}
-  .rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;
-        scrollbar-width:none;padding:2px 2px 10px}
-  .rail::-webkit-scrollbar{display:none}
-  .rail > *{scroll-snap-align:start;flex:0 0 auto}
+  /* ── 재료 카드 ── */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;cursor:pointer;
+        transition:.16s}
+  .card:hover{transform:translateY(-3px);border-color:var(--terra);box-shadow:0 10px 20px rgba(60,45,35,.07)}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .card p{margin:0;color:var(--ink-2);font-size:13.5px}
+  .card .cnt{float:right;color:var(--terra);font-weight:800;font-size:15px;font-family:"Nanum Myeongjo",serif}
 
-  .shot{position:relative;width:300px;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:var(--soft)}
-  .shot img{width:100%;height:100%;object-fit:cover;display:block}
-  .shot.raw img{filter:blur(16px) saturate(.9);transform:scale(1.08)}
-  .shot .tag{position:absolute;left:8px;top:8px;background:rgba(31,41,55,.72);color:#fff;
-             font-size:11px;padding:3px 8px;border-radius:999px}
-  .shot .pending{position:absolute;right:8px;bottom:8px;background:rgba(243,90,160,.92);color:#fff;
-                 font-size:11px;padding:3px 8px;border-radius:999px}
+  /* ── 탭 ── */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+  .tabs button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink-2);
+               border-radius:999px;padding:7px 15px;cursor:pointer}
+  .tabs button.on{background:var(--terra);border-color:var(--terra);color:#fff;font-weight:700}
+  .band-deep .tabs button{background:transparent;border-color:#5A6A5C;color:#CFD6CA}
+  .band-deep .tabs button.on{background:#F4F1EA;color:var(--deep);border-color:#F4F1EA}
 
-  .work{width:190px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;cursor:pointer}
-  .work img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--soft)}
-  .work .meta{padding:7px 10px;font-size:12px;color:var(--sub)}
+  /* ── 대표 컷 + 매소너리 ── */
+  .feature{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:14px}
+  .feature .fx{position:relative;border-radius:var(--r);overflow:hidden;background:#fff;cursor:pointer}
+  .feature .fx img{width:100%;height:100%;object-fit:cover;display:block}
+  .feature .fx.tall{aspect-ratio:16/10}
+  .feature .fx.side{aspect-ratio:4/5}
+  @media (max-width:700px){ .feature{grid-template-columns:1fr} .feature .fx.side{display:none} }
 
-  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 14px}
-  .tabs button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--sub);
-               border-radius:999px;padding:7px 14px;cursor:pointer}
-  .tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .masonry{columns:3;column-gap:12px}
+  @media (max-width:900px){ .masonry{columns:2} }
+  @media (max-width:520px){ .masonry{columns:1} }
+  .mitem{break-inside:avoid;margin-bottom:12px;border-radius:var(--r);overflow:hidden;background:#fff;
+         border:1px solid var(--line);cursor:pointer;position:relative}
+  .mitem img{width:100%;display:block}
+  .mitem.raw img{filter:blur(15px) saturate(.9);transform:scale(1.06)}
+  .mitem .cap{position:absolute;left:8px;top:8px;background:rgba(42,38,34,.72);color:#fff;font-size:11px;
+              padding:3px 9px;border-radius:999px}
+  .mitem .pend{position:absolute;right:8px;bottom:8px;background:rgba(194,96,63,.94);color:#fff;font-size:11px;
+               padding:3px 9px;border-radius:999px}
+  .mitem .who{padding:8px 10px;font-size:12px;color:var(--ink-2)}
 
-  .shelf{background:linear-gradient(180deg,#fbf7f2,#f3ece3);border-radius:20px;padding:22px 18px 12px;
-         border:1px solid #ecdfd0}
-  .bookitem{width:170px;cursor:pointer;text-align:center}
-  .bookitem .cov{width:170px;height:225px;border-radius:4px 10px 10px 4px;overflow:hidden;background:#fff;
-                 box-shadow:0 10px 18px rgba(80,50,20,.18);border:1px solid #e6d9c8;
-                 border-left:7px solid #e7d8c6;transition:.15s}
-  .bookitem:hover .cov{transform:translateY(-6px)}
-  .bookitem .cov img{width:100%;height:100%;object-fit:cover;display:block}
-  .bookitem p{margin:9px 0 0;font-size:13px;font-weight:700;line-height:1.35}
-  .plank{height:12px;background:linear-gradient(180deg,#e0cdb6,#cdb69c);border-radius:6px;
-         box-shadow:0 6px 10px rgba(90,60,30,.15);margin-top:2px}
+  /* ── 그림책 (풀블리드) ── */
+  .shelfrail{display:flex;gap:24px;overflow-x:auto;padding:10px 4px 22px;scroll-snap-type:x proximity;
+             scrollbar-width:none}
+  .shelfrail::-webkit-scrollbar{display:none}
+  .book{width:176px;flex:0 0 auto;scroll-snap-align:start;cursor:pointer;text-align:center}
+  .book .cov{width:176px;height:232px;border-radius:3px 9px 9px 3px;overflow:hidden;background:#fff;
+             border-left:8px solid rgba(255,255,255,.55);
+             box-shadow:0 18px 26px rgba(0,0,0,.42), 0 2px 0 rgba(255,255,255,.25) inset;
+             transition:transform .2s}
+  .book:hover .cov{transform:translateY(-9px) rotate(-1deg)}
+  .book .cov img{width:100%;height:100%;object-fit:cover;display:block}
+  .book p{margin:12px 0 0;font-size:13.5px;font-weight:700;color:#F4F1EA;line-height:1.35}
+  .plank{height:14px;border-radius:8px;background:linear-gradient(180deg,#6E7A66,#4A5548);
+         box-shadow:0 12px 18px rgba(0,0,0,.35)}
+  .arrows{display:flex;gap:8px;margin-left:auto}
+  .arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;
+         cursor:pointer;font-size:16px;color:var(--ink-2)}
+  .band-deep .arrow{background:transparent;border-color:#5A6A5C;color:#CFD6CA}
+  .arrow:hover{border-color:var(--terra);color:var(--terra)}
+  .railhead{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
 
-  /* 추천사 */
+  /* ── 후기 / 기록 ── */
   .quotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
-  .quote{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:var(--soft)}
-  .quote p{margin:0 0 12px;font-size:15.5px;line-height:1.7}
-  .quote .who{font-size:13.5px;color:var(--sub)}
-  .quote .who b{color:var(--ink);display:block}
+  .quote{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px;position:relative}
+  .quote .mark{font-family:"Nanum Myeongjo",serif;font-size:44px;color:var(--terra-soft);line-height:.6}
+  .quote p{margin:6px 0 14px;font-size:15.5px}
+  .quote .who{font-size:13.5px;color:var(--ink-2)}
+  .quote .who b{display:block;color:var(--ink)}
+  .recs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px}
+  .rec{background:#fff;border:1px solid var(--line);border-left:4px solid var(--sage);
+       border-radius:10px;padding:18px 20px;font-size:14.5px;color:var(--ink-2)}
+  .rec b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px}
 
-  /* 기록 한 줄 */
-  .oneline{border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;background:var(--soft)}
-  .oneline b{font-size:16px}
-  .oneline ul{margin:10px 0 0;padding-left:18px;color:var(--sub);font-size:14px}
-  .oneline li{margin-bottom:4px}
+  /* ── 문의 ── */
+  .contact{background:var(--terra);color:#fff}
+  .contact .sect-h{color:#fff}
+  .contact .sect-en,.contact .lead{color:#F7DDD2}
+  .contact .sect-h .ul{color:#fff;opacity:.55}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .cbox{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:var(--r);padding:18px}
+  .cbox span{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}
+  .cbox b,.cbox a{font-size:16.5px;color:#fff;text-decoration:none;word-break:break-all}
+  .cbox.soon b{opacity:.62;font-weight:500}
 
-  /* 문의 */
-  .contactgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-  .cbox{border:1px solid var(--line);border-radius:var(--radius);padding:18px}
-  .cbox span{display:block;font-size:12.5px;color:var(--sub);margin-bottom:4px}
-  .cbox b{font-size:16px}
-  .cbox a{font-size:16px;text-decoration:none}
+  /* ── 라이트박스 ── */
+  .lb{position:fixed;inset:0;background:rgba(26,23,20,.92);display:none;align-items:center;justify-content:center;
+      z-index:60;padding:20px}
+  .lb.on{display:flex}
+  .lb figure{margin:0;max-width:1000px;width:100%;text-align:center}
+  .lb img{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111}
+  .lb figcaption{color:#EDE7DF;font-size:14px;margin-top:12px}
+  .lb .x{position:absolute;top:16px;right:22px;color:#fff;font-size:32px;cursor:pointer;line-height:1}
+  .lb .nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);
+               border:0;color:#fff;font-size:26px;width:46px;height:46px;border-radius:50%;cursor:pointer}
+  .lb .prev{left:16px} .lb .next{right:16px}
+  .lb a.open{display:inline-block;margin-top:12px;color:#fff;background:var(--terra);text-decoration:none;
+             border-radius:999px;padding:9px 18px;font-size:14.5px;font-weight:700}
 
-  .modal{position:fixed;inset:0;background:rgba(17,24,39,.82);display:none;align-items:center;
-         justify-content:center;z-index:50;padding:24px}
-  .modal.on{display:flex}
-  .modal-card{background:#fff;border-radius:18px;max-width:520px;width:100%;overflow:hidden;text-align:center}
-  .modal-card img{width:100%;max-height:62vh;object-fit:contain;background:var(--soft);display:block}
-  .modal-body{padding:16px 18px 20px}
-  .modal-body h3{margin:0 0 4px;font-size:18px}
-  .modal-body p{margin:0 0 14px;color:var(--sub);font-size:14px}
-  .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;
-       border-radius:12px;padding:11px 20px;font-size:15px;border:0;cursor:pointer}
-  .btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);margin-left:8px}
-  .modal .x{position:absolute;top:18px;right:22px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
-
-  footer{background:var(--soft);padding:36px 0;color:var(--sub);font-size:14px}
-  @media (max-width:640px){ .hero h1{font-size:28px} section{padding:44px 0} .shot{width:250px} }
+  footer{background:var(--deep);color:#B9C6B4;padding:34px 0;font-size:13.5px}
+  footer b{color:#F4F1EA}
 </style>
 </head>
 <body>
 
-<div class="notice" id="notice" hidden>
-  🚧 <b>임시 화면</b>입니다 — 아직 얼굴 처리를 하기 전이라 수업 사진을 흐리게 가려 두었습니다.
-</div>
+<!-- ── 스티키 내비 ── -->
+<nav class="nav">
+  <div class="nav-in">
+    <a class="logo" href="#top">이영지<small>미술 강사 · 그림책 수업</small></a>
+    <ul>
+      <li><a class="link" href="#glance">한눈에 보기</a></li>
+      <li><a class="link" href="#where">수업하는 곳</a></li>
+      <li><a class="link" href="#career">경력</a></li>
+      <li><a class="link" href="#programs">프로그램</a></li>
+      <li><a class="link" href="#class">수업 현장</a></li>
+      <li><a class="link" href="#works">아이들 작품</a></li>
+      <li><a class="link" href="#books">그림책</a></li>
+    </ul>
+    <a class="btn cta" href="#contact">수업 문의</a>
+  </div>
+</nav>
+<a class="btn fab" href="#contact">수업 문의하기</a>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-top">
-      <div class="avatar" id="avatar"></div>
-      <div class="idline">
-        <b id="idName"></b>
-        <span id="idOne"></span>
+<!-- ── 히어로 ── -->
+<header class="hero band-paper" id="top">
+  <svg class="blob" style="top:-90px;left:-120px;width:420px" viewBox="0 0 200 200" aria-hidden="true">
+    <path fill="#EFE2D8" d="M43,-58C56,-49,66,-35,70,-19C74,-3,72,15,64,30C56,45,42,57,25,64C8,71,-12,73,-30,66C-48,60,-64,45,-70,27C-77,9,-73,-13,-63,-30C-53,-47,-37,-59,-20,-66C-3,-73,15,-74,43,-58Z" transform="translate(100 100)"/>
+  </svg>
+  <svg class="blob" style="bottom:-120px;right:-90px;width:360px" viewBox="0 0 200 200" aria-hidden="true">
+    <path fill="#E4EADD" d="M38,-52C50,-42,60,-30,65,-15C69,0,68,17,60,30C51,43,36,52,19,58C3,63,-15,65,-31,58C-47,52,-61,37,-66,20C-70,3,-65,-16,-55,-31C-45,-45,-30,-55,-14,-60C2,-64,26,-62,38,-52Z" transform="translate(100 100)"/>
+  </svg>
+
+  <div class="wrap hero-grid">
+    <div>
+      <span class="kicker">인천 기반 미술 강사 · 학교 / 복지관 / 섬마을 <b>6년차</b></span>
+      <h1 class="serif">아이가 그린 것이<br />
+        <span class="hl"><span>작품</span><i></i></span>이 되고
+        <span class="hl sage"><span>책</span><i></i></span>이 되게</h1>
+      <p class="desc">2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 섬마을에서
+        영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
+        아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
+      <div class="hero-cta">
+        <a class="btn" href="#contact">수업 문의하기</a>
+        <a class="btn ghost" href="#books">완성된 그림책 보기</a>
       </div>
+      <p class="hero-cta who" id="heroWho" style="margin-top:16px"></p>
     </div>
-    <h1>아이가 그린 것이<br />작품이 되고 책이 되게</h1>
-    <p class="desc">2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 섬마을에서
-       영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
-       아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
-    <div class="contactbar" id="contactTop"></div>
+    <div class="collage-wrap" id="collageWrap"><div class="collage" id="collage"></div></div>
   </div>
 </header>
 
-<section>
+<!-- ── 한눈에 보기 ── -->
+<section class="band-white" id="glance">
   <div class="wrap">
-    <h2>At a Glance<span class="ko">한눈에 보는 활동</span></h2>
+    <span class="sect-en">At a Glance</span>
+    <h2 class="sect-h">한눈에 보기
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,7 C40,2 70,9 100,5 C130,1 160,8 198,4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
     <p class="lead">경력 기록과 온라인 갤러리에 쌓인 실제 자료를 그대로 집계했습니다.</p>
-    <div class="nums" id="nums"></div>
-    <p class="subnums" id="subnums"></p>
+    <div class="stats" id="stats"></div>
+    <p class="lead" id="substats" style="margin-top:18px;margin-bottom:0"></p>
   </div>
 </section>
 
-<section id="credSection">
+<!-- ── 수업하는 곳 (지도) ── -->
+<section class="band-paper" id="where">
   <div class="wrap">
-    <h2>Credentials<span class="ko">자격 및 이수</span></h2>
+    <span class="sect-en">Where I Teach</span>
+    <h2 class="sect-h">수업하는 곳
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,6 C46,10 74,2 104,6 C134,10 164,3 198,7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
+    <p class="lead">도심 학교부터 배로 두 시간 넘게 들어가는 섬마을까지 — 교실 안에 머물지 않았습니다.</p>
+
+    <div class="mapbox">
+      <svg viewBox="0 0 800 520" role="img" aria-label="인천 수업 지역 지도">
+        <!-- 바다 -->
+        <rect width="800" height="520" fill="#F4F7F6"/>
+        <path d="M0,470 C120,455 210,486 330,470 C450,454 560,486 800,466 L800,520 L0,520Z" fill="#E9F0EE"/>
+        <!-- 본토 -->
+        <path d="M498,120 C548,96 620,96 676,116 C724,133 744,178 736,224 C728,272 742,306 716,340
+                 C688,376 620,392 566,376 C516,361 498,326 494,286 C490,246 466,206 476,172 C482,148 486,128 498,120Z"
+              fill="#E8E2D7" stroke="#D9CFC0" stroke-width="2"/>
+        <text x="640" y="416" font-size="15" fill="#9C8F80" font-family="sans-serif">인천 본토</text>
+        <!-- 섬들 -->
+        <path d="M56,60 C96,44 140,54 150,80 C160,106 126,124 92,120 C58,116 34,96 40,78 C44,68 48,64 56,60Z"
+              fill="#EFE2D8" stroke="#DCC6B7" stroke-width="2"/>
+        <path d="M244,368 C286,352 330,368 336,394 C342,420 306,438 272,432 C238,426 220,404 226,386 C230,376 236,372 244,368Z"
+              fill="#EFE2D8" stroke="#DCC6B7" stroke-width="2"/>
+        <path d="M186,196 C214,186 242,196 246,214 C250,232 226,244 204,240 C182,236 166,222 170,210 C173,202 180,199 186,196Z"
+              fill="#EDE7DC" stroke="#DDD3C4" stroke-width="1.6"/>
+        <path d="M330,240 C356,232 380,242 384,258 C388,274 366,286 346,282 C326,278 312,264 316,254 C319,246 325,243 330,240Z"
+              fill="#EDE7DC" stroke="#DDD3C4" stroke-width="1.6"/>
+        <text x="196" y="222" font-size="13" fill="#A9998A" font-family="sans-serif">연평도</text>
+        <text x="336" y="266" font-size="13" fill="#A9998A" font-family="sans-serif">자월·신도</text>
+        <!-- 항로(손그림 점선) -->
+        <path d="M470,300 C400,330 350,360 316,392" fill="none" stroke="#C2603F" stroke-width="2.2"
+              stroke-dasharray="7 9" stroke-linecap="round" opacity=".65"/>
+        <path d="M470,250 C360,200 220,130 132,96" fill="none" stroke="#C2603F" stroke-width="2.2"
+              stroke-dasharray="7 9" stroke-linecap="round" opacity=".65"/>
+        <g id="markers"></g>
+      </svg>
+    </div>
+
+    <div class="orggroups" id="orgGroups"></div>
+  </div>
+</section>
+
+<!-- ── 경력 ── -->
+<section class="band-white" id="career">
+  <div class="wrap">
+    <span class="sect-en">Experience</span>
+    <h2 class="sect-h">가르쳐 온 사람들
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,7 C44,3 78,9 106,5 C136,1 166,8 198,5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
+    <p class="lead">영유아 미술부터 성인 직업교육까지 — 대상을 가리지 않고 가르쳤습니다.</p>
+    <div class="agecards" id="ageCards"></div>
+    <p class="fields" id="fields"></p>
+    <div class="tline">
+      <svg class="spine" viewBox="0 0 12 400" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M6,2 C10,60 2,110 6,168 C10,226 2,280 6,338 C8,366 6,384 6,398"
+              fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <div id="timeline"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 자격 ── -->
+<section class="band-paper" id="credSection">
+  <div class="wrap">
+    <span class="sect-en">Credentials</span>
+    <h2 class="sect-h">자격 및 이수</h2>
     <p class="lead">기관 결재·채용 서류에 필요한 항목입니다. 증빙 사본은 요청 시 바로 보내 드립니다.</p>
     <div class="creds" id="creds"></div>
   </div>
 </section>
 
-<section>
+<!-- ── 프로그램 ── -->
+<section class="band-white" id="programs">
   <div class="wrap">
-    <h2>Experience<span class="ko">경력 요약</span></h2>
-    <p class="lead">영유아 미술부터 성인 직업교육까지 — 대상을 가리지 않고 가르쳤습니다.</p>
-    <div class="bars" id="bars"></div>
-    <div class="timeline" id="timeline"></div>
+    <span class="sect-en">Programs</span>
+    <h2 class="sect-h">제안 가능한 프로그램
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,6 C48,9 76,2 108,6 C140,10 168,3 198,6" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
+    <p class="lead">차시 구성을 그대로 기안 문서에 붙여 쓰실 수 있습니다. 시수·인원은 협의해 조정합니다.</p>
+    <div id="progList"></div>
   </div>
 </section>
 
-<section>
+<!-- ── 무엇을 가르치나 ── -->
+<section class="band-paper" id="media">
   <div class="wrap">
-    <h2>Programs<span class="ko">제안 가능한 프로그램</span></h2>
-    <p class="lead">차시별 구성을 그대로 기안 문서에 붙여 쓰실 수 있습니다. 시수·인원은 협의해 조정합니다.</p>
-    <div id="programs"></div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2>Where I Teach<span class="ko">함께한 기관</span></h2>
-    <p class="lead">인천 자치구와 옹진군 섬마을 — 교실 안에 머물지 않았습니다.</p>
-    <div class="cards" id="orgs"></div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2>What I Teach<span class="ko">무엇을 가르치나</span></h2>
+    <span class="sect-en">What I Teach</span>
+    <h2 class="sect-h">무엇을 가르치나</h2>
     <p class="lead">눌러 보면 그 재료로 만든 아이들 작품이 아래에 바로 나옵니다.</p>
-    <div class="cards" id="media"></div>
+    <div class="cards" id="mediaCards"></div>
   </div>
 </section>
 
-<section>
+<!-- ── 수업 현장 ── -->
+<section class="band-white" id="class">
   <div class="wrap">
     <div class="railhead">
-      <h2 style="margin:0">In the Classroom<span class="ko">수업 현장</span></h2>
-      <div class="arrows"><button class="arrow" data-rail="photos" data-dir="-1">‹</button>
-                          <button class="arrow" data-rail="photos" data-dir="1">›</button></div>
+      <div>
+        <span class="sect-en">In the Classroom</span>
+        <h2 class="sect-h">수업 현장</h2>
+      </div>
     </div>
     <p class="lead">아이 얼굴은 캐릭터 스티커로 가려 올립니다. 이름은 어디에도 적지 않습니다.</p>
     <div class="tabs" id="photoTabs"></div>
-    <div class="rail" id="photos"></div>
+    <div class="feature" id="photoFeature"></div>
+    <div class="masonry" id="photos"></div>
   </div>
 </section>
 
-<section id="worksSection">
+<!-- ── 아이들 작품 ── -->
+<section class="band-paper" id="works">
   <div class="wrap">
-    <div class="railhead">
-      <h2 style="margin:0">Children's Work<span class="ko">아이들 작품</span></h2>
-      <div class="arrows"><button class="arrow" data-rail="works" data-dir="-1">‹</button>
-                          <button class="arrow" data-rail="works" data-dir="1">›</button></div>
-    </div>
+    <span class="sect-en">Children's Work</span>
+    <h2 class="sect-h">아이들 작품
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,5 C42,9 72,2 102,6 C132,10 164,3 198,6" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
     <p class="lead">갤러리에 올라온 작품에서 가져옵니다. 이름은 빼고 그림만 보여 줍니다.</p>
     <div class="tabs" id="workTabs"></div>
-    <div class="rail" id="works"></div>
+    <div class="masonry" id="workGrid"></div>
   </div>
 </section>
 
-<section>
+<!-- ── 그림책 (풀블리드) ── -->
+<section class="band-deep" id="books">
   <div class="wrap">
     <div class="railhead">
-      <h2 style="margin:0">Storybook Shelf<span class="ko">그림책 프로젝트</span></h2>
-      <div class="arrows"><button class="arrow" data-rail="books" data-dir="-1">‹</button>
-                          <button class="arrow" data-rail="books" data-dir="1">›</button></div>
+      <div>
+        <span class="sect-en">Storybook</span>
+        <h2 class="sect-h" style="color:#F4F1EA">완성된 그림책</h2>
+      </div>
+      <div class="arrows">
+        <button class="arrow" data-rail="bookRail" data-dir="-1" aria-label="이전">‹</button>
+        <button class="arrow" data-rail="bookRail" data-dir="1" aria-label="다음">›</button>
+      </div>
     </div>
     <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮습니다. 표지를 누르면 펼쳐 볼 수 있어요.</p>
-    <div class="shelf">
-      <div class="rail" id="books"></div>
-      <div class="plank"></div>
-    </div>
+    <div class="shelfrail" id="bookRail"></div>
+    <div class="plank"></div>
   </div>
 </section>
 
-<section id="voiceSection">
+<!-- ── 후기 · 기록 ── -->
+<section class="band-white" id="voices">
   <div class="wrap">
-    <h2>Voices<span class="ko">기관의 목소리</span></h2>
+    <span class="sect-en">Voices</span>
+    <h2 class="sect-h">담당자 후기</h2>
     <p class="lead">함께 수업한 기관 담당 선생님들의 이야기입니다.</p>
-    <div class="quotes" id="voices"></div>
+    <div class="quotes" id="quoteList"></div>
+
+    <p class="lead" style="margin:34px 0 10px"><b>수업 기록과 결과물이 자동으로 남습니다.</b></p>
+    <div class="recs">
+      <div class="rec"><b>작품이 사라지지 않습니다</b>수업마다 아이 작품이 온라인 갤러리에 쌓이고, 반별 비밀번호로 가족만 볼 수 있습니다.</div>
+      <div class="rec"><b>실적 보고가 쉽습니다</b>활동 사진은 날짜·기관별로 자동 정리돼 보고서에 바로 씁니다.</div>
+      <div class="rec"><b>가족에게 바로 전달됩니다</b>그림책은 발행 즉시 플립북 링크로 집에서도 넘겨 볼 수 있습니다.</div>
+    </div>
   </div>
   <!--
-    추천사 채우는 법 — manifest.json(portfolio.json) 의 "voices" 배열에 아래 형태로 넣으면 이 섹션이 나타납니다.
-    비워 두면 섹션 자체가 보이지 않습니다.
+    추천사 채우는 법 — portfolio.json 의 "voices" 배열에 아래 형태로 넣으면 위 인용 카드가 채워집니다.
     "voices": [
       { "quote": "아이들이 수업을 기다립니다. 결과물이 남으니 학부모 만족도도 높았습니다.",
         "org": "○○초등학교", "role": "교육복지실 담당교사" },
-      { "quote": "섬이라 강사 섭외가 어려운데, 준비물부터 마무리까지 알아서 챙겨 주셨어요.",
+      { "quote": "섬이라 강사 섭외가 어려운데 준비물부터 마무리까지 알아서 챙겨 주셨어요.",
         "org": "○○ 다함께돌봄센터", "role": "센터장" }
     ]
   -->
 </section>
 
-<section>
+<!-- ── 문의 ── -->
+<section class="contact" id="contact">
   <div class="wrap">
-    <h2>Records<span class="ko">수업 기록</span></h2>
-    <div class="oneline">
-      <b>수업 기록과 결과물이 자동으로 남는 강사입니다.</b>
-      <ul>
-        <li>수업마다 아이 작품이 온라인 갤러리에 쌓이고, 반별 비밀번호로 가족만 볼 수 있습니다.</li>
-        <li>활동 사진은 날짜·기관별로 자동 정리돼 실적 보고서에 바로 씁니다.</li>
-        <li>그림책은 발행 즉시 플립북 링크로 가족에게 전달됩니다.</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2>Let's Work Together<span class="ko">함께 하기</span></h2>
+    <span class="sect-en">Contact</span>
+    <h2 class="sect-h">수업 문의
+      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2,6 C44,2 76,9 106,5 C136,1 168,8 198,5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      </svg>
+    </h2>
     <p class="lead">수업 제안·견적·일정 문의를 주시면 24시간 안에 회신드립니다.</p>
-    <div class="contactgrid" id="contactGrid"></div>
+    <div class="cgrid" id="contactGrid"></div>
   </div>
 </section>
 
@@ -332,21 +524,19 @@
   <div class="wrap">
     <p>학생 사진은 <b>얼굴을 가려</b> 게시하며, 이름은 표시하지 않습니다.
        사진 삭제를 원하시면 언제든 알려 주세요 — 바로 내립니다.</p>
-    <p id="stamp" style="opacity:.7"></p>
+    <p id="stamp" style="opacity:.75;margin:6px 0 0"></p>
   </div>
 </footer>
 
-<div class="modal" id="modal">
+<div class="lb" id="lb">
   <span class="x" data-close>×</span>
-  <div class="modal-card">
-    <img id="mImg" alt="" />
-    <div class="modal-body">
-      <h3 id="mTitle"></h3>
-      <p id="mSub"></p>
-      <a id="mOpen" class="btn" target="_blank" rel="noopener">📖 펼쳐 보기</a>
-      <button class="btn ghost" data-close>닫기</button>
-    </div>
-  </div>
+  <button class="nav-btn prev" data-step="-1" aria-label="이전">‹</button>
+  <figure>
+    <img id="lbImg" alt="" />
+    <figcaption id="lbCap"></figcaption>
+    <a id="lbOpen" class="open" target="_blank" rel="noopener" hidden>📖 그림책 펼쳐 보기</a>
+  </figure>
+  <button class="nav-btn next" data-step="1" aria-label="다음">›</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -356,38 +546,82 @@
   "use strict";
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
-  var DRAFT = /[?&]draft=1/.test(location.search);   // ?draft=1 이면 아직 안 채운 자리도 보여 준다
+  var DRAFT = /[?&]draft=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var IMG = function (id, w) { return "https://lh3.googleusercontent.com/d/" + id + "=w" + (w || 600); };
-  var prettyDate = function (s) {
-    var g = String(s).replace(/[^0-9]/g, "");
-    return g.length === 8 ? (+g.substr(4, 2)) + "월 " + (+g.substr(6, 2)) + "일" : s;
-  };
   var esc = function (s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
     });
   };
+  var prettyDate = function (s) {
+    var g = String(s).replace(/[^0-9]/g, "");
+    return g.length === 8 ? (+g.substr(4, 2)) + "월 " + (+g.substr(6, 2)) + "일" : s;
+  };
 
+  /* 콜라주는 460x470 도화지를 화면 폭에 맞춰 줄인다(모바일에서 잘리지 않게) */
+  function fitCollage() {
+    var wrap = $("collageWrap"), box = $("collage");
+    if (!wrap || !box || !box.children.length) return;
+    box.style.transform = "none";
+    var maxR = 0, maxB = 0;
+    [].forEach.call(box.children, function (el) {
+      maxR = Math.max(maxR, el.offsetLeft + el.offsetWidth);
+      maxB = Math.max(maxB, el.offsetTop + el.offsetHeight);
+    });
+    var W = maxR + 8, H = maxB + 8;
+    box.style.width = W + "px";
+    box.style.height = H + "px";
+    var k = Math.min(1, wrap.clientWidth / W);
+    box.style.transform = "scale(" + k + ")";
+    wrap.style.height = Math.round(H * k) + "px";
+  }
+  window.addEventListener("resize", function () { requestAnimationFrame(fitCollage); });
+  window.addEventListener("load", fitCollage);
+
+  /* 라이트박스 --------------------------------------------------- */
+  var LB = { list: [], at: 0 };
+  function lbShow() {
+    var it = LB.list[LB.at];
+    if (!it) return;
+    $("lbImg").src = it.img;
+    $("lbCap").textContent = it.cap || "";
+    if (it.link) { $("lbOpen").href = it.link; $("lbOpen").hidden = false; }
+    else { $("lbOpen").hidden = true; }
+    $("lb").classList.add("on");
+  }
+  function lbOpen(list, at) { LB.list = list; LB.at = at; lbShow(); }
+  $("lb").addEventListener("click", function (e) {
+    if (e.target.hasAttribute("data-close") || e.target.id === "lb") { $("lb").classList.remove("on"); return; }
+    var b = e.target.closest ? e.target.closest("[data-step]") : null;
+    if (b) { LB.at = (LB.at + Number(b.getAttribute("data-step")) + LB.list.length) % LB.list.length; lbShow(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (!$("lb").classList.contains("on")) return;
+    if (e.key === "Escape") $("lb").classList.remove("on");
+    if (e.key === "ArrowRight") { LB.at = (LB.at + 1) % LB.list.length; lbShow(); }
+    if (e.key === "ArrowLeft") { LB.at = (LB.at - 1 + LB.list.length) % LB.list.length; lbShow(); }
+  });
+
+  /* 가로 레일 화살표 --------------------------------------------- */
   document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest(".arrow") : null;
     if (!b) return;
     var rail = $(b.getAttribute("data-rail"));
-    if (rail) rail.scrollBy({ left: Number(b.getAttribute("data-dir")) * rail.clientWidth * 0.9, behavior: "smooth" });
+    if (rail) rail.scrollBy({ left: Number(b.getAttribute("data-dir")) * rail.clientWidth * 0.85, behavior: "smooth" });
   });
 
-  var modal = $("modal");
-  function openModal(o) {
-    $("mImg").src = o.img || "";
-    $("mTitle").textContent = o.title || "";
-    $("mSub").textContent = o.sub || "";
-    if (o.link) { $("mOpen").href = o.link; $("mOpen").hidden = false; } else { $("mOpen").hidden = true; }
-    modal.classList.add("on");
-  }
-  modal.addEventListener("click", function (e) {
-    if (e.target === modal || e.target.hasAttribute("data-close")) modal.classList.remove("on");
+  /* 내비 현재 위치 ------------------------------------------------ */
+  var links = [].slice.call(document.querySelectorAll(".nav a.link"));
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id); });
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  ["glance", "where", "career", "programs", "class", "works", "books"].forEach(function (id) {
+    var el = $(id); if (el) io.observe(el);
   });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") modal.classList.remove("on"); });
 
   fetch("portfolio.json?v=" + Date.now())
     .then(function (r) { return r.ok ? r.json() : fetch("manifest.json").then(function (x) { return x.json(); }); })
@@ -396,31 +630,106 @@
 
   function render(m) {
     var p = m.profile || {}, s = m.stats || {};
-
-    // ---- 표지: 이름·직함·연락처 ----
     document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
-    $("idName").textContent = p.name ? p.name + " · " + (p.title || "") : (p.title || "");
-    $("idOne").textContent = p.oneLine || "";
-    $("avatar").innerHTML = p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.name) + '">'
-                                    : esc((p.name || "A").charAt(0));
-    var top = [];
-    if (p.email) top.push('<a href="mailto:' + esc(p.email) + '">✉️ ' + esc(p.email) + '</a>');
-    if (p.phone) top.push('<a href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">📞 ' + esc(p.phone) + '</a>');
-    if (p.area) top.push('<span>📍 ' + esc(p.area) + '</span>');
-    $("contactTop").innerHTML = top.join("");
+    $("heroWho").innerHTML = (p.name ? "<b>" + esc(p.name) + "</b> · " : "") + esc(p.title || "")
+      + (p.email ? ' · <a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
 
-    // ---- 숫자: 기관 → 지속연수 → 연령 → 섬 ----
-    $("nums").innerHTML = [
-      ['<b>' + s.orgs + '곳</b><strong>함께한 기관</strong><span>' + (s.repeatOrgs ? '재의뢰 ' + s.repeatOrgs + '곳 포함' : '') + '</span>'],
-      ['<b>' + s.years + '년</b><strong>' + s.since + '년부터 지속</strong><span>매년 이어지는 수업</span>'],
-      ['<b>전 연령</b><strong>영유아 ~ 성인</strong><span>' + s.ageGroups + '개 연령층 지도</span>'],
-      ['<b>섬마을</b><strong>백령도 · 영흥도</strong><span>도서지역 순회 수업</span>']
-    ].map(function (n) { return '<div class="num">' + n[0] + '</div>'; }).join("");
-    $("subnums").innerHTML = '보조 지표 · 누적 수업 <b>' + (Math.round(s.hours / 100) * 100) + '시간+</b>'
-      + ' · 강의 회차 <b>' + s.sessions + '회</b>'
-      + ' · 아이들 작품 <b>' + s.works + '점</b> · 만든 그림책 <b>' + s.books + '권</b>';
+    /* 히어로 콜라주 (아이 작품) */
+    var hw = m.heroWorks || [];
+    var pose = [
+      { w: 210, h: 250, l: 16,  t: 8,   r: -6 },
+      { w: 176, h: 210, l: 214, t: 0,   r: 5 },
+      { w: 198, h: 236, l: 96,  t: 196, r: 3 },
+      { w: 164, h: 196, l: 292, t: 172, r: -4 },
+      { w: 150, h: 178, l: 8,   t: 308, r: 7 }
+    ];
+    $("collage").innerHTML = hw.slice(0, 5).map(function (w, i) {
+      var q = pose[i] || pose[0];
+      return '<figure class="pola" style="width:' + q.w + 'px;left:' + q.l + 'px;top:' + q.t
+           + 'px;transform:rotate(' + q.r + 'deg);z-index:' + (5 - i) + '">'
+           + '<img src="' + esc(w.url) + '" alt="아이들 작품 — ' + esc(w.cat) + '" width="' + q.w + '" height="' + q.h + '" '
+           + 'style="height:' + q.h + 'px">'
+           + '<span>' + esc(w.cat) + '</span></figure>';
+    }).join("");
+    fitCollage();
+    var heroList = hw.map(function (w) { return { img: w.url, cap: "아이들 작품 · " + w.cat }; });
+    $("collage").addEventListener("click", function (e) {
+      var f = e.target.closest ? e.target.closest(".pola") : null;
+      if (!f) return;
+      lbOpen(heroList, [].indexOf.call($("collage").children, f));
+    });
 
-    // ---- 자격 및 이수 ----
+    /* 한눈에 보기 */
+    var icon = {
+      org: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
+      year: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      age: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.2"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 20c0-2 2-3.6 4-3.6"/></svg>',
+      hour: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9"/></svg>'
+    };
+    $("stats").innerHTML = [
+      { ic: icon.org, b: s.orgs + "곳", t: "함께한 기관", d: (s.repeatOrgs ? "재의뢰 " + s.repeatOrgs + "곳 포함" : "") },
+      { ic: icon.year, b: s.years + "년", t: s.since + "년부터 지속", d: "매년 이어지는 수업" },
+      { ic: icon.age, b: "전 연령", t: "영유아 ~ 성인", d: s.ageGroups + "개 연령층 지도" },
+      { ic: icon.hour, b: (Math.round(s.hours / 100) * 100) + "시간+", t: "누적 수업 시수", d: "강의 회차 " + s.sessions + "회" }
+    ].map(function (n) {
+      return '<div class="stat"><span class="ic">' + n.ic + '</span><b>' + n.b + '</b>'
+           + '<strong>' + n.t + '</strong><span>' + n.d + '</span></div>';
+    }).join("");
+    $("substats").innerHTML = "그 밖에 · 아이들 작품 <b>" + s.works + "점</b> · 아이가 만든 그림책 <b>" + s.books + "권</b>";
+
+    /* 지도 마커 + 기관 목록 */
+    var pts = m.mapPoints || [];
+    $("markers").innerHTML = pts.map(function (t) {
+      var c = t.island ? "#C2603F" : "#7C8F6B";
+      return '<g class="mk"><circle cx="' + t.x + '" cy="' + t.y + '" r="' + (t.island ? 10 : 7.5) + '" fill="' + c + '"'
+           + ' stroke="#fff" stroke-width="2.5"/>'
+           + (t.island ? '<circle cx="' + t.x + '" cy="' + t.y + '" r="17" fill="none" stroke="' + c + '" stroke-width="1.6" opacity=".45"/>' : "")
+           + '<text x="' + (t.x + (t.x > 500 ? 15 : 20)) + '" y="' + (t.y + 5) + '" font-size="15" font-family="sans-serif"'
+           + ' fill="' + (t.island ? "#8C4B31" : "#5C6B52") + '" font-weight="' + (t.island ? 700 : 500) + '">'
+           + esc(t.name) + '</text></g>';
+    }).join("");
+
+    var kindGroup = {
+      "학교": ["초등학교", "중학교", "고등학교"],
+      "복지·돌봄": ["복지관", "돌봄센터", "가족센터", "행정복지센터"],
+      "문화·평생학습": ["평생학습", "진로체험", "관광 콘텐츠", "청년사업", "마을학교", "주말학교"],
+      "직업교육": ["직업교육"]
+    };
+    var groups = {};
+    (m.orgs || []).forEach(function (o) {
+      var g = "기타";
+      Object.keys(kindGroup).forEach(function (k) {
+        if (kindGroup[k].some(function (x) { return (o.kind || "").indexOf(x) >= 0; })) g = k;
+      });
+      (groups[g] = groups[g] || []).push(o);
+    });
+    $("orgGroups").innerHTML = Object.keys(groups).map(function (g) {
+      var isle = groups[g].some(function (o) { return (o.region || "").indexOf("옹진") >= 0; });
+      return '<details class="grp' + (isle ? " island" : "") + '" open><summary>' + esc(g)
+           + '<span class="n">' + groups[g].length + '곳</span></summary><ul>'
+           + groups[g].map(function (o) {
+               return "<li>" + esc(o.name) + " <span style=\"opacity:.7\">· " + esc(o.region) + "</span></li>";
+             }).join("")
+           + "</ul></details>";
+    }).join("");
+
+    /* 경력 */
+    var career = m.career || {};
+    var faces = { "영유아": "🧸", "초등": "✏️", "중등": "🎒", "고등": "🎓", "성인": "☕" };
+    $("ageCards").innerHTML = (career.byAudience || []).slice().sort(function (a, b) { return b.hours - a.hours; })
+      .map(function (a) {
+        return '<div class="agecard"><div class="ic" style="font-size:30px">' + (faces[a.name] || "🎨") + '</div>'
+             + '<b>' + a.hours + '시간</b><span>' + esc(a.name) + ' 대상</span></div>';
+      }).join("");
+    $("fields").innerHTML = "분야별 · " + (career.byField || []).map(function (f) {
+      return "<b>" + esc(f.name) + "</b> " + f.hours + "시간";
+    }).join(" · ");
+    $("timeline").innerHTML = (career.highlights || []).map(function (h) {
+      return '<div class="tl"><span class="y">' + esc(h.year) + '</span>'
+           + '<b>' + esc(h.title) + '</b><span>' + esc(h.org) + (h.note ? " · " + esc(h.note) : "") + '</span></div>';
+    }).join("");
+
+    /* 자격 */
     var c = m.credentials || {};
     var blocks = [
       { title: "학위 · 전공", items: c.education || [] },
@@ -433,75 +742,65 @@
       if (!b.items.length && !DRAFT) return "";
       var li = b.items.length
         ? b.items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("")
-        : '<li class="empty">입력 대기 — manifest 의 credentials 에 추가</li>';
+        : '<li class="empty">입력 대기 — portfolio.json 의 credentials 에 추가</li>';
       return '<div class="cred"><h3>' + b.title + '</h3><ul>' + li + '</ul></div>';
     }).join("");
 
-    // ---- 경력 ----
-    var career = m.career || {};
-    var byA = career.byAudience || [];
-    var maxH = Math.max.apply(null, byA.map(function (a) { return a.hours; }).concat([1]));
-    $("bars").innerHTML = byA.map(function (a) {
-      return '<div class="bar"><span>' + esc(a.name) + '</span>'
-           + '<span class="track"><span class="fill" style="width:' + Math.round(a.hours / maxH * 100) + '%"></span></span>'
-           + '<span class="h">' + a.hours + '시간</span></div>';
-    }).join("")
-      + '<p class="lead" style="margin:14px 0 0">분야별 · '
-      + (career.byField || []).map(function (f) { return esc(f.name) + " " + f.hours + "시간"; }).join(" · ")
-      + '</p>';
-    $("timeline").innerHTML = (career.highlights || []).map(function (h) {
-      return '<div class="tl"><span class="y">' + esc(h.year) + '</span><div>'
-           + '<b>' + esc(h.title) + '</b><span>' + esc(h.org)
-           + (h.note ? ' · ' + esc(h.note) : '') + '</span></div></div>';
-    }).join("");
-
-    // ---- 제안 가능한 프로그램 ----
-    $("programs").innerHTML = (m.programsOffer || []).map(function (pg) {
+    /* 프로그램 */
+    $("progList").innerHTML = (m.programsOffer || []).map(function (pg) {
       return '<div class="prog"><div class="head"><h3>' + esc(pg.title) + '</h3>'
            + '<span class="meta">' + esc(pg.hours) + ' · ' + esc(pg.target) + '</span></div>'
-           + '<p class="goal">' + esc(pg.goal) + '</p><div class="steps">'
+           + '<p class="goal">' + esc(pg.goal) + '</p>'
            + (pg.outline || []).map(function (o) {
                return '<div class="step"><span class="s">' + esc(o.step) + '</span>'
                     + '<span class="t">' + esc(o.title) + '</span>'
                     + '<span class="d">' + esc(o.detail) + '</span></div>';
              }).join("")
-           + '</div></div>';
+           + '</div>';
     }).join("");
 
-    // ---- 기관 ----
-    $("orgs").innerHTML = (m.orgs || []).map(function (o) {
-      return '<div class="card"><span class="chip">' + esc(o.region) + '</span>'
-           + '<h3>' + esc(o.name) + '</h3><p>' + esc(o.kind) + '</p></div>';
-    }).join("");
-
-    // ---- 재료 ----
-    $("media").innerHTML = (m.media || []).map(function (x) {
-      return '<div class="card click" data-cat="' + esc(x.cat) + '"><span class="cnt">' + x.count + '</span>'
+    /* 재료 */
+    $("mediaCards").innerHTML = (m.media || []).map(function (x) {
+      return '<div class="card" data-cat="' + esc(x.cat) + '"><span class="cnt">' + x.count + '</span>'
            + '<h3>' + esc(x.name) + '</h3><p>' + esc(x.desc) + '</p></div>';
     }).join("");
-    $("media").addEventListener("click", function (e) {
-      var el = e.target.closest ? e.target.closest(".card.click") : null;
+    $("mediaCards").addEventListener("click", function (e) {
+      var el = e.target.closest ? e.target.closest(".card") : null;
       if (!el) return;
       pickCat(el.getAttribute("data-cat"));
-      $("worksSection").scrollIntoView({ behavior: "smooth" });
+      $("works").scrollIntoView({ behavior: "smooth" });
     });
 
-    // ---- 수업 현장 ----
+    /* 수업 현장 — 대표 컷 + 매소너리 */
     var photos = m.photos || [];
-    $("notice").hidden = !photos.some(function (x) { return x.face !== "sticker"; });
-    var orgNames = [];
-    photos.forEach(function (x) { if (orgNames.indexOf(x.org) < 0) orgNames.push(x.org); });
     var curOrg = "";
     function drawPhotos() {
       var list = curOrg ? photos.filter(function (x) { return x.org === curOrg; }) : photos;
-      $("photos").innerHTML = list.map(function (x) {
-        return '<div class="shot' + (x.face === "sticker" ? "" : " raw") + '">'
-             + '<img loading="lazy" decoding="async" src="' + IMG(x.id, 500) + '" alt="">'
-             + '<span class="tag">' + esc(x.org) + ' · ' + prettyDate(x.date) + '</span>'
-             + (x.face === "sticker" ? "" : '<span class="pending">얼굴 처리 전</span>')
-             + '</div>';
+      var lbList = list.map(function (x) {
+        return { img: IMG(x.id, 1400), cap: x.org + " · " + prettyDate(x.date) + (x.face === "sticker" ? "" : " (얼굴 처리 전)") };
+      });
+      var head = list.slice(0, 2), rest = list.slice(2);
+      $("photoFeature").innerHTML = head.map(function (x, i) {
+        return '<div class="fx ' + (i ? "side" : "tall") + (x.face === "sticker" ? "" : " rawf") + '" data-i="' + i + '">'
+             + '<img loading="lazy" decoding="async" src="' + IMG(x.id, i ? 700 : 1100) + '" alt=""'
+             + (x.face === "sticker" ? "" : ' style="filter:blur(18px) saturate(.9);transform:scale(1.06)"') + '></div>';
       }).join("");
+      $("photos").innerHTML = rest.map(function (x, i) {
+        return '<div class="mitem' + (x.face === "sticker" ? "" : " raw") + '" data-i="' + (i + 2) + '">'
+             + '<img loading="lazy" decoding="async" src="' + IMG(x.id, 600) + '" alt="">'
+             + '<span class="cap">' + esc(x.org) + ' · ' + prettyDate(x.date) + '</span>'
+             + (x.face === "sticker" ? "" : '<span class="pend">얼굴 처리 전</span>') + '</div>';
+      }).join("");
+      function bind(box) {
+        box.onclick = function (e) {
+          var el = e.target.closest ? e.target.closest("[data-i]") : null;
+          if (el) lbOpen(lbList, Number(el.getAttribute("data-i")));
+        };
+      }
+      bind($("photoFeature")); bind($("photos"));
     }
+    var orgNames = [];
+    photos.forEach(function (x) { if (orgNames.indexOf(x.org) < 0) orgNames.push(x.org); });
     $("photoTabs").innerHTML = "";
     [""].concat(orgNames).forEach(function (o) {
       var b = document.createElement("button");
@@ -512,39 +811,41 @@
         [].forEach.call($("photoTabs").children, function (x) { x.className = ""; });
         b.className = "on";
         drawPhotos();
-        $("photos").scrollTo({ left: 0, behavior: "smooth" });
       };
       $("photoTabs").appendChild(b);
     });
     drawPhotos();
 
-    // ---- 추천사 ----
+    $("stamp").textContent = "자료 기준 " + (m.generatedAt || "") + " · 경력 기록과 온라인 갤러리에서 자동 집계";
+
+    /* 추천사 */
     var voices = m.voices || [];
-    $("voiceSection").hidden = !voices.length && !DRAFT;
-    $("voices").innerHTML = voices.length
+    $("quoteList").innerHTML = voices.length
       ? voices.map(function (v) {
-          return '<div class="quote"><p>“' + esc(v.quote) + '”</p>'
+          return '<div class="quote"><div class="mark">“</div><p>' + esc(v.quote) + '</p>'
                + '<div class="who"><b>' + esc(v.org) + '</b>' + esc(v.role || "") + '</div></div>';
         }).join("")
-      : '<div class="quote"><p style="color:#b0b6c0">입력 대기 — manifest 의 voices 배열에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>';
+      : (DRAFT ? '<div class="quote"><div class="mark">“</div><p style="color:#BEB4A8">입력 대기 — portfolio.json 의 voices 에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>' : "");
+    $("quoteList").hidden = !voices.length && !DRAFT;
 
-    // ---- 문의 ----
+    /* 문의 */
     var boxes = [];
-    if (p.email) boxes.push(['이메일', '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>']);
-    if (p.phone) boxes.push(['전화', '<a href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">' + esc(p.phone) + '</a>']);
-    if (p.area) boxes.push(['출강 지역', '<b>' + esc(p.area) + '</b>']);
-    if (p.availability) boxes.push(['가능한 수업 형태', '<b>' + esc(p.availability) + '</b>']);
+    if (p.email) boxes.push(['이메일', '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>', ""]);
+    boxes.push(['전화', p.phone ? '<a href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">' + esc(p.phone) + '</a>'
+                                : '<b>번호 준비 중</b>', p.phone ? "" : "soon"]);
+    boxes.push(['카카오톡 채널', p.kakao ? '<a href="' + esc(p.kakao) + '" target="_blank" rel="noopener">채널 열기</a>'
+                                        : '<b>개설 예정</b>', p.kakao ? "" : "soon"]);
+    if (p.area) boxes.push(['출강 지역', "<b>" + esc(p.area) + "</b>", ""]);
+    if (p.availability) boxes.push(['가능한 수업 형태', "<b>" + esc(p.availability) + "</b>", ""]);
     $("contactGrid").innerHTML = boxes.map(function (b) {
-      return '<div class="cbox"><span>' + b[0] + '</span>' + b[1] + '</div>';
+      return '<div class="cbox ' + b[2] + '"><span>' + b[0] + '</span>' + b[1] + '</div>';
     }).join("");
-
-    $("stamp").textContent = "자료 기준 " + (m.generatedAt || "") + " · 경력 기록과 온라인 갤러리에서 자동 집계";
 
     loadWorks(m);
     loadBooks(m);
   }
 
-  // ---- 아이들 작품 ----
+  /* 아이들 작품 --------------------------------------------------- */
   var allWorks = [], curCat = "", shown = [];
   function pickCat(cat) {
     curCat = cat || "";
@@ -554,20 +855,18 @@
     drawWorks();
   }
   function drawWorks() {
-    shown = (curCat ? allWorks.filter(function (w) { return w.cat === curCat; }) : allWorks).slice(0, 60);
-    $("works").innerHTML = shown.map(function (w, i) {
-      return '<div class="work" data-i="' + i + '">'
-           + '<img loading="lazy" decoding="async" src="' + w.url + '" alt="">'
-           + '<div class="meta">' + esc(w.cat || "작품") + '</div></div>';
+    shown = (curCat ? allWorks.filter(function (w) { return w.cat === curCat; }) : allWorks).slice(0, 48);
+    $("workGrid").innerHTML = shown.map(function (w, i) {
+      return '<div class="mitem" data-i="' + i + '"><img loading="lazy" decoding="async" src="' + w.url + '" alt="">'
+           + '<div class="who">' + esc(w.cat || "작품") + '</div></div>';
     }).join("");
-    $("works").scrollTo({ left: 0, behavior: "smooth" });
   }
   function loadWorks(m) {
-    $("works").addEventListener("click", function (e) {
-      var el = e.target.closest ? e.target.closest(".work") : null;
+    $("workGrid").addEventListener("click", function (e) {
+      var el = e.target.closest ? e.target.closest(".mitem") : null;
       if (!el) return;
-      var w = shown[Number(el.getAttribute("data-i"))];
-      if (w) openModal({ img: w.url, title: w.cat || "아이들 작품", sub: "수업에서 나온 학생 작품" });
+      lbOpen(shown.map(function (w) { return { img: w.url, cap: "아이들 작품 · " + (w.cat || "") }; }),
+             Number(el.getAttribute("data-i")));
     });
     try {
       firebase.initializeApp({
@@ -589,12 +888,12 @@
         allWorks.sort(function (a, b) { return (b.cat ? 1 : 0) - (a.cat ? 1 : 0); });
         var cats = (m.media || []).map(function (x) { return x.cat; });
         $("workTabs").innerHTML = "";
-        [""].concat(cats).forEach(function (c) {
+        [""].concat(cats).forEach(function (cat) {
           var b = document.createElement("button");
-          b.setAttribute("data-cat", c);
-          b.textContent = c || "전체";
-          if (!c) b.className = "on";
-          b.onclick = function () { pickCat(c); };
+          b.setAttribute("data-cat", cat);
+          b.textContent = cat || "전체";
+          if (!cat) b.className = "on";
+          b.onclick = function () { pickCat(cat); };
           $("workTabs").appendChild(b);
         });
         drawWorks();
@@ -602,17 +901,17 @@
     } catch (e) { /* 작품을 못 불러와도 나머지는 보인다 */ }
   }
 
-  // ---- 그림책 ----
+  /* 그림책 -------------------------------------------------------- */
   function loadBooks(m) {
-    var codes = m.classCodes || [];
-    var seen = {}, all = [];
-    $("books").addEventListener("click", function (e) {
-      var el = e.target.closest ? e.target.closest(".bookitem") : null;
+    var codes = m.classCodes || [], seen = {}, all = [];
+    $("bookRail").addEventListener("click", function (e) {
+      var el = e.target.closest ? e.target.closest(".book") : null;
       if (!el) return;
-      var b = all[Number(el.getAttribute("data-i"))];
-      if (!b) return;
-      openModal({ img: b.cover, title: (b.title || "그림책").trim(),
-                  sub: "아이가 쓰고 그린 그림책", link: VIEWER + "?book=" + encodeURIComponent(b.bookId) });
+      var i = Number(el.getAttribute("data-i"));
+      lbOpen(all.map(function (b) {
+        return { img: b.cover, cap: (b.title || "그림책").trim() + " — 아이가 쓰고 그린 그림책",
+                 link: VIEWER + "?book=" + encodeURIComponent(b.bookId) };
+      }), i);
     });
     Promise.all(codes.map(function (c) {
       return fetch(BOOKS_API + "?class=" + encodeURIComponent(c))
@@ -627,10 +926,10 @@
           all.push(b);
         });
       });
-      $("books").innerHTML = all.map(function (b, i) {
-        return '<div class="bookitem" data-i="' + i + '">'
-             + '<div class="cov">' + (b.cover ? '<img loading="lazy" decoding="async" src="' + b.cover + '" alt="">' : "") + '</div>'
-             + '<p>' + esc((b.title || "그림책").trim()) + '</p></div>';
+      $("bookRail").innerHTML = all.map(function (b, i) {
+        return '<div class="book" data-i="' + i + '"><div class="cov">'
+             + (b.cover ? '<img loading="lazy" decoding="async" src="' + b.cover + '" alt="">' : "")
+             + '</div><p>' + esc((b.title || "그림책").trim()) + '</p></div>';
       }).join("");
     });
   }

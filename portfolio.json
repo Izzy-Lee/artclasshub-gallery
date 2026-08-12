@@ -520,5 +520,118 @@
       ]
     }
   ],
-  "voices": []
+  "voices": [],
+  "heroWorks": [
+    {
+      "url": "https://lh3.googleusercontent.com/d/1zUSJpAVpovMM2UsdZLh1KJxeHkByAYwQ=w700",
+      "cat": "수채화"
+    },
+    {
+      "url": "https://lh3.googleusercontent.com/d/1AP4V2LnPifxp1nMRY54XEubBwzL-FEz4=w700",
+      "cat": "그림책 일러스트"
+    },
+    {
+      "url": "https://lh3.googleusercontent.com/d/1mF_F3AdMg3-RwzumpggefWem0mI16WaF=w700",
+      "cat": "아크릴화"
+    },
+    {
+      "url": "https://lh3.googleusercontent.com/d/1BznyfGxHhfSLYVSkEUbnyJkjL8SMZeuu=w700",
+      "cat": "디지털 드로잉"
+    },
+    {
+      "url": "https://lh3.googleusercontent.com/d/1rB7mhaqG4YREJaOAfUfxRMthJNG8XxvS=w700",
+      "cat": "레터링"
+    }
+  ],
+  "mapPoints": [
+    {
+      "name": "부평구",
+      "x": 612,
+      "y": 196,
+      "island": false,
+      "orgs": [
+        "부일초등학교",
+        "인천송천초등학교",
+        "부평 여성새로일하기센터"
+      ]
+    },
+    {
+      "name": "계양구",
+      "x": 640,
+      "y": 148,
+      "island": false,
+      "orgs": [
+        "임학중학교"
+      ]
+    },
+    {
+      "name": "서구",
+      "x": 556,
+      "y": 150,
+      "island": false,
+      "orgs": [
+        "인천신월초등학교"
+      ]
+    },
+    {
+      "name": "미추홀구",
+      "x": 596,
+      "y": 262,
+      "island": false,
+      "orgs": [
+        "미추홀구 평생학습관",
+        "미추홀 여성인력개발센터",
+        "온마을학교"
+      ]
+    },
+    {
+      "name": "남동구",
+      "x": 662,
+      "y": 268,
+      "island": false,
+      "orgs": [
+        "인천 논곡초등학교",
+        "인천비즈니스고등학교",
+        "남동산단 여성새로일하기센터"
+      ]
+    },
+    {
+      "name": "중구",
+      "x": 540,
+      "y": 258,
+      "island": false,
+      "orgs": [
+        "인천관광공사"
+      ]
+    },
+    {
+      "name": "연수구",
+      "x": 604,
+      "y": 322,
+      "island": false,
+      "orgs": [
+        "인천테크노파크"
+      ]
+    },
+    {
+      "name": "백령도",
+      "x": 92,
+      "y": 86,
+      "island": true,
+      "orgs": [
+        "백령종합사회복지관"
+      ]
+    },
+    {
+      "name": "영흥도",
+      "x": 300,
+      "y": 400,
+      "island": true,
+      "orgs": [
+        "영흥면 행정복지센터",
+        "영흥도 다함께돌봄센터",
+        "옹진군가족센터"
+      ]
+    }
+  ]
 }
