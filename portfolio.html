@@ -64,9 +64,9 @@
   .nav{position:sticky;top:0;z-index:40;background:rgba(250,247,242,.92);
        backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
   .nav-in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px}
-  .logo{font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;font-size:18px;letter-spacing:-.4px;
-        text-decoration:none;color:var(--ink);white-space:nowrap}
-  .logo small{display:block;font-family:inherit;font-weight:400;font-size:11px;color:var(--ink-2);letter-spacing:0}
+  .logo{display:flex;align-items:center;text-decoration:none;color:var(--ink);flex:0 0 auto}
+  .logo img{display:block;height:30px;width:auto}
+  @media (max-width:520px){ .logo img{height:26px} }
   .nav ul{list-style:none;display:flex;gap:18px;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
   .nav ul::-webkit-scrollbar{display:none}
   .nav a.link{color:var(--ink-2);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;
@@ -113,7 +113,7 @@
 
   /* 소셜 아이콘 줄 */
   .social{display:flex;gap:16px;margin-bottom:22px}
-  .social a{display:inline-flex;color:var(--ink);opacity:.85;transition:.15s}
+  .social a{display:inline-flex;line-height:0;color:var(--ink);opacity:.8;transition:.15s}
   .social a:hover{color:var(--coral);opacity:1;transform:translateY(-2px)}
   .social:empty{display:none}
 
@@ -127,6 +127,7 @@
   .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);
           background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
   .kicker b{color:var(--terra)}
+  .kicker svg{color:var(--terra)}
   .hero h1{font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;font-size:46px;line-height:1.32;
            margin:0 0 18px;letter-spacing:-1px}
   /* 형광펜처럼 칠한 포인트 문구 */
@@ -148,7 +149,8 @@
   .btn.grad{background:linear-gradient(96deg,var(--coral) 0%,var(--terra) 100%);
             box-shadow:0 8px 18px rgba(194,96,63,.28)}
   .btn.grad:hover{filter:brightness(1.05)}
-  .btn.grad .ar{display:inline-block;margin-left:6px;transition:transform .18s}
+  .btn.grad{display:inline-flex;align-items:center;gap:2px}
+  .btn.grad .ar{display:inline-flex;margin-left:6px;transition:transform .18s;line-height:0}
   .btn.grad:hover .ar{transform:translateX(3px)}
 
   @media (max-width:860px){
@@ -170,7 +172,7 @@
   .stat b{display:block;font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-size:38px;line-height:1.05;color:var(--terra)}
   .stat strong{display:block;font-size:15px;margin-top:6px}
   .stat span{font-size:13px;color:var(--ink-2)}
-  .stat .ic{position:absolute;right:16px;top:16px;opacity:.28}
+  .stat .ic{position:absolute;right:16px;top:16px;opacity:.32;color:var(--coral);line-height:0}
 
   /* ── 지도 ── */
   .mapbox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px 10px 6px;overflow:hidden}
@@ -190,7 +192,7 @@
   /* ── 경력 ── */
   .agecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .agecard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px 16px;text-align:center}
-  .agecard .ic{height:38px;margin-bottom:6px}
+  .agecard .ic{height:34px;margin-bottom:8px;color:var(--coral);display:flex;justify-content:center;align-items:center}
   .agecard b{display:block;font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-size:27px;color:var(--ink)}
   .agecard span{font-size:13.5px;color:var(--ink-2)}
   .fields{margin-top:16px;color:var(--ink-2);font-size:14px}
@@ -284,7 +286,8 @@
   .book p{margin:12px 0 0;font-size:13.5px;font-weight:700;color:#F4F1EA;line-height:1.35}
   .arrows{display:flex;gap:8px;margin-left:auto}
   .arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;
-         cursor:pointer;font-size:16px;color:var(--ink-2)}
+         cursor:pointer;color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;
+         padding:0;transition:.15s}
   .band-deep .arrow{background:transparent;border-color:#5A4B44;color:#D8CCC2}
   .arrow:hover{border-color:var(--terra);color:var(--terra)}
   .railhead{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
@@ -294,7 +297,7 @@
   .quote{background:var(--paper-3);border:0;border-radius:var(--r);padding:26px;position:relative}
   .quote .cap{display:block;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
               color:var(--coral);font-weight:700;margin-bottom:8px}
-  .quote .mark{font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-size:44px;color:var(--coral);opacity:.42;line-height:.6}
+  .quote .mark{color:var(--coral);opacity:.5;line-height:0;margin-bottom:12px}
   .quote p{margin:6px 0 14px;font-size:15.5px}
   .quote .who{font-size:13.5px;color:var(--ink-2)}
   .quote .who b{display:block;color:var(--ink)}
@@ -315,7 +318,7 @@
   .cstrip .ci{display:flex;gap:11px;align-items:flex-start;padding:20px 18px 4px;
               border-right:1px solid rgba(244,241,234,.16)}
   .cstrip .ci:last-child{border-right:0}
-  .cstrip .ci svg{flex:0 0 auto;margin-top:3px}
+  .cstrip .ci svg{flex:0 0 auto;margin-top:3px;color:var(--coral)}
   .cstrip .ci span{display:block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
                    color:var(--coral);font-weight:700}
   .cstrip .ci b{display:block;font-size:14.5px;font-weight:500;line-height:1.5}
@@ -365,12 +368,14 @@
   .lb figure{margin:0;max-width:1000px;width:100%;text-align:center}
   .lb img{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111}
   .lb figcaption{color:#EDE7DF;font-size:14px;margin-top:12px}
-  .lb .x{position:absolute;top:16px;right:22px;color:#fff;font-size:32px;cursor:pointer;line-height:1}
+  .lb .x{position:absolute;top:16px;right:22px;color:#fff;cursor:pointer;line-height:0;padding:6px}
   .lb .nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);
-               border:0;color:#fff;font-size:26px;width:46px;height:46px;border-radius:50%;cursor:pointer}
+               border:0;color:#fff;width:46px;height:46px;border-radius:50%;cursor:pointer;
+               display:inline-flex;align-items:center;justify-content:center;padding:0}
+  .lb .nav-btn:hover{background:rgba(255,255,255,.2)}
   .lb .prev{left:16px} .lb .next{right:16px}
-  .lb a.open{display:inline-block;margin-top:12px;color:#fff;background:var(--terra);text-decoration:none;
-             border-radius:999px;padding:9px 18px;font-size:14.5px;font-weight:700}
+  .lb a.open{display:inline-flex;align-items:center;gap:7px;margin-top:12px;color:#fff;background:var(--terra);
+             text-decoration:none;border-radius:999px;padding:9px 18px;font-size:14.5px;font-weight:700}
 
   footer{background:var(--deep);color:#C6B7AC;padding:34px 0;font-size:13.5px}
   footer b{color:#F4F1EA}
@@ -382,7 +387,9 @@
 <!-- ── 스티키 내비 ── -->
 <nav class="nav">
   <div class="nav-in">
-    <a class="logo" href="#top">이영지<small>미술 강사 · 그림책 수업</small></a>
+    <a class="logo" href="#top" aria-label="artable — 이영지 미술 강사">
+      <img id="logoImg" src="portfolio-assets/logo.webp" alt="artable" width="124" height="32" />
+    </a>
     <ul>
       <li><a class="link" href="#glance">한눈에 보기</a></li>
       <li><a class="link" href="#where">수업하는 곳</a></li>
@@ -444,7 +451,7 @@
         영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
         아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
       <div class="hero-cta">
-        <a class="btn grad" href="#contact">수업 문의하기 <span class="ar">→</span></a>
+        <a class="btn grad" href="#contact">수업 문의하기 <span class="ar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></a>
         <a class="btn ghost" href="#books">완성된 그림책 보기</a>
       </div>
       <div class="hero-tags">
@@ -569,8 +576,8 @@
         <h2 class="sect-h">수업 현장</h2>
       </div>
       <div class="arrows">
-        <button class="arrow" data-rail="photos" data-dir="-1" aria-label="이전">‹</button>
-        <button class="arrow" data-rail="photos" data-dir="1" aria-label="다음">›</button>
+        <button class="arrow" data-rail="photos" data-dir="-1" aria-label="이전"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="arrow" data-rail="photos" data-dir="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
     <p class="lead">아이 얼굴은 캐릭터 스티커로 가려 올립니다. 이름은 어디에도 적지 않습니다.</p>
@@ -592,8 +599,8 @@
         </h2>
       </div>
       <div class="arrows">
-        <button class="arrow" data-rail="workGrid" data-dir="-1" aria-label="이전">‹</button>
-        <button class="arrow" data-rail="workGrid" data-dir="1" aria-label="다음">›</button>
+        <button class="arrow" data-rail="workGrid" data-dir="-1" aria-label="이전"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="arrow" data-rail="workGrid" data-dir="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
     <p class="lead">갤러리에 올라온 작품에서 가져옵니다. 이름은 빼고 그림만 보여 줍니다.</p>
@@ -641,8 +648,8 @@
         </h2>
       </div>
       <div class="arrows">
-        <button class="arrow" data-rail="revRail" data-dir="-1" aria-label="이전">‹</button>
-        <button class="arrow" data-rail="revRail" data-dir="1" aria-label="다음">›</button>
+        <button class="arrow" data-rail="revRail" data-dir="-1" aria-label="이전"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="arrow" data-rail="revRail" data-dir="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
     <p class="lead">수업이 끝나고 참여자들이 직접 남긴 후기입니다.</p>
@@ -659,8 +666,8 @@
         <h2 class="sect-h" style="color:#F4F1EA">완성된 그림책</h2>
       </div>
       <div class="arrows">
-        <button class="arrow" data-rail="bookRail" data-dir="-1" aria-label="이전">‹</button>
-        <button class="arrow" data-rail="bookRail" data-dir="1" aria-label="다음">›</button>
+        <button class="arrow" data-rail="bookRail" data-dir="-1" aria-label="이전"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="arrow" data-rail="bookRail" data-dir="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
     <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮습니다. 표지를 누르면 펼쳐 볼 수 있어요.</p>
@@ -691,14 +698,14 @@
 </div><!-- /.sheet -->
 
 <div class="lb" id="lb">
-  <span class="x" data-close>×</span>
-  <button class="nav-btn prev" data-step="-1" aria-label="이전">‹</button>
+  <span class="x" data-close><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+  <button class="nav-btn prev" data-step="-1" aria-label="이전"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
   <figure>
     <img id="lbImg" alt="" />
     <figcaption id="lbCap"></figcaption>
-    <a id="lbOpen" class="open" target="_blank" rel="noopener" hidden>📖 그림책 펼쳐 보기</a>
+    <a id="lbOpen" class="open" target="_blank" rel="noopener" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg> 그림책 펼쳐 보기</a>
   </figure>
-  <button class="nav-btn next" data-step="1" aria-label="다음">›</button>
+  <button class="nav-btn next" data-step="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -716,6 +723,40 @@
       return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
     });
   };
+
+  /* ── 아이콘 (Lucide, MIT) ─────────────────────────────── */
+  var LU = {
+    "building-2": '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+    "calendar-days": '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
+    "users": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    "hourglass": '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
+    "baby": '<path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/>',
+    "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    "backpack": '<path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8"/><path d="M8 18h8"/><path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
+    "graduation-cap": '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+    "coffee": '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>',
+    "palette": '<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>',
+    "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    "map-pin": '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+    "briefcase": '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+    "instagram": '<rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>',
+    "facebook": '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
+    "youtube": '<path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/>',
+    "notebook-pen": '<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/>',
+    "link": '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    "quote": '<path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>',
+    "book-open": '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    "chevron-left": '<path d="m15 18-6-6 6-6"/>',
+    "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+    "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  };
+  function ic(name, size, sw) {
+    return '<svg class="lu" width="' + (size || 20) + '" height="' + (size || 20) + '" viewBox="0 0 24 24"'
+         + ' fill="none" stroke="currentColor" stroke-width="' + (sw || 1.75) + '"'
+         + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (LU[name] || LU.link) + '</svg>';
+  }
+
   var prettyDate = function (s) {
     var g = String(s).replace(/[^0-9]/g, "");
     return g.length === 8 ? (+g.substr(4, 2)) + "월 " + (+g.substr(6, 2)) + "일" : s;
@@ -767,7 +808,7 @@
   }
   function lbOpen(list, at) { LB.list = list; LB.at = at; lbShow(); }
   $("lb").addEventListener("click", function (e) {
-    if (e.target.hasAttribute("data-close") || e.target.id === "lb") { $("lb").classList.remove("on"); return; }
+    if ((e.target.closest && e.target.closest("[data-close]")) || e.target.id === "lb") { $("lb").classList.remove("on"); return; }
     var b = e.target.closest ? e.target.closest("[data-step]") : null;
     if (b) { LB.at = (LB.at + Number(b.getAttribute("data-step")) + LB.list.length) % LB.list.length; lbShow(); }
   });
@@ -806,7 +847,7 @@
   function render(m) {
     var p = m.profile || {}, s = m.stats || {};
     document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
-    if (p.badge) { $("badge").innerHTML = "🎓 <b>" + esc(p.badge) + "</b>"; $("badge").hidden = false; }
+    if (p.badge) { $("badge").innerHTML = ic("graduation-cap", 15) + " <b>" + esc(p.badge) + "</b>"; $("badge").hidden = false; }
     /* 히어로 인물 사진 — 없으면 아이 작품 콜라주로 대신한다 */
     var photoUrl = p.photo || "";
     if (photoUrl) {
@@ -827,21 +868,14 @@
     }
 
     /* 소셜 아이콘 */
-    var SOC = {
-      instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/>',
-      facebook: '<path d="M14 8.5V7c0-1 .4-1.5 1.5-1.5H17V3h-2.4C12.2 3 11 4.4 11 6.7v1.8H9V11h2v10h3V11h2.2l.4-2.5H14Z"/>',
-      blog: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h7"/>',
-      youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="m10.5 9.5 5 2.5-5 2.5Z"/>',
-      link: '<path d="M10 13a4 4 0 0 0 5.7.3l2.6-2.6a4 4 0 1 0-5.7-5.7L11.2 6.4"/><path d="M14 11a4 4 0 0 0-5.7-.3L5.7 13.3a4 4 0 1 0 5.7 5.7l1.4-1.4"/>',
-      mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'
-    };
+    var SOC = { instagram: "instagram", facebook: "facebook", blog: "notebook-pen",
+                youtube: "youtube", link: "link", mail: "mail" };
     var socials = (p.social || []).slice();
     if (p.email) socials.push({ kind: "mail", url: "mailto:" + p.email, label: "이메일" });
     $("social").innerHTML = socials.map(function (x) {
       return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener" title="' + esc(x.label || x.kind) + '"'
            + ' aria-label="' + esc(x.label || x.kind) + '">'
-           + '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
-           + ' stroke-linecap="round" stroke-linejoin="round">' + (SOC[x.kind] || SOC.link) + "</svg></a>";
+           + ic(SOC[x.kind] || "link", 21) + "</a>";
     }).join("");
 
     /* 히어로 콜라주 (아이 작품) */
@@ -870,12 +904,8 @@
     });
 
     /* 한눈에 보기 */
-    var icon = {
-      org: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
-      year: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-      age: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.2"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 20c0-2 2-3.6 4-3.6"/></svg>',
-      hour: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C2603F" stroke-width="1.6"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9"/></svg>'
-    };
+    var icon = { org: ic("building-2", 24), year: ic("calendar-days", 24),
+                 age: ic("users", 24), hour: ic("hourglass", 24) };
     $("stats").innerHTML = [
       { ic: icon.org, b: s.orgs + "곳", t: "함께한 기관", d: (s.repeatOrgs ? "재의뢰 " + s.repeatOrgs + "곳 포함" : "") },
       { ic: icon.year, b: s.years + "년", t: s.since + "년부터 지속", d: "매년 이어지는 수업" },
@@ -925,10 +955,11 @@
 
     /* 경력 */
     var career = m.career || {};
-    var faces = { "영유아": "🧸", "초등": "✏️", "중등": "🎒", "고등": "🎓", "성인": "☕" };
+    var faces = { "영유아": "baby", "초등": "pencil", "중등": "backpack",
+                  "고등": "graduation-cap", "성인": "coffee" };
     $("ageCards").innerHTML = (career.byAudience || []).slice().sort(function (a, b) { return b.hours - a.hours; })
       .map(function (a) {
-        return '<div class="agecard"><div class="ic" style="font-size:30px">' + (faces[a.name] || "🎨") + '</div>'
+        return '<div class="agecard"><div class="ic">' + ic(faces[a.name] || "palette", 26) + '</div>'
              + '<b>' + a.hours + '시간</b><span>' + esc(a.name) + ' 대상</span></div>';
       }).join("");
     $("fields").innerHTML = "분야별 · " + (career.byField || []).map(function (f) {
@@ -1059,10 +1090,10 @@
     $("quoteList").innerHTML = voices.length
       ? voices.map(function (v) {
           return '<div class="quote"><span class="cap">' + esc(v.kind || orgKind(v.org)) + '</span>'
-               + '<div class="mark">“</div><p>' + esc(v.quote) + '</p>'
+               + '<div class="mark">' + ic("quote", 26) + '</div><p>' + esc(v.quote) + '</p>'
                + '<div class="who"><b>' + esc(v.org) + '</b>' + esc(v.role || "") + '</div></div>';
         }).join("")
-      : (DRAFT ? '<div class="quote"><span class="cap">학교</span><div class="mark">“</div><p style="color:#BEB4A8">입력 대기 — portfolio.json 의 voices 에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>' : "");
+      : (DRAFT ? '<div class="quote"><span class="cap">학교</span><div class="mark">' + ic("quote", 26) + '</div><p style="color:#BEB4A8">입력 대기 — portfolio.json 의 voices 에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>' : "");
     $("quoteList").hidden = !voices.length && !DRAFT;
 
     /* 참여자 후기 */
@@ -1091,19 +1122,13 @@
     }).join("");
 
     /* 하단 연락 스트립 */
-    var st = function (d) {
-      return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#E8836B" '
-           + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + "</svg>";
-    };
     var strip = [
-      { ic: st('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'),
-        k: "Email", v: p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "—" },
-      { ic: st('<path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/>'),
-        k: "Area", v: "인천 전역 · 옹진 도서지역" },
-      { ic: st('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/>'),
-        k: "Days", v: p.days ? esc(p.days) : "협의 (주중·주말·방학 특강)", soon: !p.days },
-      { ic: st('<path d="M4 19V5m0 0 8 3 8-3v9l-8 3-8-3"/>'),
-        k: "출강", v: esc(p.availability || "출강 가능") }
+      { ic: ic("mail", 19), k: "Email",
+        v: p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "—" },
+      { ic: ic("map-pin", 19), k: "Area", v: "인천 전역 · 옹진 도서지역" },
+      { ic: ic("calendar-days", 19), k: "Days",
+        v: p.days ? esc(p.days) : "협의 (주중·주말·방학 특강)", soon: !p.days },
+      { ic: ic("briefcase", 19), k: "출강", v: esc(p.availability || "출강 가능") }
     ];
     $("contactStrip").innerHTML = strip.map(function (x) {
       return '<div class="ci' + (x.soon ? " soon" : "") + '">' + x.ic
