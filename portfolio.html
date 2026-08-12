@@ -295,6 +295,7 @@
   <div class="wrap hero-grid">
     <div>
       <span class="kicker">인천 기반 미술 강사 · 학교 / 복지관 / 섬마을 <b>6년차</b></span>
+      <span class="kicker" id="badge" hidden style="margin-left:6px"></span>
       <h1 class="serif">아이가 그린 것이<br />
         <span class="hl"><span>작품</span><i></i></span>이 되고
         <span class="hl sage"><span>책</span><i></i></span>이 되게</h1>
@@ -654,6 +655,7 @@
   function render(m) {
     var p = m.profile || {}, s = m.stats || {};
     document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
+    if (p.badge) { $("badge").innerHTML = "🎓 <b>" + esc(p.badge) + "</b>"; $("badge").hidden = false; }
     $("heroWho").innerHTML = (p.name ? "<b>" + esc(p.name) + "</b> · " : "") + esc(p.title || "")
       + (p.email ? ' · <a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
 
