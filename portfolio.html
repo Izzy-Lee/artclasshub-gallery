@@ -416,7 +416,7 @@
       ['<b>전 연령</b><strong>영유아 ~ 성인</strong><span>' + s.ageGroups + '개 연령층 지도</span>'],
       ['<b>섬마을</b><strong>백령도 · 영흥도</strong><span>도서지역 순회 수업</span>']
     ].map(function (n) { return '<div class="num">' + n[0] + '</div>'; }).join("");
-    $("subnums").innerHTML = '보조 지표 · 누적 수업 <b>' + (Math.floor(s.hours / 100) * 100) + '시간+</b>'
+    $("subnums").innerHTML = '보조 지표 · 누적 수업 <b>' + (Math.round(s.hours / 100) * 100) + '시간+</b>'
       + ' · 강의 회차 <b>' + s.sessions + '회</b>'
       + ' · 아이들 작품 <b>' + s.works + '점</b> · 만든 그림책 <b>' + s.books + '권</b>';
 
