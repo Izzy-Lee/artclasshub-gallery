@@ -539,7 +539,7 @@
       <li><a class="link" href="#programs">프로그램</a></li>
       <li><a class="link" href="#career">경력</a></li>
       <li><a class="link" href="#class">수업 현장</a></li>
-      <li><a class="link" href="#works">아이들 작품</a></li>
+      <li><a class="link" href="#works">수강생 작품</a></li>
       <li><a class="link" href="#voices">후기</a></li>
       <li><a class="link" href="#books">그림책</a></li>
 
@@ -700,7 +700,7 @@
   <div class="wrap">
     <span class="sect-en">What I Teach</span>
     <h2 class="sect-h">무엇을 가르치나</h2>
-    <p class="lead">눌러 보면 그 재료로 만든 아이들 작품이 아래에 바로 나옵니다.</p>
+    <p class="lead">눌러 보면 그 재료로 만든 수강생 작품이 아래에 바로 나옵니다.</p>
     <div class="cards" id="mediaCards"></div>
   </div>
 </section>
@@ -727,13 +727,13 @@
   </div>
 </section>
 
-<!-- ── 아이들 작품 ── -->
+<!-- ── 수강생 작품 ── -->
 <section class="band-paper" id="works">
   <div class="wrap">
     <div class="railhead">
       <div>
-        <span class="sect-en">Children's Work</span>
-        <h2 class="sect-h">아이들 작품
+        <span class="sect-en">Student Work</span>
+        <h2 class="sect-h">수강생 작품
         </h2>
       </div>
       <div class="arrows">
@@ -745,7 +745,7 @@
     <div class="tabs" id="workTabs"></div>
     <div class="cardrail" id="workGrid"></div>
     <div style="text-align:center;margin-top:6px">
-      <a class="btn ghost" id="workMore" href="portfolio-works.html">아이들 작품 전체 보기</a>
+      <a class="btn ghost" id="workMore" href="portfolio-works.html">수강생 작품 전체 보기</a>
     </div>
   </div>
 </section>
@@ -789,8 +789,8 @@
   <div class="wrap">
     <div class="railhead">
       <div>
-        <span class="sect-en">Participants</span>
-        <h2 class="sect-h">수업을 들은 사람들
+        <span class="sect-en">Student Reviews</span>
+        <h2 class="sect-h">수강생 후기
         </h2>
       </div>
       <div class="arrows">
@@ -798,7 +798,7 @@
         <button class="arrow" data-rail="revRail" data-dir="1" aria-label="다음"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
-    <p class="lead">수업이 끝나고 참여자들이 직접 남긴 후기입니다.</p>
+    <p class="lead">수업을 들은 수강생들이 직접 남긴 후기입니다.</p>
     <div class="revrail" id="revRail"></div>
   </div>
 </section>
@@ -1085,12 +1085,12 @@
       var q = pose[i] || pose[0];
       return '<figure class="pola' + (i === 0 ? " offset" : "") + '" style="width:' + q.w + 'px;left:' + q.l + 'px;top:' + q.t
            + 'px;transform:rotate(' + q.r + 'deg);z-index:' + (5 - i) + '">'
-           + '<img src="' + esc(w.url) + '" alt="아이들 작품 — ' + esc(w.cat) + '" width="' + q.w + '" height="' + q.h + '" '
+           + '<img src="' + esc(w.url) + '" alt="수강생 작품 — ' + esc(w.cat) + '" width="' + q.w + '" height="' + q.h + '" '
            + 'style="height:' + q.h + 'px">'
            + '<span>' + esc(w.cat) + '</span></figure>';
     }).join("");
     fitCollage();
-    var heroList = hw.map(function (w) { return { img: w.url, cap: "아이들 작품 · " + w.cat }; });
+    var heroList = hw.map(function (w) { return { img: w.url, cap: "수강생 작품 · " + w.cat }; });
     $("collage").addEventListener("click", function (e) {
       var f = e.target.closest ? e.target.closest(".pola") : null;
       if (!f) return;
@@ -1109,7 +1109,7 @@
       return '<div class="stat"><span class="ic">' + n.ic + '</span><b>' + n.b + '</b>'
            + '<strong>' + n.t + '</strong><span>' + n.d + '</span></div>';
     }).join("");
-    $("substats").innerHTML = "그 밖에 · 아이들 작품 <b>" + s.works + "점</b> · 아이가 만든 그림책 <b>" + s.books + "권</b>";
+    $("substats").innerHTML = "그 밖에 · 수강생 작품 <b>" + s.works + "점</b> · 아이가 만든 그림책 <b>" + s.books + "권</b>";
 
     /* 지도 마커 + 기관 목록 */
     var pts = m.mapPoints || [];
@@ -1454,7 +1454,7 @@
     loadBooks(m);
   }
 
-  /* 아이들 작품 --------------------------------------------------- */
+  /* 수강생 작품 --------------------------------------------------- */
   var allWorks = [], curCat = "", shown = [];
   function pickCat(cat) {
     curCat = cat || "";
@@ -1474,13 +1474,13 @@
     }).join("");
     if (reset !== false) $("workGrid").scrollTo({ left: 0, behavior: "smooth" });
     var more = $("workMore");
-    if (more) more.textContent = "아이들 작품 전체 보기 (" + allWorks.length + "점)";
+    if (more) more.textContent = "수강생 작품 전체 보기 (" + allWorks.length + "점)";
   }
   function loadWorks(m) {
     $("workGrid").addEventListener("click", function (e) {
       var el = e.target.closest ? e.target.closest(".mitem") : null;
       if (!el) return;
-      lbOpen(shown.map(function (w) { return { img: w.url, cap: "아이들 작품 · " + (w.cat || "") }; }),
+      lbOpen(shown.map(function (w) { return { img: w.url, cap: "수강생 작품 · " + (w.cat || "") }; }),
              Number(el.getAttribute("data-i")));
     });
     try {
