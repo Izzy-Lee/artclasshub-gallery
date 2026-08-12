@@ -234,6 +234,25 @@
        border-radius:10px;padding:18px 20px;font-size:14.5px;color:var(--ink-2)}
   .rec b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px}
 
+  /* ── 참여자 후기 (가로 스크롤 카드) ── */
+  .revrail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;
+           padding:2px 2px 12px}
+  .revrail::-webkit-scrollbar{display:none}
+  .rev{flex:0 0 auto;scroll-snap-align:start;width:296px;background:#fff;border:1px solid var(--line);
+       border-radius:14px;padding:14px 16px;display:flex;gap:12px}
+  .rev .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;
+           justify-content:center;font-weight:800;font-size:15px;color:#fff;background:var(--sage)}
+  .rev .av.t{background:var(--terra)}
+  .rev .bd{min-width:0;flex:1}
+  .rev .nm{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px}
+  .rev .nm span{font-weight:400;font-size:12px;color:var(--ink-2)}
+  .rev .tx{margin:6px 0 0;font-size:13.5px;line-height:1.6;color:var(--ink);
+           display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .rev .tag{margin-top:8px;font-size:11.5px;color:var(--terra);background:var(--terra-soft);
+            border-radius:999px;padding:3px 9px;display:inline-block}
+  .rev .swatch{width:52px;height:52px;border-radius:10px;flex:0 0 auto;align-self:center;
+               background:linear-gradient(135deg,#F3E2DA,#E4EADD 60%,#DCE7EE)}
+
   /* ── 문의 ── */
   .contact{background:var(--terra);color:#fff}
   .contact .sect-h{color:#fff}
@@ -276,7 +295,9 @@
       <li><a class="link" href="#programs">프로그램</a></li>
       <li><a class="link" href="#class">수업 현장</a></li>
       <li><a class="link" href="#works">아이들 작품</a></li>
+      <li><a class="link" href="#voices">후기</a></li>
       <li><a class="link" href="#books">그림책</a></li>
+
     </ul>
     <a class="btn cta" href="#contact">수업 문의</a>
   </div>
@@ -372,6 +393,17 @@
   </div>
 </section>
 
+<!-- ── 자격 ── -->
+<section class="band-paper" id="credSection">
+  <div class="wrap">
+    <span class="sect-en">Credentials</span>
+    <h2 class="sect-h">자격 및 이수</h2>
+    <p class="lead"><b>2026년도 법정 의무교육 7종 이수 완료.</b>
+       기관 결재·채용 서류에 필요한 항목이며, 증빙 사본은 요청하시면 바로 보내 드립니다.</p>
+    <div class="creds" id="creds"></div>
+  </div>
+</section>
+
 <!-- ── 경력 ── -->
 <section class="band-white" id="career">
   <div class="wrap">
@@ -391,17 +423,6 @@
       </svg>
       <div id="timeline"></div>
     </div>
-  </div>
-</section>
-
-<!-- ── 자격 ── -->
-<section class="band-paper" id="credSection">
-  <div class="wrap">
-    <span class="sect-en">Credentials</span>
-    <h2 class="sect-h">자격 및 이수</h2>
-    <p class="lead"><b>2026년도 법정 의무교육 7종 이수 완료.</b>
-       기관 결재·채용 서류에 필요한 항목이며, 증빙 사본은 요청하시면 바로 보내 드립니다.</p>
-    <div class="creds" id="creds"></div>
   </div>
 </section>
 
@@ -445,6 +466,9 @@
     <p class="lead">아이 얼굴은 캐릭터 스티커로 가려 올립니다. 이름은 어디에도 적지 않습니다.</p>
     <div class="tabs" id="photoTabs"></div>
     <div class="cardrail" id="photos"></div>
+    <div style="text-align:center;margin-top:6px">
+      <button class="btn ghost" id="photoMore" hidden>더 보기</button>
+    </div>
   </div>
 </section>
 
@@ -474,24 +498,6 @@
   </div>
 </section>
 
-<!-- ── 그림책 (풀블리드) ── -->
-<section class="band-deep" id="books">
-  <div class="wrap">
-    <div class="railhead">
-      <div>
-        <span class="sect-en">Storybook</span>
-        <h2 class="sect-h" style="color:#F4F1EA">완성된 그림책</h2>
-      </div>
-      <div class="arrows">
-        <button class="arrow" data-rail="bookRail" data-dir="-1" aria-label="이전">‹</button>
-        <button class="arrow" data-rail="bookRail" data-dir="1" aria-label="다음">›</button>
-      </div>
-    </div>
-    <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮습니다. 표지를 누르면 펼쳐 볼 수 있어요.</p>
-    <div class="shelfrail" id="bookRail"></div>
-  </div>
-</section>
-
 <!-- ── 후기 · 기록 ── -->
 <section class="band-white" id="voices">
   <div class="wrap">
@@ -516,6 +522,46 @@
         "org": "○○ 다함께돌봄센터", "role": "센터장" }
     ]
   -->
+</section>
+
+<!-- ── 참여자 후기 ── -->
+<section class="band-paper" id="participants">
+  <div class="wrap">
+    <div class="railhead">
+      <div>
+        <span class="sect-en">Participants</span>
+        <h2 class="sect-h">수업을 들은 사람들
+          <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2,6 C46,2 76,9 106,5 C136,1 168,8 198,6" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+          </svg>
+        </h2>
+      </div>
+      <div class="arrows">
+        <button class="arrow" data-rail="revRail" data-dir="-1" aria-label="이전">‹</button>
+        <button class="arrow" data-rail="revRail" data-dir="1" aria-label="다음">›</button>
+      </div>
+    </div>
+    <p class="lead">수업이 끝나고 참여자들이 직접 남긴 후기입니다.</p>
+    <div class="revrail" id="revRail"></div>
+  </div>
+</section>
+
+<!-- ── 그림책 (풀블리드) ── -->
+<section class="band-deep" id="books">
+  <div class="wrap">
+    <div class="railhead">
+      <div>
+        <span class="sect-en">Storybook</span>
+        <h2 class="sect-h" style="color:#F4F1EA">완성된 그림책</h2>
+      </div>
+      <div class="arrows">
+        <button class="arrow" data-rail="bookRail" data-dir="-1" aria-label="이전">‹</button>
+        <button class="arrow" data-rail="bookRail" data-dir="1" aria-label="다음">›</button>
+      </div>
+    </div>
+    <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮습니다. 표지를 누르면 펼쳐 볼 수 있어요.</p>
+    <div class="shelfrail" id="bookRail"></div>
+  </div>
 </section>
 
 <!-- ── 문의 ── -->
@@ -644,7 +690,7 @@
       links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id); });
     });
   }, { rootMargin: "-45% 0px -50% 0px" });
-  ["glance", "where", "career", "programs", "class", "works", "books"].forEach(function (id) {
+  ["glance", "where", "career", "programs", "class", "works", "voices", "books"].forEach(function (id) {
     var el = $(id); if (el) io.observe(el);
   });
 
@@ -800,8 +846,10 @@
     /* 수업 현장 — 대표 컷 + 매소너리 */
     var photos = m.photos || [];
     var curOrg = "";
+    var pStep = 9, pLimit = pStep;
     function drawPhotos() {
-      var list = curOrg ? photos.filter(function (x) { return x.org === curOrg; }) : photos;
+      var pool = curOrg ? photos.filter(function (x) { return x.org === curOrg; }) : photos;
+      var list = pool.slice(0, pLimit);
       var lbList = list.map(function (x) {
         return { img: IMG(x.id, 1400), cap: x.org + " · " + prettyDate(x.date) + (x.face === "sticker" ? "" : " (얼굴 처리 전)") };
       });
@@ -810,7 +858,12 @@
              + '<img loading="lazy" decoding="async" src="' + IMG(x.id, 600) + '" alt="">'
              + (x.face === "sticker" ? "" : '<span class="pend">얼굴 처리 전</span>') + '</div>';
       }).join("");
-      $("photos").scrollTo({ left: 0, behavior: "smooth" });
+      var pm = $("photoMore");
+      if (pm) {
+        var rest = pool.length - list.length;
+        pm.hidden = rest <= 0;
+        pm.textContent = "더 보기 (+" + Math.min(pStep, rest) + ")";
+      }
       $("photos").onclick = function (e) {
         var el = e.target.closest ? e.target.closest(".mitem") : null;
         if (el) lbOpen(lbList, Number(el.getAttribute("data-i")));
@@ -825,12 +878,15 @@
       if (!o) b.className = "on";
       b.onclick = function () {
         curOrg = o;
+        pLimit = pStep;
         [].forEach.call($("photoTabs").children, function (x) { x.className = ""; });
         b.className = "on";
         drawPhotos();
+        $("photos").scrollTo({ left: 0, behavior: "smooth" });
       };
       $("photoTabs").appendChild(b);
     });
+    $("photoMore").addEventListener("click", function () { pLimit += pStep; drawPhotos(); });
     drawPhotos();
 
     $("stamp").textContent = "자료 기준 " + (m.generatedAt || "") + " · 경력 기록과 온라인 갤러리에서 자동 집계";
@@ -844,6 +900,18 @@
         }).join("")
       : (DRAFT ? '<div class="quote"><div class="mark">“</div><p style="color:#BEB4A8">입력 대기 — portfolio.json 의 voices 에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>' : "");
     $("quoteList").hidden = !voices.length && !DRAFT;
+
+    /* 참여자 후기 */
+    var pv = m.participantVoices || [];
+    $("participants").hidden = !pv.length;
+    $("revRail").innerHTML = pv.map(function (v, i) {
+      var initial = (v.who || "?").charAt(0);
+      return '<div class="rev"><div class="av' + (i % 2 ? " t" : "") + '">' + esc(initial) + '</div>'
+           + '<div class="bd"><div class="nm">' + esc(v.who) + ' <span>' + esc(v.year) + '</span></div>'
+           + '<p class="tx">' + esc(v.text) + '</p>'
+           + '<span class="tag">' + esc(v.tag) + '</span></div>'
+           + '<div class="swatch"></div></div>';
+    }).join("");
 
     /* 문의 */
     var boxes = [];
