@@ -18,6 +18,7 @@
     --line:#E7DFD4;       /* 종이 결 선 */
     --rule:#DCD2C5;       /* 에디토리얼 룰 */
     --coral:#E8836B;      /* 코랄 (페이지 프레임 · 포인트) */
+    --hl:#F8D9CD;         /* 형광펜 (포인트 문구) */
     --terra:#C2603F;      /* 테라코타 (메인) */
     --terra-soft:#F3E2DA;
     --sage:#7C8F6B;       /* 세이지 (보조) */
@@ -103,16 +104,34 @@
 
   /* ── 히어로 ── */
   .hero{position:relative;overflow:hidden;padding:44px 0 64px}
-  .hero .blob{position:absolute;pointer-events:none;opacity:.5}
-  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center;position:relative}
+  .hero .blob{position:absolute;pointer-events:none;opacity:.32}
+  .hero{background:linear-gradient(160deg,#FFFDF8 0%,#FAF7F2 42%,#FDF6E9 100%)}
+  .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:38px;align-items:center;position:relative}
   .hero-grid > *{min-width:0}
+  .hero-copy{order:1}
+  .hero-art{order:2}
+
+  /* 소셜 아이콘 줄 */
+  .social{display:flex;gap:16px;margin-bottom:22px}
+  .social a{display:inline-flex;color:var(--ink);opacity:.85;transition:.15s}
+  .social a:hover{color:var(--coral);opacity:1;transform:translateY(-2px)}
+  .social:empty{display:none}
+
+  /* 인물 + 도형 */
+  .hero-art{position:relative;width:100%;max-width:460px;margin-left:auto}
+  .hero-art .art{display:block;width:100%;height:auto}
+  .hero-art.no-photo .art{display:none}
+  .hero-art .collage-wrap{display:none}
+  .hero-art.no-photo .collage-wrap{display:block}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
   .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);
-          background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin-bottom:20px}
+          background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
   .kicker b{color:var(--terra)}
   .hero h1{font-family:"Pretendard Variable","Pretendard","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,sans-serif;font-weight:800;font-size:46px;line-height:1.32;
            margin:0 0 18px;letter-spacing:-1px}
-  .hl{position:relative;white-space:nowrap}
-  .hl > span{position:relative;z-index:1;color:var(--coral)}
+  /* 형광펜처럼 칠한 포인트 문구 */
+  .hl > span{background:linear-gradient(transparent 56%, var(--hl) 56%, var(--hl) 94%, transparent 94%);
+             padding:0 2px}
   .hero p.desc{color:var(--ink-2);font-size:16.5px;margin:0 0 26px;max-width:520px}
   .hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .hero-cta .who{font-size:13.5px;color:var(--ink-2)}
@@ -125,9 +144,24 @@
   .pola img{display:block;width:100%;height:100%;object-fit:cover;border-radius:2px;background:var(--line)}
   .pola span{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:11.5px;color:var(--ink-2)}
   .pola:hover{transform:rotate(0deg) scale(1.03) !important;z-index:9}
+  /* 그라데이션 버튼 */
+  .btn.grad{background:linear-gradient(96deg,var(--coral) 0%,var(--terra) 100%);
+            box-shadow:0 8px 18px rgba(194,96,63,.28)}
+  .btn.grad:hover{filter:brightness(1.05)}
+  .btn.grad .ar{display:inline-block;margin-left:6px;transition:transform .18s}
+  .btn.grad:hover .ar{transform:translateX(3px)}
+
   @media (max-width:860px){
-    .hero-grid{grid-template-columns:1fr;gap:26px}
+    .hero{padding:26px 0 48px}
+    .hero-grid{grid-template-columns:1fr;gap:22px}
+    .hero-copy{order:2}
+    .hero-art{order:1;max-width:360px;margin:0 auto}
     .hero h1{font-size:34px}
+    .social{margin-bottom:16px}
+  }
+  @media (max-width:520px){
+    .hero h1{font-size:29px;letter-spacing:-.6px}
+    .hero-art{max-width:300px}
   }
 
   /* ── 스탯 ── */
@@ -375,22 +409,43 @@
   </svg>
 
   <div class="wrap hero-grid">
-    <div>
-      <span class="kicker">인천 기반 미술 강사 · 학교 / 복지관 / 섬마을 <b>6년차</b></span>
-      <span class="kicker" id="badge" hidden style="margin-left:6px"></span>
-      <h1 class="serif">아이가 그린 것이<br />
-        <span class="hl"><span>작품</span></span>이 되고
-        <span class="hl"><span>책</span></span>이 되게</h1>
+    <!-- 인물 (모바일에서는 이 블록이 먼저 온다) -->
+    <div class="hero-art" id="heroArt">
+      <svg class="art" viewBox="0 0 460 460" aria-hidden="true">
+        <defs>
+          <clipPath id="faceClip"><circle cx="238" cy="222" r="150"/></clipPath>
+          <pattern id="dots" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+            <circle cx="2.6" cy="2.6" r="2.6" fill="#2B2320"/>
+          </pattern>
+        </defs>
+        <rect x="6" y="86" width="128" height="128" fill="url(#dots)" opacity=".72"/>
+        <circle cx="430" cy="46" r="6" fill="#2B2320"/>
+        <!-- 사진 원(r=150)보다 큰 반지름(196)이라 도형이 바깥으로 삐져나온다 -->
+        <path d="M238,222 L204,415 A196,196 0 0 1 45,188 Z" fill="var(--coral)"/>
+        <path d="M238,222 L376.6,83.4 A196,196 0 0 1 288.7,411.3 Z" fill="var(--sage)"/>
+        <circle cx="238" cy="222" r="152" fill="var(--paper-3)"/>
+        <image id="heroPhoto" clip-path="url(#faceClip)" x="88" y="72" width="300" height="300"
+               preserveAspectRatio="xMidYMin slice" href="" />
+      </svg>
+      <div class="collage-wrap" id="collageWrap"><div class="collage" id="collage"></div></div>
+    </div>
+
+    <div class="hero-copy">
+      <div class="social" id="social"></div>
+      <h1>👋 안녕하세요,<br />
+        <span class="hl"><span>미술 강사 이영지</span></span>입니다.</h1>
       <p class="desc">2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 섬마을에서
         영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
         아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
       <div class="hero-cta">
-        <a class="btn" href="#contact">수업 문의하기</a>
+        <a class="btn grad" href="#contact">수업 문의하기 <span class="ar">→</span></a>
         <a class="btn ghost" href="#books">완성된 그림책 보기</a>
       </div>
-      <p class="hero-cta who" id="heroWho" style="margin-top:16px"></p>
+      <div class="hero-tags">
+        <span class="kicker">인천 기반 미술 강사 · 학교 / 복지관 / 섬마을 <b>6년차</b></span>
+        <span class="kicker" id="badge" hidden></span>
+      </div>
     </div>
-    <div class="collage-wrap" id="collageWrap"><div class="collage" id="collage"></div></div>
   </div>
 </header>
 
@@ -663,7 +718,7 @@
   /* 콜라주는 460x470 도화지를 화면 폭에 맞춰 줄인다(모바일에서 잘리지 않게) */
   function fitCollage() {
     var wrap = $("collageWrap"), box = $("collage");
-    if (!wrap || !box || !box.children.length) return;
+    if (!wrap || !box || !box.children.length || !wrap.clientWidth) return;
     box.style.transform = "none";
     var maxR = 0, maxB = 0;
     [].forEach.call(box.children, function (el) {
@@ -746,8 +801,34 @@
     var p = m.profile || {}, s = m.stats || {};
     document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
     if (p.badge) { $("badge").innerHTML = "🎓 <b>" + esc(p.badge) + "</b>"; $("badge").hidden = false; }
-    $("heroWho").innerHTML = (p.name ? "<b>" + esc(p.name) + "</b> · " : "") + esc(p.title || "")
-      + (p.email ? ' · <a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
+    /* 히어로 인물 사진 — 없으면 아이 작품 콜라주로 대신한다 */
+    var photoUrl = p.photo || "";
+    if (photoUrl) {
+      var im = $("heroPhoto");
+      im.setAttributeNS("http://www.w3.org/1999/xlink", "href", photoUrl);
+      im.setAttribute("href", photoUrl);
+      if (p.photoFocus) im.setAttribute("preserveAspectRatio", p.photoFocus);
+    } else {
+      $("heroArt").classList.add("no-photo");
+    }
+
+    /* 소셜 아이콘 */
+    var SOC = {
+      instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/>',
+      facebook: '<path d="M14 8.5V7c0-1 .4-1.5 1.5-1.5H17V3h-2.4C12.2 3 11 4.4 11 6.7v1.8H9V11h2v10h3V11h2.2l.4-2.5H14Z"/>',
+      blog: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h7"/>',
+      youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="m10.5 9.5 5 2.5-5 2.5Z"/>',
+      link: '<path d="M10 13a4 4 0 0 0 5.7.3l2.6-2.6a4 4 0 1 0-5.7-5.7L11.2 6.4"/><path d="M14 11a4 4 0 0 0-5.7-.3L5.7 13.3a4 4 0 1 0 5.7 5.7l1.4-1.4"/>',
+      mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'
+    };
+    var socials = (p.social || []).slice();
+    if (p.email) socials.push({ kind: "mail", url: "mailto:" + p.email, label: "이메일" });
+    $("social").innerHTML = socials.map(function (x) {
+      return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener" title="' + esc(x.label || x.kind) + '"'
+           + ' aria-label="' + esc(x.label || x.kind) + '">'
+           + '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
+           + ' stroke-linecap="round" stroke-linejoin="round">' + (SOC[x.kind] || SOC.link) + "</svg></a>";
+    }).join("");
 
     /* 히어로 콜라주 (아이 작품) */
     var hw = m.heroWorks || [];
