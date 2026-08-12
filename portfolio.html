@@ -175,10 +175,38 @@
   .stat .ic{position:absolute;right:16px;top:16px;opacity:.32;color:var(--coral);line-height:0}
 
   /* ── 지도 ── */
-  .mapbox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px 10px 6px;overflow:hidden}
-  .mapbox svg{width:100%;height:auto;display:block}
-  .mk{cursor:pointer}
-  .mk:hover circle{r:11}
+  .mapbox{position:relative;margin:0;border-radius:22px;overflow:hidden;border:1px solid var(--line);
+          line-height:0;background:#F9E5E0}
+  .mapbox .mapimg{width:100%;height:auto;display:block}
+  .mapbox .pins{position:absolute;inset:0}
+  .mk{position:absolute;transform:translate(-50%,-50%);cursor:default}
+  .mk i{display:block;width:14px;height:14px;border-radius:50%;background:var(--terra);
+        border:3px solid #fff;box-shadow:0 2px 5px rgba(60,35,25,.28)}
+  .mk.isle i{width:18px;height:18px}
+  .mk.isle::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;
+                  border-radius:50%;border:2px solid var(--terra);opacity:.5;
+                  animation:pulse 2.4s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.7);opacity:.6}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .mk.isle::after{animation:none} }
+  .mk:hover i{transform:scale(1.18)}
+  .mk i{transition:transform .15s}
+  @media (max-width:640px){ .mk i{width:10px;height:10px;border-width:2px}
+    .mk.isle i{width:13px;height:13px} .mk.isle::after{display:none} }
+  /* 좁은 화면에서는 지도를 옆으로 밀어서 본다(라벨이 읽히도록 크기 유지) */
+  .mapscroll{overflow-x:auto;scrollbar-width:none}
+  .mapscroll::-webkit-scrollbar{display:none}
+  .only-narrow{display:none}
+  @media (max-width:700px){
+    .mapscroll{margin:0 -20px;padding:0 20px}
+    .mapbox{width:640px}
+    .only-narrow{display:inline}
+  }
+  .maplegend{margin:12px 0 0;font-size:13px;color:var(--ink-2);line-height:1.9}
+  .maplegend .lg{width:11px;height:11px;border-radius:50%;border:2px solid #fff;
+                 box-shadow:0 0 0 1px var(--line);display:inline-block;vertical-align:-1px;margin-right:5px}
+  .maplegend .lg{background:var(--terra)}
+  .maplegend .lg.isle{width:14px;height:14px;box-shadow:0 0 0 1px var(--line),0 0 0 4px rgba(194,96,63,.25)}
+  .maplegend .lg.land{margin-left:10px}
   .orggroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:22px}
   .grp{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
   .grp summary{cursor:pointer;padding:14px 18px;font-weight:700;font-size:15px;list-style:none;
@@ -482,35 +510,16 @@
     </h2>
     <p class="lead">도심 학교부터 배로 두 시간 넘게 들어가는 섬마을까지 — 교실 안에 머물지 않았습니다.</p>
 
-    <div class="mapbox">
-      <svg viewBox="0 0 800 520" role="img" aria-label="인천 수업 지역 지도">
-        <!-- 바다 -->
-        <rect width="800" height="520" fill="#F4F7F6"/>
-        <path d="M0,470 C120,455 210,486 330,470 C450,454 560,486 800,466 L800,520 L0,520Z" fill="#E9F0EE"/>
-        <!-- 본토 -->
-        <path d="M498,120 C548,96 620,96 676,116 C724,133 744,178 736,224 C728,272 742,306 716,340
-                 C688,376 620,392 566,376 C516,361 498,326 494,286 C490,246 466,206 476,172 C482,148 486,128 498,120Z"
-              fill="#E8E2D7" stroke="#D9CFC0" stroke-width="2"/>
-        <text x="640" y="416" font-size="15" fill="#9C8F80" font-family="sans-serif">인천 본토</text>
-        <!-- 섬들 -->
-        <path d="M56,60 C96,44 140,54 150,80 C160,106 126,124 92,120 C58,116 34,96 40,78 C44,68 48,64 56,60Z"
-              fill="#EFE2D8" stroke="#DCC6B7" stroke-width="2"/>
-        <path d="M244,368 C286,352 330,368 336,394 C342,420 306,438 272,432 C238,426 220,404 226,386 C230,376 236,372 244,368Z"
-              fill="#EFE2D8" stroke="#DCC6B7" stroke-width="2"/>
-        <path d="M186,196 C214,186 242,196 246,214 C250,232 226,244 204,240 C182,236 166,222 170,210 C173,202 180,199 186,196Z"
-              fill="#EDE7DC" stroke="#DDD3C4" stroke-width="1.6"/>
-        <path d="M330,240 C356,232 380,242 384,258 C388,274 366,286 346,282 C326,278 312,264 316,254 C319,246 325,243 330,240Z"
-              fill="#EDE7DC" stroke="#DDD3C4" stroke-width="1.6"/>
-        <text x="196" y="222" font-size="13" fill="#A9998A" font-family="sans-serif">연평도</text>
-        <text x="336" y="266" font-size="13" fill="#A9998A" font-family="sans-serif">자월·신도</text>
-        <!-- 항로(손그림 점선) -->
-        <path d="M470,300 C400,330 350,360 316,392" fill="none" stroke="#C2603F" stroke-width="2.2"
-              stroke-dasharray="7 9" stroke-linecap="round" opacity=".65"/>
-        <path d="M470,250 C360,200 220,130 132,96" fill="none" stroke="#C2603F" stroke-width="2.2"
-              stroke-dasharray="7 9" stroke-linecap="round" opacity=".65"/>
-        <g id="markers"></g>
-      </svg>
+    <div class="mapscroll">
+      <figure class="mapbox">
+      <img class="mapimg" id="mapImg" src="portfolio-assets/map.webp" width="1400" height="932"
+           alt="인천 지도 — 백령도·영흥도 등 섬 지역과 본토 자치구" />
+      <div class="pins" id="markers"></div>
+      </figure>
     </div>
+    <p class="maplegend"><span class="lg isle"></span> 섬 지역 <span class="lg land"></span> 본토 자치구 —
+       표시된 곳에서 수업했습니다. 점 위에 올리면 기관 이름이 나옵니다.
+       <span class="only-narrow">지도는 옆으로 밀어 볼 수 있어요.</span></p>
 
     <div class="orggroups" id="orgGroups"></div>
   </div>
@@ -920,14 +929,21 @@
     /* 지도 마커 + 기관 목록 */
     var pts = m.mapPoints || [];
     $("markers").innerHTML = pts.map(function (t) {
-      var c = t.island ? "#C2603F" : "#7C8F6B";
-      return '<g class="mk"><circle cx="' + t.x + '" cy="' + t.y + '" r="' + (t.island ? 10 : 7.5) + '" fill="' + c + '"'
-           + ' stroke="#fff" stroke-width="2.5"/>'
-           + (t.island ? '<circle cx="' + t.x + '" cy="' + t.y + '" r="17" fill="none" stroke="' + c + '" stroke-width="1.6" opacity=".45"/>' : "")
-           + '<text x="' + (t.x + (t.x > 500 ? 15 : 20)) + '" y="' + (t.y + 5) + '" font-size="15" font-family="sans-serif"'
-           + ' fill="' + (t.island ? "#8C4B31" : "#5C6B52") + '" font-weight="' + (t.island ? 700 : 500) + '">'
-           + esc(t.name) + '</text></g>';
+      var where = (t.orgs || []).join(", ");
+      return '<span class="mk' + (t.island ? " isle" : "") + '" style="left:' + t.px + '%;top:' + t.py + '%"'
+           + ' title="' + esc(t.name) + (where ? " · " + esc(where) : "") + '"><i></i></span>';
     }).join("");
+    var mapImg = $("mapImg");
+    if (mapImg && m.mapImage) mapImg.src = m.mapImage;
+    // 좁은 화면에서는 핀이 몰려 있는 본토 쪽이 먼저 보이게 살짝 밀어 둔다
+    var mapScroll = document.querySelector(".mapscroll");
+    if (mapScroll) {
+      var settle = function () {
+        var over = mapScroll.scrollWidth - mapScroll.clientWidth;
+        if (over > 0 && !mapScroll.scrollLeft) mapScroll.scrollLeft = Math.round(over * 0.6);
+      };
+      if (mapImg.complete) settle(); else mapImg.addEventListener("load", settle);
+    }
 
     var kindGroup = {
       "학교": ["초등학교", "중학교", "고등학교"],
