@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>미술 강사 포트폴리오 · Art Class Portfolio</title>
-<meta name="description" content="누적 799시간 · 클라이언트 14곳 — 섬과 마을을 다니며 아이들과 그림을 그립니다." />
+<title>이영지 · 미술 강사 포트폴리오</title>
+<meta name="description" content="인천 기반 미술 강사 · 학교/복지관/섬마을 6년차 — 기관 14곳, 영유아부터 성인까지" />
 <style>
   :root{
     --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb; --bg:#ffffff; --soft:#f6f8fc;
@@ -15,27 +15,43 @@
        font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;
        line-height:1.65;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-  section{padding:60px 0;border-top:1px solid var(--line)}
-  h2{font-size:27px;margin:0 0 4px;letter-spacing:-.3px}
+  section{padding:58px 0;border-top:1px solid var(--line)}
+  h2{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
   h2 .ko{display:block;font-size:14px;color:var(--sub);font-weight:600;letter-spacing:0;margin-top:4px}
-  .lead{color:var(--sub);margin:6px 0 26px}
+  .lead{color:var(--sub);margin:6px 0 24px}
   a{color:var(--accent)}
+  [hidden]{display:none !important}
 
   .notice{background:#fff7ed;border-bottom:1px solid #fed7aa;color:#9a3412;
           font-size:14px;padding:10px 20px;text-align:center}
   .notice b{color:#c2410c}
 
-  .hero{padding:70px 0 54px;background:linear-gradient(180deg,var(--accent-soft),#fff)}
-  .hero h1{font-size:40px;line-height:1.25;margin:0 0 14px;letter-spacing:-.6px}
-  .hero p{font-size:18px;color:var(--sub);margin:0 0 20px;max-width:660px}
-  .tagline{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
-           padding:6px 14px;font-size:13px;color:var(--accent);font-weight:700;margin-bottom:18px}
+  /* 표지 */
+  .hero{padding:56px 0 48px;background:linear-gradient(180deg,var(--accent-soft),#fff)}
+  .hero-top{display:flex;gap:22px;align-items:center;margin-bottom:26px;flex-wrap:wrap}
+  .avatar{width:92px;height:92px;border-radius:50%;background:#fff;border:1px solid var(--line);
+          display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;
+          color:var(--accent);overflow:hidden;flex:0 0 auto}
+  .avatar img{width:100%;height:100%;object-fit:cover}
+  .idline b{font-size:22px;display:block;line-height:1.3}
+  .idline span{color:var(--sub);font-size:15px}
+  .hero h1{font-size:38px;line-height:1.25;margin:0 0 14px;letter-spacing:-.6px}
+  .hero p.desc{font-size:17px;color:var(--sub);margin:0 0 22px;max-width:660px}
+  .contactbar{display:flex;flex-wrap:wrap;gap:10px}
+  .contactbar a,.contactbar span{background:#fff;border:1px solid var(--line);border-radius:999px;
+        padding:8px 16px;font-size:14px;text-decoration:none;color:var(--ink)}
+  .contactbar a:hover{border-color:var(--accent);color:var(--accent)}
 
-  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-  .num{background:var(--soft);border-radius:var(--radius);padding:20px 16px;text-align:center}
-  .num b{display:block;font-size:32px;line-height:1.1;color:var(--accent)}
+  /* 숫자 */
+  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .num{background:var(--soft);border-radius:var(--radius);padding:20px 16px}
+  .num b{display:block;font-size:30px;line-height:1.15;color:var(--accent)}
+  .num strong{display:block;font-size:15px;margin-top:2px}
   .num span{font-size:13px;color:var(--sub)}
+  .subnums{margin-top:14px;color:var(--sub);font-size:14px}
+  .subnums b{color:var(--ink)}
 
+  /* 카드 */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
   .card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:#fff}
   .card h3{margin:0 0 5px;font-size:16px}
@@ -46,17 +62,42 @@
   .card.click:hover{border-color:var(--accent);transform:translateY(-2px)}
   .card .cnt{float:right;color:var(--accent);font-weight:800;font-size:15px}
 
+  /* 자격 */
+  .creds{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .cred{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .cred h3{margin:0 0 10px;font-size:15px;color:var(--accent)}
+  .cred ul{margin:0;padding-left:18px}
+  .cred li{font-size:14.5px;margin-bottom:6px}
+  .cred li.empty{list-style:none;margin-left:-18px;color:#b0b6c0;border:1px dashed var(--line);
+                 border-radius:8px;padding:6px 10px}
+
+  /* 경력 */
   .bars{display:grid;gap:10px;max-width:640px}
   .bar{display:grid;grid-template-columns:96px 1fr 74px;align-items:center;gap:10px;font-size:14px}
   .bar .track{height:12px;background:var(--soft);border-radius:99px;overflow:hidden}
   .bar .fill{height:100%;background:var(--accent);border-radius:99px}
   .bar .h{color:var(--sub);text-align:right}
-  .timeline{margin-top:26px;display:grid;gap:2px}
+  .timeline{margin-top:24px;display:grid;gap:2px}
   .tl{display:grid;grid-template-columns:118px 1fr;gap:12px;padding:12px 0;border-top:1px dashed var(--line)}
   .tl .y{color:var(--accent);font-weight:700;font-size:13.5px}
   .tl b{display:block;font-size:15px}
   .tl span{color:var(--sub);font-size:13.5px}
 
+  /* 프로그램(커리큘럼) */
+  .prog{border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:14px}
+  .prog .head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin-bottom:6px}
+  .prog h3{margin:0;font-size:19px}
+  .prog .meta{color:var(--accent);font-size:13.5px;font-weight:700}
+  .prog .goal{color:var(--sub);font-size:14px;margin:0 0 16px}
+  .steps{display:grid;gap:0}
+  .step{display:grid;grid-template-columns:92px 150px 1fr;gap:12px;padding:10px 0;
+        border-top:1px solid var(--line);font-size:14.5px;align-items:baseline}
+  .step .s{color:var(--accent);font-weight:700;font-size:13.5px}
+  .step .t{font-weight:700}
+  .step .d{color:var(--sub)}
+  @media (max-width:640px){ .step{grid-template-columns:80px 1fr;} .step .d{grid-column:2} }
+
+  /* 레일 */
   .railhead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .railhead .arrows{margin-left:auto;display:flex;gap:6px}
   .arrow{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;
@@ -96,6 +137,26 @@
   .plank{height:12px;background:linear-gradient(180deg,#e0cdb6,#cdb69c);border-radius:6px;
          box-shadow:0 6px 10px rgba(90,60,30,.15);margin-top:2px}
 
+  /* 추천사 */
+  .quotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .quote{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:var(--soft)}
+  .quote p{margin:0 0 12px;font-size:15.5px;line-height:1.7}
+  .quote .who{font-size:13.5px;color:var(--sub)}
+  .quote .who b{color:var(--ink);display:block}
+
+  /* 기록 한 줄 */
+  .oneline{border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;background:var(--soft)}
+  .oneline b{font-size:16px}
+  .oneline ul{margin:10px 0 0;padding-left:18px;color:var(--sub);font-size:14px}
+  .oneline li{margin-bottom:4px}
+
+  /* 문의 */
+  .contactgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .cbox{border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .cbox span{display:block;font-size:12.5px;color:var(--sub);margin-bottom:4px}
+  .cbox b{font-size:16px}
+  .cbox a{font-size:16px;text-decoration:none}
+
   .modal{position:fixed;inset:0;background:rgba(17,24,39,.82);display:none;align-items:center;
          justify-content:center;z-index:50;padding:24px}
   .modal.on{display:flex}
@@ -109,41 +170,53 @@
   .btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);margin-left:8px}
   .modal .x{position:absolute;top:18px;right:22px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
 
-  footer{background:var(--soft);padding:38px 0;color:var(--sub);font-size:14px}
-  .todo{border-left:3px solid var(--warm);background:#fff5f9;padding:10px 14px;border-radius:0 10px 10px 0;
-        font-size:14px;color:#9d174d;margin-top:14px}
-  @media (max-width:640px){ .hero h1{font-size:29px} section{padding:44px 0} .shot{width:250px} }
+  footer{background:var(--soft);padding:36px 0;color:var(--sub);font-size:14px}
+  @media (max-width:640px){ .hero h1{font-size:28px} section{padding:44px 0} .shot{width:250px} }
 </style>
 </head>
 <body>
 
 <div class="notice" id="notice" hidden>
   🚧 <b>임시 화면</b>입니다 — 아직 얼굴 처리를 하기 전이라 수업 사진을 흐리게 가려 두었습니다.
-  캐릭터 스티커 처리가 끝나면 또렷하게 바뀝니다.
 </div>
 
 <header class="hero">
   <div class="wrap">
-    <span class="tagline">Art Class Portfolio · 섬과 마을을 다니는 미술 수업</span>
+    <div class="hero-top">
+      <div class="avatar" id="avatar"></div>
+      <div class="idline">
+        <b id="idName"></b>
+        <span id="idOne"></span>
+      </div>
+    </div>
     <h1>아이가 그린 것이<br />작품이 되고 책이 되게</h1>
-    <p>2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 같은 섬마을에서
-       영유아부터 성인까지 <b>누적 799시간</b>을 가르쳤습니다.
-       수업에서 나온 그림은 온라인 갤러리에 모으고, 아이가 쓴 이야기는 그림책으로 엮습니다.</p>
-    <div class="todo">✏️ 이름·직함·연락처·한 줄 소개를 알려주시면 이 자리에 넣겠습니다.</div>
+    <p class="desc">2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 섬마을에서
+       영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
+       아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
+    <div class="contactbar" id="contactTop"></div>
   </div>
 </header>
 
 <section>
   <div class="wrap">
     <h2>At a Glance<span class="ko">한눈에 보는 활동</span></h2>
-    <p class="lead">경력 데이터베이스와 온라인 갤러리에 쌓인 실제 기록입니다.</p>
+    <p class="lead">경력 기록과 온라인 갤러리에 쌓인 실제 자료를 그대로 집계했습니다.</p>
     <div class="nums" id="nums"></div>
+    <p class="subnums" id="subnums"></p>
+  </div>
+</section>
+
+<section id="credSection">
+  <div class="wrap">
+    <h2>Credentials<span class="ko">자격 및 이수</span></h2>
+    <p class="lead">기관 결재·채용 서류에 필요한 항목입니다. 증빙 사본은 요청 시 바로 보내 드립니다.</p>
+    <div class="creds" id="creds"></div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2>Experience<span class="ko">경력 하이라이트</span></h2>
+    <h2>Experience<span class="ko">경력 요약</span></h2>
     <p class="lead">영유아 미술부터 성인 직업교육까지 — 대상을 가리지 않고 가르쳤습니다.</p>
     <div class="bars" id="bars"></div>
     <div class="timeline" id="timeline"></div>
@@ -152,7 +225,15 @@
 
 <section>
   <div class="wrap">
-    <h2>Where I Teach<span class="ko">어디서 가르쳤나</span></h2>
+    <h2>Programs<span class="ko">제안 가능한 프로그램</span></h2>
+    <p class="lead">차시별 구성을 그대로 기안 문서에 붙여 쓰실 수 있습니다. 시수·인원은 협의해 조정합니다.</p>
+    <div id="programs"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Where I Teach<span class="ko">함께한 기관</span></h2>
     <p class="lead">인천 자치구와 옹진군 섬마을 — 교실 안에 머물지 않았습니다.</p>
     <div class="cards" id="orgs"></div>
   </div>
@@ -207,17 +288,34 @@
   </div>
 </section>
 
+<section id="voiceSection">
+  <div class="wrap">
+    <h2>Voices<span class="ko">기관의 목소리</span></h2>
+    <p class="lead">함께 수업한 기관 담당 선생님들의 이야기입니다.</p>
+    <div class="quotes" id="voices"></div>
+  </div>
+  <!--
+    추천사 채우는 법 — manifest.json(portfolio.json) 의 "voices" 배열에 아래 형태로 넣으면 이 섹션이 나타납니다.
+    비워 두면 섹션 자체가 보이지 않습니다.
+    "voices": [
+      { "quote": "아이들이 수업을 기다립니다. 결과물이 남으니 학부모 만족도도 높았습니다.",
+        "org": "○○초등학교", "role": "교육복지실 담당교사" },
+      { "quote": "섬이라 강사 섭외가 어려운데, 준비물부터 마무리까지 알아서 챙겨 주셨어요.",
+        "org": "○○ 다함께돌봄센터", "role": "센터장" }
+    ]
+  -->
+</section>
+
 <section>
   <div class="wrap">
-    <h2>Tools I Built<span class="ko">수업을 위해 직접 만든 것</span></h2>
-    <p class="lead">수업을 편하게 하려고 앱과 갤러리를 직접 만들어 씁니다.</p>
-    <div class="cards">
-      <div class="card"><span class="chip">iPad App</span><h3>ArtClassHub</h3>
-        <p>아이가 그린 그림을 바로 올리고, 그림책을 만들고, 함께 하는 놀이(빙고·퍼즐 벽화)를 진행합니다.</p></div>
-      <div class="card"><span class="chip">Web</span><h3>온라인 갤러리</h3>
-        <p>반마다 비밀번호를 걸어 가족만 볼 수 있게. 작품·그림책·수업 사진이 한 화면에 모입니다.</p></div>
-      <div class="card"><span class="chip">Automation</span><h3>활동 자동 정리</h3>
-        <p>드라이브에 사진만 넣어두면 날짜·기관별로 정리돼 실적이 저절로 쌓입니다.</p></div>
+    <h2>Records<span class="ko">수업 기록</span></h2>
+    <div class="oneline">
+      <b>수업 기록과 결과물이 자동으로 남는 강사입니다.</b>
+      <ul>
+        <li>수업마다 아이 작품이 온라인 갤러리에 쌓이고, 반별 비밀번호로 가족만 볼 수 있습니다.</li>
+        <li>활동 사진은 날짜·기관별로 자동 정리돼 실적 보고서에 바로 씁니다.</li>
+        <li>그림책은 발행 즉시 플립북 링크로 가족에게 전달됩니다.</li>
+      </ul>
     </div>
   </div>
 </section>
@@ -225,8 +323,8 @@
 <section>
   <div class="wrap">
     <h2>Let's Work Together<span class="ko">함께 하기</span></h2>
-    <p class="lead">정규 수업, 방학 특강, 그림책 프로젝트, 진로체험, 교사 연수 모두 가능합니다.</p>
-    <div class="todo">✏️ 연락처(이메일·전화)와 가능한 지역/일정을 알려주시면 여기에 넣겠습니다.</div>
+    <p class="lead">수업 제안·견적·일정 문의를 주시면 24시간 안에 회신드립니다.</p>
+    <div class="contactgrid" id="contactGrid"></div>
   </div>
 </section>
 
@@ -258,6 +356,7 @@
   "use strict";
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
+  var DRAFT = /[?&]draft=1/.test(location.search);   // ?draft=1 이면 아직 안 채운 자리도 보여 준다
   var $ = function (id) { return document.getElementById(id); };
   var IMG = function (id, w) { return "https://lh3.googleusercontent.com/d/" + id + "=w" + (w || 600); };
   var prettyDate = function (s) {
@@ -270,7 +369,6 @@
     });
   };
 
-  // 가로 스크롤 화살표
   document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest(".arrow") : null;
     if (!b) return;
@@ -278,7 +376,6 @@
     if (rail) rail.scrollBy({ left: Number(b.getAttribute("data-dir")) * rail.clientWidth * 0.9, behavior: "smooth" });
   });
 
-  // 모달
   var modal = $("modal");
   function openModal(o) {
     $("mImg").src = o.img || "";
@@ -298,17 +395,49 @@
     .then(render);
 
   function render(m) {
-    var photos = m.photos || [];
-    $("notice").hidden = !photos.some(function (p) { return p.face !== "sticker"; });
+    var p = m.profile || {}, s = m.stats || {};
 
-    var s = m.stats || {};
+    // ---- 표지: 이름·직함·연락처 ----
+    document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
+    $("idName").textContent = p.name ? p.name + " · " + (p.title || "") : (p.title || "");
+    $("idOne").textContent = p.oneLine || "";
+    $("avatar").innerHTML = p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.name) + '">'
+                                    : esc((p.name || "A").charAt(0));
+    var top = [];
+    if (p.email) top.push('<a href="mailto:' + esc(p.email) + '">✉️ ' + esc(p.email) + '</a>');
+    if (p.phone) top.push('<a href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">📞 ' + esc(p.phone) + '</a>');
+    if (p.area) top.push('<span>📍 ' + esc(p.area) + '</span>');
+    $("contactTop").innerHTML = top.join("");
+
+    // ---- 숫자: 기관 → 지속연수 → 연령 → 섬 ----
     $("nums").innerHTML = [
-      [s.hours, "누적 강의", "시간"], [s.clients, "클라이언트", "곳"], [s.sessions, "강의 회차", "회"],
-      [s.ageGroups, "가르친 연령층", "영유아~성인"], [s.works, "아이들 작품", "점"], [s.books, "만든 그림책", "권"]
-    ].map(function (n) {
-      return '<div class="num"><b>' + n[0] + '</b><span>' + n[1] + ' · ' + n[2] + '</span></div>';
+      ['<b>' + s.orgs + '곳</b><strong>함께한 기관</strong><span>' + (s.repeatOrgs ? '재의뢰 ' + s.repeatOrgs + '곳 포함' : '') + '</span>'],
+      ['<b>' + s.years + '년</b><strong>' + s.since + '년부터 지속</strong><span>매년 이어지는 수업</span>'],
+      ['<b>전 연령</b><strong>영유아 ~ 성인</strong><span>' + s.ageGroups + '개 연령층 지도</span>'],
+      ['<b>섬마을</b><strong>백령도 · 영흥도</strong><span>도서지역 순회 수업</span>']
+    ].map(function (n) { return '<div class="num">' + n[0] + '</div>'; }).join("");
+    $("subnums").innerHTML = '보조 지표 · 누적 수업 <b>' + (Math.floor(s.hours / 100) * 100) + '시간+</b>'
+      + ' · 강의 회차 <b>' + s.sessions + '회</b>'
+      + ' · 아이들 작품 <b>' + s.works + '점</b> · 만든 그림책 <b>' + s.books + '권</b>';
+
+    // ---- 자격 및 이수 ----
+    var c = m.credentials || {};
+    var blocks = [
+      { title: "학위 · 전공", items: c.education || [] },
+      { title: "보유 자격증", items: c.licenses || [] },
+      { title: "행정 요건 · 이수 교육", items: c.admin || [] }
+    ];
+    var anyCred = blocks.some(function (b) { return b.items.length; });
+    $("credSection").hidden = !anyCred && !DRAFT;
+    $("creds").innerHTML = blocks.map(function (b) {
+      if (!b.items.length && !DRAFT) return "";
+      var li = b.items.length
+        ? b.items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("")
+        : '<li class="empty">입력 대기 — manifest 의 credentials 에 추가</li>';
+      return '<div class="cred"><h3>' + b.title + '</h3><ul>' + li + '</ul></div>';
     }).join("");
 
+    // ---- 경력 ----
     var career = m.career || {};
     var byA = career.byAudience || [];
     var maxH = Math.max.apply(null, byA.map(function (a) { return a.hours; }).concat([1]));
@@ -320,40 +449,56 @@
       + '<p class="lead" style="margin:14px 0 0">분야별 · '
       + (career.byField || []).map(function (f) { return esc(f.name) + " " + f.hours + "시간"; }).join(" · ")
       + '</p>';
-
     $("timeline").innerHTML = (career.highlights || []).map(function (h) {
       return '<div class="tl"><span class="y">' + esc(h.year) + '</span><div>'
            + '<b>' + esc(h.title) + '</b><span>' + esc(h.org)
            + (h.note ? ' · ' + esc(h.note) : '') + '</span></div></div>';
     }).join("");
 
+    // ---- 제안 가능한 프로그램 ----
+    $("programs").innerHTML = (m.programsOffer || []).map(function (pg) {
+      return '<div class="prog"><div class="head"><h3>' + esc(pg.title) + '</h3>'
+           + '<span class="meta">' + esc(pg.hours) + ' · ' + esc(pg.target) + '</span></div>'
+           + '<p class="goal">' + esc(pg.goal) + '</p><div class="steps">'
+           + (pg.outline || []).map(function (o) {
+               return '<div class="step"><span class="s">' + esc(o.step) + '</span>'
+                    + '<span class="t">' + esc(o.title) + '</span>'
+                    + '<span class="d">' + esc(o.detail) + '</span></div>';
+             }).join("")
+           + '</div></div>';
+    }).join("");
+
+    // ---- 기관 ----
     $("orgs").innerHTML = (m.orgs || []).map(function (o) {
       return '<div class="card"><span class="chip">' + esc(o.region) + '</span>'
            + '<h3>' + esc(o.name) + '</h3><p>' + esc(o.kind) + '</p></div>';
     }).join("");
 
+    // ---- 재료 ----
     $("media").innerHTML = (m.media || []).map(function (x) {
       return '<div class="card click" data-cat="' + esc(x.cat) + '"><span class="cnt">' + x.count + '</span>'
            + '<h3>' + esc(x.name) + '</h3><p>' + esc(x.desc) + '</p></div>';
     }).join("");
     $("media").addEventListener("click", function (e) {
-      var c = e.target.closest ? e.target.closest(".card.click") : null;
-      if (!c) return;
-      pickCat(c.getAttribute("data-cat"));
+      var el = e.target.closest ? e.target.closest(".card.click") : null;
+      if (!el) return;
+      pickCat(el.getAttribute("data-cat"));
       $("worksSection").scrollIntoView({ behavior: "smooth" });
     });
 
-    // 수업 현장 — 기관 탭 + 가로 스크롤 한 줄
+    // ---- 수업 현장 ----
+    var photos = m.photos || [];
+    $("notice").hidden = !photos.some(function (x) { return x.face !== "sticker"; });
     var orgNames = [];
-    photos.forEach(function (p) { if (orgNames.indexOf(p.org) < 0) orgNames.push(p.org); });
+    photos.forEach(function (x) { if (orgNames.indexOf(x.org) < 0) orgNames.push(x.org); });
     var curOrg = "";
     function drawPhotos() {
-      var list = curOrg ? photos.filter(function (p) { return p.org === curOrg; }) : photos;
-      $("photos").innerHTML = list.map(function (p) {
-        return '<div class="shot' + (p.face === "sticker" ? "" : " raw") + '">'
-             + '<img loading="lazy" decoding="async" src="' + IMG(p.id, 500) + '" alt="">'
-             + '<span class="tag">' + esc(p.org) + ' · ' + prettyDate(p.date) + '</span>'
-             + (p.face === "sticker" ? "" : '<span class="pending">얼굴 처리 전</span>')
+      var list = curOrg ? photos.filter(function (x) { return x.org === curOrg; }) : photos;
+      $("photos").innerHTML = list.map(function (x) {
+        return '<div class="shot' + (x.face === "sticker" ? "" : " raw") + '">'
+             + '<img loading="lazy" decoding="async" src="' + IMG(x.id, 500) + '" alt="">'
+             + '<span class="tag">' + esc(x.org) + ' · ' + prettyDate(x.date) + '</span>'
+             + (x.face === "sticker" ? "" : '<span class="pending">얼굴 처리 전</span>')
              + '</div>';
       }).join("");
     }
@@ -364,7 +509,7 @@
       if (!o) b.className = "on";
       b.onclick = function () {
         curOrg = o;
-        [].forEach.call($("photoTabs").children, function (c) { c.className = ""; });
+        [].forEach.call($("photoTabs").children, function (x) { x.className = ""; });
         b.className = "on";
         drawPhotos();
         $("photos").scrollTo({ left: 0, behavior: "smooth" });
@@ -373,13 +518,33 @@
     });
     drawPhotos();
 
-    $("stamp").textContent = "자료 기준 " + (m.generatedAt || "") + " · 경력 DB와 온라인 갤러리에서 자동 집계";
+    // ---- 추천사 ----
+    var voices = m.voices || [];
+    $("voiceSection").hidden = !voices.length && !DRAFT;
+    $("voices").innerHTML = voices.length
+      ? voices.map(function (v) {
+          return '<div class="quote"><p>“' + esc(v.quote) + '”</p>'
+               + '<div class="who"><b>' + esc(v.org) + '</b>' + esc(v.role || "") + '</div></div>';
+        }).join("")
+      : '<div class="quote"><p style="color:#b0b6c0">입력 대기 — manifest 의 voices 배열에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>';
+
+    // ---- 문의 ----
+    var boxes = [];
+    if (p.email) boxes.push(['이메일', '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>']);
+    if (p.phone) boxes.push(['전화', '<a href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">' + esc(p.phone) + '</a>']);
+    if (p.area) boxes.push(['출강 지역', '<b>' + esc(p.area) + '</b>']);
+    if (p.availability) boxes.push(['가능한 수업 형태', '<b>' + esc(p.availability) + '</b>']);
+    $("contactGrid").innerHTML = boxes.map(function (b) {
+      return '<div class="cbox"><span>' + b[0] + '</span>' + b[1] + '</div>';
+    }).join("");
+
+    $("stamp").textContent = "자료 기준 " + (m.generatedAt || "") + " · 경력 기록과 온라인 갤러리에서 자동 집계";
 
     loadWorks(m);
     loadBooks(m);
   }
 
-  // ---- 아이들 작품 (이름은 쓰지 않는다) ----
+  // ---- 아이들 작품 ----
   var allWorks = [], curCat = "", shown = [];
   function pickCat(cat) {
     curCat = cat || "";
@@ -402,7 +567,7 @@
       var el = e.target.closest ? e.target.closest(".work") : null;
       if (!el) return;
       var w = shown[Number(el.getAttribute("data-i"))];
-      if (w) openModal({ img: w.url, title: w.cat || "아이들 작품", sub: "온라인 갤러리에 올라온 학생 작품" });
+      if (w) openModal({ img: w.url, title: w.cat || "아이들 작품", sub: "수업에서 나온 학생 작품" });
     });
     try {
       firebase.initializeApp({
@@ -422,7 +587,6 @@
           allWorks.push({ url: url, cat: (a.category || "").trim() });
         });
         allWorks.sort(function (a, b) { return (b.cat ? 1 : 0) - (a.cat ? 1 : 0); });
-
         var cats = (m.media || []).map(function (x) { return x.cat; });
         $("workTabs").innerHTML = "";
         [""].concat(cats).forEach(function (c) {
@@ -438,7 +602,7 @@
     } catch (e) { /* 작품을 못 불러와도 나머지는 보인다 */ }
   }
 
-  // ---- 그림책 책장 ----
+  // ---- 그림책 ----
   function loadBooks(m) {
     var codes = m.classCodes || [];
     var seen = {}, all = [];
@@ -447,10 +611,8 @@
       if (!el) return;
       var b = all[Number(el.getAttribute("data-i"))];
       if (!b) return;
-      openModal({
-        img: b.cover, title: (b.title || "그림책").trim(),
-        sub: "아이가 쓰고 그린 그림책", link: VIEWER + "?book=" + encodeURIComponent(b.bookId)
-      });
+      openModal({ img: b.cover, title: (b.title || "그림책").trim(),
+                  sub: "아이가 쓰고 그린 그림책", link: VIEWER + "?book=" + encodeURIComponent(b.bookId) });
     });
     Promise.all(codes.map(function (c) {
       return fetch(BOOKS_API + "?class=" + encodeURIComponent(c))

@@ -3,13 +3,16 @@
   "note": "얼굴 처리 파이프라인이 이 파일을 다시 만든다. photos[].face 가 raw 면 페이지가 흐리게 가린다.",
   "photoFolder": "1ASBcpea6pPHVPssYr2lMG9TMDNOR65x8",
   "stats": {
-    "hours": 799,
-    "clients": 14,
-    "sessions": 759,
+    "orgs": 14,
+    "repeatOrgs": 6,
+    "years": 6,
+    "since": 2020,
     "ageGroups": 5,
+    "islands": 2,
+    "hours": 799,
     "works": 299,
     "books": 33,
-    "since": 2020
+    "sessions": 759
   },
   "orgs": [
     {
@@ -443,5 +446,79 @@
     "6APJVY",
     "BPGJXL",
     "TEYNFZ"
-  ]
+  ],
+  "profile": {
+    "name": "이영지",
+    "title": "미술 강사 · 그림책 수업 전문",
+    "oneLine": "인천 기반 미술 강사 · 학교/복지관/섬마을 6년차",
+    "email": "funnyshownet@gmail.com",
+    "phone": "",
+    "photo": "",
+    "area": "인천 전역 · 옹진군 도서지역(백령도·영흥도) 출강 가능",
+    "availability": "정규 수업(주중) · 주말학교 · 방학 특강 · 진로체험 · 교사 연수"
+  },
+  "credentials": {
+    "education": [],
+    "licenses": [],
+    "admin": []
+  },
+  "programsOffer": [
+    {
+      "title": "그림책 만들기",
+      "hours": "8차시 (회당 90분)",
+      "target": "초등 3~6학년 · 12~16명",
+      "goal": "내 이야기를 글과 그림으로 엮어 한 권의 책으로 완성하고, 가족에게 읽어 주는 경험까지.",
+      "outline": [
+        {
+          "step": "1~2차시",
+          "title": "이야기 만들기",
+          "detail": "주인공·사건·마음을 문답으로 끌어내 이야기 뼈대 잡기"
+        },
+        {
+          "step": "3~5차시",
+          "title": "그림 작업",
+          "detail": "장면 나누기 → 밑그림 → 채색 (태블릿 또는 종이)"
+        },
+        {
+          "step": "6~7차시",
+          "title": "책으로 엮기",
+          "detail": "표지·제목 디자인, 8쪽 미니북 조판과 제본"
+        },
+        {
+          "step": "8차시",
+          "title": "발표와 나눔",
+          "detail": "낭독회, 온라인 플립북으로 가족에게 전달"
+        }
+      ]
+    },
+    {
+      "title": "수채화 기초",
+      "hours": "6차시 (회당 60~90분)",
+      "target": "초등 전학년 · 성인 병행 가능",
+      "goal": "번지고 겹치는 물의 성질을 익혀, 한 장의 완성작을 자기 손으로 끝내는 경험.",
+      "outline": [
+        {
+          "step": "1차시",
+          "title": "물과 친해지기",
+          "detail": "번지기·농도 조절 연습"
+        },
+        {
+          "step": "2~3차시",
+          "title": "색 만들기",
+          "detail": "혼색과 겹칠, 꽃·풍경 소재로 연습"
+        },
+        {
+          "step": "4~5차시",
+          "title": "작품 제작",
+          "detail": "주제 정하고 밑그림부터 완성까지"
+        },
+        {
+          "step": "6차시",
+          "title": "전시·굿즈",
+          "detail": "액자 또는 엽서·에코백으로 만들어 가져가기"
+        }
+      ]
+    }
+  ],
+  "voices": []
 }
