@@ -722,7 +722,7 @@
     <div class="tabs" id="photoTabs"></div>
     <div class="cardrail" id="photos"></div>
     <div style="text-align:center;margin-top:6px">
-      <button class="btn ghost" id="photoMore" hidden>더 보기</button>
+      <a class="btn ghost" id="photoMore" href="portfolio-class.html">수업 현장 전체 보기</a>
     </div>
   </div>
 </section>
@@ -745,7 +745,7 @@
     <div class="tabs" id="workTabs"></div>
     <div class="cardrail" id="workGrid"></div>
     <div style="text-align:center;margin-top:6px">
-      <button class="btn ghost" id="workMore" hidden>더 보기</button>
+      <a class="btn ghost" id="workMore" href="portfolio-works.html">아이들 작품 전체 보기</a>
     </div>
   </div>
 </section>
@@ -818,6 +818,9 @@
     </div>
     <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮습니다. 표지를 누르면 펼쳐 볼 수 있어요.</p>
     <div class="shelfrail" id="bookRail"></div>
+    <div style="text-align:center;margin-top:6px">
+      <a class="btn light" id="bookMore" href="portfolio-books.html">완성된 그림책 전체 보기</a>
+    </div>
   </div>
 </section>
 
@@ -1008,13 +1011,6 @@
     if (e.key === "ArrowRight") { LB.at = (LB.at + 1) % LB.list.length; lbShow(); }
     if (e.key === "ArrowLeft") { LB.at = (LB.at - 1 + LB.list.length) % LB.list.length; lbShow(); }
   });
-
-  /* '더 보기' 를 누르면 새로 붙은 카드가 보이도록 줄을 민다 */
-  function railTo(rail, index) {
-    var el = rail.children[index];
-    if (!el) return;
-    rail.scrollTo({ left: Math.max(0, el.offsetLeft - rail.offsetLeft - 2), behavior: "smooth" });
-  }
 
   /* 가로 레일 화살표 --------------------------------------------- */
   document.addEventListener("click", function (e) {
@@ -1308,11 +1304,7 @@
         return card;
       }).join("");
       var pm = $("photoMore");
-      if (pm) {
-        var rest = pool.length - list.length;
-        pm.hidden = rest <= 0;
-        pm.textContent = "더 보기 (+" + Math.min(pStep, rest) + ")";
-      }
+      if (pm) pm.textContent = "수업 현장 전체 보기 (" + photos.length + "장)";
       $("photos").onclick = function (e) {
         var el = e.target.closest ? e.target.closest(".mitem") : null;
         if (el) lbOpen(lbList, Number(el.getAttribute("data-i")));
@@ -1334,12 +1326,6 @@
         $("photos").scrollTo({ left: 0, behavior: "smooth" });
       };
       $("photoTabs").appendChild(b);
-    });
-    $("photoMore").addEventListener("click", function () {
-      var from = $("photos").children.length;
-      pLimit += pStep;
-      drawPhotos();
-      railTo($("photos"), from);
     });
     drawPhotos();
 
@@ -1488,19 +1474,9 @@
     }).join("");
     if (reset !== false) $("workGrid").scrollTo({ left: 0, behavior: "smooth" });
     var more = $("workMore");
-    if (more) {
-      var rest = pool.length - shown.length;
-      more.hidden = rest <= 0;
-      more.textContent = "더 보기 (+" + Math.min(STEP, rest) + ")";
-    }
+    if (more) more.textContent = "아이들 작품 전체 보기 (" + allWorks.length + "점)";
   }
   function loadWorks(m) {
-    $("workMore").addEventListener("click", function () {
-      var from = $("workGrid").children.length;
-      limit += STEP;
-      drawWorks(false);
-      railTo($("workGrid"), from);
-    });
     $("workGrid").addEventListener("click", function (e) {
       var el = e.target.closest ? e.target.closest(".mitem") : null;
       if (!el) return;
@@ -1565,6 +1541,8 @@
           all.push(b);
         });
       });
+      var bm = $("bookMore");
+      if (bm) bm.textContent = "완성된 그림책 전체 보기 (" + all.length + "권)";
       $("bookRail").innerHTML = all.map(function (b, i) {
         return '<div class="book" data-i="' + i + '"><div class="cov">'
              + (b.cover ? '<div class="face" data-src="' + esc(b.cover) + '"></div>' : "")

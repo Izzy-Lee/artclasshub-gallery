@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>완성된 그림책 — 이영지 미술 수업</title>
+<meta name="description" content="아이가 직접 쓰고 그려 한 권으로 엮은 그림책 모음. 표지를 누르면 펼쳐 볼 수 있습니다." />
+<link rel="icon" type="image/png" sizes="180x180" href="portfolio-assets/favicon.png" />
+<link rel="apple-touch-icon" href="portfolio-assets/favicon.png" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="완성된 그림책 — 이영지 미술 수업" />
+<meta property="og:description" content="아이가 직접 쓰고 그려 한 권으로 엮은 그림책 모음. 표지를 누르면 펼쳐 볼 수 있습니다." />
+<meta property="og:image" content="https://izzy-lee.github.io/artclasshub-gallery/portfolio-assets/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="portfolio-gallery.css" />
+</head>
+<body data-gallery="books">
+<div class="sheet">
+
+<nav class="nav">
+  <div class="nav-in">
+    <a class="logo" href="portfolio.html" aria-label="artable — 이영지 미술 강사">
+      <img src="portfolio-assets/logo.webp" alt="artable" width="124" height="32" />
+    </a>
+    <ul>
+      <li><a class="link" href="portfolio-class.html">수업 현장</a></li>
+      <li><a class="link" href="portfolio-works.html">아이들 작품</a></li>
+      <li><a class="link on" href="portfolio-books.html">완성된 그림책</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn cta" href="portfolio.html#contact">수업 문의</a>
+    </div>
+  </div>
+</nav>
+
+<header class="head">
+  <div class="wrap">
+    <a class="back" href="portfolio.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      포트폴리오로 돌아가기
+    </a>
+    <span class="sect-en">Storybook</span>
+    <h1 class="sect-h">완성된 그림책</h1>
+    <p class="lead">아이가 이야기를 쓰고 그려 한 권으로 엮었습니다. 표지를 누르면 그 자리에서 펼쳐 볼 수 있어요.</p>
+    <p class="count" id="count"></p>
+    <div class="tabs" id="tabs"></div>
+  </div>
+</header>
+
+<section class="gal">
+  <div class="wrap">
+    <div class="grid books" id="grid"><p class="empty">불러오는 중…</p></div>
+    <div class="more" id="more" hidden>
+      <button class="btn ghost" id="moreBtn">더 보기</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>학생 사진은 <b>얼굴을 가려</b> 게시하며, 이름은 표시하지 않습니다.
+       삭제를 원하시면 언제든 알려 주세요 — 바로 내립니다.</p>
+    <div class="footlinks">
+      <a href="portfolio.html">포트폴리오</a>
+      <a href="portfolio-class.html">수업 현장</a>
+      <a href="portfolio-works.html">아이들 작품</a>
+      <a href="portfolio-books.html">완성된 그림책</a>
+      <a href="portfolio.html#contact">수업 문의</a>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /.sheet -->
+
+<div class="lb" id="lb">
+  <span class="x" id="lbClose" data-close></span>
+  <button class="nav-btn prev" id="lbPrev" data-step="-1" aria-label="이전"></button>
+  <figure>
+    <img id="lbImg" alt="" />
+    <figcaption id="lbCap"></figcaption>
+    <a id="lbOpen" class="open" target="_blank" rel="noopener" hidden></a>
+  </figure>
+  <button class="nav-btn next" id="lbNext" data-step="1" aria-label="다음"></button>
+</div>
+<script src="portfolio-gallery.js"></script>
+</body>
+</html>
