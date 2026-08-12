@@ -3,8 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>이영지 · 미술 강사 포트폴리오</title>
-<meta name="description" content="인천 기반 미술 강사 · 학교/복지관/섬마을 6년차 — 아이가 그린 것이 작품이 되고 책이 되게" />
+<title>이영지 | 미술 강사 · 그림책 수업 전문</title>
+<meta name="description" content="아이가 그린 것이 작품이 되고 책이 되게 합니다. 인천 학교·복지관·섬마을 6년차 미술 강사 이영지 — 그림책 만들기 8차시, 수채화 기초 6차시 프로그램 제안." />
+<link rel="canonical" href="https://izzy-lee.github.io/artclasshub-gallery/portfolio.html" />
+<link rel="icon" type="image/png" sizes="180x180" href="portfolio-assets/favicon.png" />
+<link rel="apple-touch-icon" href="portfolio-assets/favicon.png" />
+<meta property="og:type" content="profile" />
+<meta property="og:site_name" content="artable · 이영지 미술 수업" />
+<meta property="og:title" content="이영지 | 미술 강사 · 그림책 수업 전문" />
+<meta property="og:description" content="아이가 그린 것이 작품이 되고 책이 되게 합니다. 인천 학교·복지관·섬마을 6년차 — 기관 14곳 · 누적 800시간+" />
+<meta property="og:url" content="https://izzy-lee.github.io/artclasshub-gallery/portfolio.html" />
+<meta property="og:image" content="https://izzy-lee.github.io/artclasshub-gallery/portfolio-assets/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="ko_KR" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="이영지 | 미술 강사 · 그림책 수업 전문" />
+<meta name="twitter:description" content="아이가 그린 것이 작품이 되고 책이 되게 합니다. 인천 학교·복지관·섬마을 6년차 미술 강사." />
+<meta name="twitter:image" content="https://izzy-lee.github.io/artclasshub-gallery/portfolio-assets/og.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" as="style" crossorigin
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
@@ -133,6 +149,8 @@
   /* 형광펜처럼 칠한 포인트 문구 */
   .hl > span{background:linear-gradient(transparent 56%, var(--hl) 56%, var(--hl) 94%, transparent 94%);
              padding:0 2px}
+  .hero .wholine{margin:0 0 14px;font-size:15.5px;color:var(--ink-2)}
+  .hero .wholine b{color:var(--ink);font-weight:700}
   .hero p.desc{color:var(--ink-2);font-size:16.5px;margin:0 0 26px;max-width:520px}
   .hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .hero-cta .who{font-size:13.5px;color:var(--ink-2)}
@@ -162,8 +180,12 @@
     .social{margin-bottom:16px}
   }
   @media (max-width:520px){
-    .hero h1{font-size:29px;letter-spacing:-.6px}
-    .hero-art{max-width:300px}
+    .hero h1{font-size:29px;letter-spacing:-.6px;margin-bottom:12px}
+    /* 첫 화면 안에서 [수업 문의하기] 가 보이도록 인물과 여백을 줄인다 */
+    .hero-art{max-width:242px}
+    .hero .wholine{margin-bottom:10px;font-size:14.5px}
+    .hero p.desc{font-size:15.5px;margin-bottom:20px}
+    .social{margin-bottom:14px}
   }
 
   /* ── 스탯 ── */
@@ -179,7 +201,7 @@
           line-height:0;background:#F9E5E0}
   .mapbox .mapimg{width:100%;height:auto;display:block}
   .mapbox .pins{position:absolute;inset:0}
-  .mk{position:absolute;transform:translate(-50%,-50%);cursor:default}
+  .mk{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
   .mk i{display:block;width:14px;height:14px;border-radius:50%;background:var(--terra);
         border:3px solid #fff;box-shadow:0 2px 5px rgba(60,35,25,.28)}
   .mk.isle i{width:18px;height:18px}
@@ -201,6 +223,17 @@
     .mapbox{width:640px}
     .only-narrow{display:inline}
   }
+  .maptip{position:absolute;transform:translate(-50%,calc(-100% - 14px));z-index:3;
+          background:var(--deep);color:#F4F1EA;border-radius:12px;padding:10px 14px;
+          font-size:13px;line-height:1.55;max-width:230px;text-align:left;
+          box-shadow:0 10px 24px rgba(40,25,18,.28);pointer-events:none}
+  .maptip b{display:block;font-size:14px;margin-bottom:3px}
+  .maptip span{display:block;color:#CFC2B7}
+  .maptip::after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;
+                 margin-left:-6px;background:var(--deep);transform:rotate(45deg);border-radius:2px}
+  .maptip.shift::after{display:none}
+  .mk{border:0;background:none;padding:0;-webkit-tap-highlight-color:transparent}
+  .mk:focus-visible{outline:2px solid var(--deep);outline-offset:4px;border-radius:50%}
   .maplegend{margin:12px 0 0;font-size:13px;color:var(--ink-2);line-height:1.9}
   .maplegend .lg{width:11px;height:11px;border-radius:50%;border:2px solid #fff;
                  box-shadow:0 0 0 1px var(--line);display:inline-block;vertical-align:-1px;margin-right:5px}
@@ -332,6 +365,8 @@
 
   /* ── 기본 정보 (라벨:값) ── */
   .infotable{display:grid;grid-template-columns:repeat(2,1fr);gap:0 34px;margin:0 0 26px}
+  .chanbox .infotable{grid-template-columns:1fr;margin-bottom:0}
+  .chanbox .infotable .ir dt{flex-basis:78px}
   @media (max-width:640px){ .infotable{grid-template-columns:1fr} }
   .infotable .ir{display:flex;gap:14px;align-items:baseline;padding:11px 0;
                  border-bottom:1px solid rgba(244,241,234,.18)}
@@ -382,6 +417,83 @@
   .rev .swatch{width:52px;height:52px;border-radius:10px;flex:0 0 auto;align-self:center;
                background:linear-gradient(135deg,#F3E2DA,#E4EADD 60%,#DCE7EE)}
 
+
+  /* ── 프로그램 스펙 헤더 ── */
+  .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0 22px;
+        margin:16px 0 4px;border-top:1px solid var(--rule)}
+  .spec .sp{padding:12px 0;border-bottom:1px solid var(--rule)}
+  .spec .sp dt{margin:0 0 3px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+               color:var(--coral);font-weight:700}
+  .spec .sp dd{margin:0;font-size:14.5px;line-height:1.55}
+  .spec .sp.out{grid-column:1/-1;background:var(--paper-3);border-radius:12px;padding:16px 18px;
+                border-bottom:0;margin:10px 0 4px}
+  .spec .sp.out dd{font-size:16.5px;font-weight:700;line-height:1.5}
+  .prog details{margin-top:10px}
+  .prog details > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:7px;
+        font-size:14px;font-weight:700;color:var(--terra);padding:8px 0}
+  .prog details > summary::-webkit-details-marker{display:none}
+  .prog details > summary .cv{transition:transform .2s;line-height:0}
+  .prog details[open] > summary .cv{transform:rotate(90deg)}
+
+  /* ── 수업 조건 FAQ ── */
+  .faq{border-top:1px solid var(--rule)}
+  .faq details{border-bottom:1px solid var(--rule)}
+  .faq summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;gap:12px;
+               padding:17px 0;font-size:16px;font-weight:700;line-height:1.5}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary .cv{margin-left:auto;flex:0 0 auto;color:var(--coral);transition:transform .2s;line-height:0;margin-top:3px}
+  .faq details[open] summary .cv{transform:rotate(90deg)}
+  .faq .qn{color:var(--coral);font-weight:800;flex:0 0 auto}
+  .faq .ans{margin:0 0 18px 30px;color:var(--ink-2);font-size:15px;max-width:760px}
+
+  /* ── 진행 프로세스 ── */
+  .steps{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:0;padding:0;
+         counter-reset:st}
+  .steps li{position:relative;padding:0 22px 0 0;counter-increment:st}
+  .steps li + li{padding-left:22px;border-left:1px solid var(--rule)}
+  .steps .si{color:var(--coral);line-height:0;margin-bottom:12px;display:block}
+  .steps b{display:block;font-size:16.5px;margin-bottom:5px}
+  .steps b::before{content:counter(st) ". ";color:var(--coral)}
+  .steps span{color:var(--ink-2);font-size:14px}
+  @media (max-width:820px){
+    .steps{grid-template-columns:1fr;gap:0}
+    .steps li{padding:16px 0 16px 0;border-left:0}
+    .steps li + li{padding-left:0;border-left:0;border-top:1px solid var(--rule)}
+    .steps .si{margin-bottom:8px}
+  }
+
+  /* ── 문의 폼 ── */
+  .cgrid2{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:start;margin-bottom:8px}
+  @media (max-width:820px){ .cgrid2{grid-template-columns:1fr;gap:20px} }
+  .askform{position:relative;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+           border-radius:var(--r);padding:22px}
+  .askform h3{margin:0 0 14px;font-size:17px;color:#F4F1EA}
+  .askform label{display:block;font-size:12.5px;color:#CFC2B7;margin-bottom:12px}
+  .askform label span{color:var(--coral)}
+  .askform input,.askform textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:14.5px;
+        color:#F4F1EA;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);
+        border-radius:10px;padding:10px 12px;resize:vertical}
+  .askform input::placeholder,.askform textarea::placeholder{color:rgba(244,241,234,.42)}
+  .askform input:focus,.askform textarea:focus{outline:2px solid var(--coral);outline-offset:1px;
+        border-color:transparent}
+  .askform .honey{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .askform .btn{margin-top:4px}
+  .formnote{margin:12px 0 0;font-size:13px;color:#CFC2B7;min-height:1.2em}
+  .formnote.bad{color:#F2B8A4}
+  .chanbtns{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+  .chanbtns .btn{font-size:14px;padding:9px 16px}
+  .btn.tiny{padding:7px 14px;font-size:13px}
+  .btn.off{opacity:.5;cursor:default;border-style:dashed}
+  .contact .btn.ghost{color:#F4F1EA;border-color:rgba(255,255,255,.35)}
+  .contact .btn.ghost:hover{border-color:var(--coral);color:var(--coral);background:transparent}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:8px}
+  @media (max-width:900px){ #navPdf{display:none} }
+
+  /* ── 후기 출처 ── */
+  .rev .src,.quote .src{display:block;margin-top:8px;font-size:12px;color:var(--ink-2)}
+  .rev .src.todo,.quote .src.todo{color:#BEB4A8;border:1px dashed var(--line);border-radius:7px;
+        padding:3px 8px;display:inline-block}
+
   /* ── 문의 ── */
   .contact{background:var(--deep);color:#F4F1EA}
   .contact .sect-h{color:#F4F1EA}
@@ -421,15 +533,18 @@
     <ul>
       <li><a class="link" href="#glance">한눈에 보기</a></li>
       <li><a class="link" href="#where">수업하는 곳</a></li>
-      <li><a class="link" href="#career">경력</a></li>
       <li><a class="link" href="#programs">프로그램</a></li>
+      <li><a class="link" href="#career">경력</a></li>
       <li><a class="link" href="#class">수업 현장</a></li>
       <li><a class="link" href="#works">아이들 작품</a></li>
       <li><a class="link" href="#voices">후기</a></li>
       <li><a class="link" href="#books">그림책</a></li>
 
     </ul>
-    <a class="btn cta" href="#contact">수업 문의</a>
+    <div class="nav-cta">
+      <a class="btn tiny ghost" id="navPdf" href="#contact" hidden>프로필 PDF</a>
+      <a class="btn cta" href="#contact">수업 문의</a>
+    </div>
   </div>
 </nav>
 <a class="btn fab" href="#contact">수업 문의하기</a>
@@ -473,14 +588,15 @@
 
     <div class="hero-copy">
       <div class="social" id="social"></div>
-      <h1>👋 안녕하세요,<br />
-        <span class="hl"><span>미술 강사 이영지</span></span>입니다.</h1>
+      <h1>아이가 그린 것이<br />
+        <span class="hl"><span>작품이 되고 책이 되게</span></span> 합니다.</h1>
+      <p class="wholine" id="heroWho"></p>
       <p class="desc">2020년부터 인천의 학교·복지관·평생학습관과 백령도·영흥도 섬마을에서
         영유아부터 성인까지 가르쳤습니다. 수업에서 나온 그림은 온라인 갤러리에 모으고,
         아이가 쓴 이야기는 그림책으로 엮어 가족에게 전합니다.</p>
       <div class="hero-cta">
         <a class="btn grad" href="#contact">수업 문의하기 <span class="ar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></a>
-        <a class="btn ghost" href="#books">완성된 그림책 보기</a>
+        <a class="btn ghost" href="#programs">프로그램 보기</a>
       </div>
       <div class="hero-tags">
         <span class="kicker">인천 기반 미술 강사 · 학교 / 복지관 / 섬마을 <b>6년차</b></span>
@@ -515,13 +631,35 @@
       <img class="mapimg" id="mapImg" src="portfolio-assets/map.webp" width="1400" height="932"
            alt="인천 지도 — 백령도·영흥도 등 섬 지역과 본토 자치구" />
       <div class="pins" id="markers"></div>
+      <div class="maptip" id="mapTip" hidden></div>
       </figure>
     </div>
     <p class="maplegend"><span class="lg isle"></span> 섬 지역 <span class="lg land"></span> 본토 자치구 —
-       표시된 곳에서 수업했습니다. 점 위에 올리면 기관 이름이 나옵니다.
+       표시된 곳에서 수업했습니다. 점을 누르거나 올리면 기관 이름이 나옵니다.
        <span class="only-narrow">지도는 옆으로 밀어 볼 수 있어요.</span></p>
 
     <div class="orggroups" id="orgGroups"></div>
+  </div>
+</section>
+
+<!-- ── 프로그램 ── -->
+<section class="band-white" id="programs">
+  <div class="wrap">
+    <span class="sect-en">Programs</span>
+    <h2 class="sect-h">제안 가능한 프로그램
+    </h2>
+    <p class="lead">차시 구성을 그대로 기안 문서에 붙여 쓰실 수 있습니다. 시수·인원은 협의해 조정합니다.</p>
+    <div id="progList"></div>
+  </div>
+</section>
+
+<!-- ── 수업 조건 안내 ── -->
+<section class="band-paper" id="terms">
+  <div class="wrap">
+    <span class="sect-en">Good to Know</span>
+    <h2 class="sect-h">수업 조건 안내</h2>
+    <p class="lead">기관에서 자주 확인하시는 항목을 먼저 정리했습니다. 나머지는 문의 주시면 바로 답변드립니다.</p>
+    <div class="faq" id="faqList"></div>
   </div>
 </section>
 
@@ -555,16 +693,7 @@
   </div>
 </section>
 
-<!-- ── 프로그램 ── -->
-<section class="band-white" id="programs">
-  <div class="wrap">
-    <span class="sect-en">Programs</span>
-    <h2 class="sect-h">제안 가능한 프로그램
-    </h2>
-    <p class="lead">차시 구성을 그대로 기안 문서에 붙여 쓰실 수 있습니다. 시수·인원은 협의해 조정합니다.</p>
-    <div id="progList"></div>
-  </div>
-</section>
+
 
 <!-- ── 무엇을 가르치나 ── -->
 <section class="band-paper" id="media">
@@ -647,6 +776,14 @@
   -->
 </section>
 
+
+    <!--
+      후기 출처 표기 원칙
+      · 카드에 보이는 "출처 ·" 줄은 manifest 의 participantVoices[].org / voices[].source 에서 온다.
+      · 출처가 비어 있는 후기는 게시 전 반드시 실제 기관명을 확인해 채울 것.
+        확인이 안 되면 그 카드는 지운다 — 출처 없는 후기는 담당자 검증에서 신뢰를 깎는다.
+      · ?draft=1 로 열면 비어 있는 자리가 점선 상자로 보인다.
+    -->
 <!-- ── 참여자 후기 ── -->
 <section class="band-paper" id="participants">
   <div class="wrap">
@@ -684,14 +821,49 @@
   </div>
 </section>
 
+<!-- ── 진행 프로세스 ── -->
+<section class="band-white" id="process">
+  <div class="wrap">
+    <span class="sect-en">How It Works</span>
+    <h2 class="sect-h">문의부터 수업까지</h2>
+    <p class="lead">처음 연락 주신 뒤 수업이 시작되기까지, 이렇게 진행합니다.</p>
+    <ol class="steps" id="processList"></ol>
+  </div>
+</section>
+
 <!-- ── 문의 ── -->
 <section class="contact" id="contact">
   <div class="wrap">
     <span class="sect-en">Contact</span>
     <h2 class="sect-h">수업 문의
     </h2>
-    <p class="lead">수업 제안·견적·일정 문의를 주시면 24시간 안에 회신드립니다.</p>
-    <dl class="infotable" id="infoTable"></dl>
+    <p class="lead" id="replyPromise">수업 제안·견적·일정 문의를 주시면 회신드립니다.</p>
+
+    <div class="cgrid2">
+      <form class="askform" id="askForm" method="POST" target="_blank" novalidate>
+        <h3>간단 문의</h3>
+        <label>기관명 <span>*</span>
+          <input name="기관명" required placeholder="예) 인천 ○○초등학교" autocomplete="organization" /></label>
+        <label>수업 대상 <span>*</span>
+          <input name="수업대상" required placeholder="예) 3~4학년 16명 / 방과후" /></label>
+        <label>희망 시기
+          <input name="희망시기" placeholder="예) 2026년 3~5월, 주 1회 목요일" /></label>
+        <label>연락처 <span>*</span>
+          <input name="연락처" required placeholder="이메일 또는 전화번호" /></label>
+        <label>남기실 말씀
+          <textarea name="문의내용" rows="3" placeholder="예산 범위나 원하시는 결과물이 있으면 적어 주세요."></textarea></label>
+        <!-- 스팸 방지용 미끼 칸 (사람에게는 보이지 않는다) -->
+        <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honey" />
+        <button class="btn light" type="submit">문의 보내기</button>
+        <p class="formnote" id="formNote"></p>
+      </form>
+
+      <div class="chanbox">
+        <dl class="infotable" id="infoTable"></dl>
+        <div class="chanbtns" id="chanBtns"></div>
+      </div>
+    </div>
+
     <div class="cstrip" id="contactStrip"></div>
   </div>
 </section>
@@ -724,6 +896,10 @@
   "use strict";
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
+  // 간단 문의 폼을 받는 곳. FormSubmit 은 가입 없이 쓰는 무료 서비스로,
+  // 처음 한 번 들어온 문의의 확인 메일에서 활성화 링크를 누르면 그 뒤로는 바로 메일이 온다.
+  // 활성화 뒤 발급되는 해시 주소(https://formsubmit.co/xxxxxxxx)로 바꾸면 이메일이 소스에 노출되지 않는다.
+  var FORM_ENDPOINT = "https://formsubmit.co/funnyshownet@gmail.com";
   var DRAFT = /[?&]draft=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var IMG = function (id, w) { return "https://lh3.googleusercontent.com/d/" + id + "=w" + (w || 600); };
@@ -758,7 +934,12 @@
     "chevron-left": '<path d="m15 18-6-6 6-6"/>',
     "chevron-right": '<path d="m9 18 6-6-6-6"/>',
     "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
-    "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+    "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    "message": '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    "clipboard": '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/>',
+    "phone": '<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
+    "download": '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',
+    "chat": '<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>'
   };
   function ic(name, size, sw) {
     return '<svg class="lu" width="' + (size || 20) + '" height="' + (size || 20) + '" viewBox="0 0 24 24"'
@@ -844,7 +1025,7 @@
       links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id); });
     });
   }, { rootMargin: "-45% 0px -50% 0px" });
-  ["glance", "where", "career", "programs", "class", "works", "voices", "books"].forEach(function (id) {
+  ["glance", "where", "programs", "career", "class", "works", "voices", "books"].forEach(function (id) {
     var el = $(id); if (el) io.observe(el);
   });
 
@@ -855,7 +1036,8 @@
 
   function render(m) {
     var p = m.profile || {}, s = m.stats || {};
-    document.title = (p.name ? p.name + " · " : "") + "미술 강사 포트폴리오";
+    $("heroWho").innerHTML = (p.name ? "<b>" + esc(p.name) + "</b>" : "")
+      + (p.title ? ' <span>· ' + esc(p.title) + "</span>" : "");
     if (p.badge) { $("badge").innerHTML = ic("graduation-cap", 15) + " <b>" + esc(p.badge) + "</b>"; $("badge").hidden = false; }
     /* 히어로 인물 사진 — 없으면 아이 작품 콜라주로 대신한다 */
     var photoUrl = p.photo || "";
@@ -928,11 +1110,46 @@
 
     /* 지도 마커 + 기관 목록 */
     var pts = m.mapPoints || [];
-    $("markers").innerHTML = pts.map(function (t) {
-      var where = (t.orgs || []).join(", ");
-      return '<span class="mk' + (t.island ? " isle" : "") + '" style="left:' + t.px + '%;top:' + t.py + '%"'
-           + ' title="' + esc(t.name) + (where ? " · " + esc(where) : "") + '"><i></i></span>';
+    $("markers").innerHTML = pts.map(function (t, i) {
+      return '<button type="button" class="mk' + (t.island ? " isle" : "") + '" data-i="' + i + '"'
+           + ' style="left:' + t.px + '%;top:' + t.py + '%"'
+           + ' aria-label="' + esc(t.name) + '"><i></i></button>';
     }).join("");
+    (function mapTips() {
+      var tip = $("mapTip"), wrap = $("markers"), at = -1;
+      function show(i, el) {
+        var t = pts[i]; if (!t) return;
+        at = i;
+        tip.innerHTML = "<b>" + esc(t.name) + "</b>"
+          + (t.orgs || []).map(function (n) { return "<span>" + esc(n) + "</span>"; }).join("");
+        tip.hidden = false;
+        var box = wrap.getBoundingClientRect(), r = el.getBoundingClientRect();
+        var x = r.left - box.left + r.width / 2, y = r.top - box.top;
+        tip.style.left = Math.min(Math.max(x, 90), box.width - 90) + "px";
+        tip.style.top = y + "px";
+        tip.classList.toggle("shift", x < 90 || x > box.width - 90);
+      }
+      function hide() { tip.hidden = true; at = -1; }
+      wrap.addEventListener("mouseover", function (e) {
+        var el = e.target.closest && e.target.closest(".mk"); if (el) show(+el.getAttribute("data-i"), el);
+      });
+      wrap.addEventListener("mouseout", function (e) {
+        if (e.target.closest && e.target.closest(".mk")) hide();
+      });
+      wrap.addEventListener("focusin", function (e) {
+        var el = e.target.closest && e.target.closest(".mk"); if (el) show(+el.getAttribute("data-i"), el);
+      });
+      wrap.addEventListener("focusout", hide);
+      // 터치: 누르면 뜨고 다시 누르면 닫힌다
+      wrap.addEventListener("click", function (e) {
+        var el = e.target.closest && e.target.closest(".mk"); if (!el) return;
+        var i = +el.getAttribute("data-i");
+        if (at === i && !tip.hidden) hide(); else show(i, el);
+      });
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest || !e.target.closest(".mapbox")) hide();
+      });
+    })();
     var mapImg = $("mapImg");
     if (mapImg && m.mapImage) mapImg.src = m.mapImage;
     // 좁은 화면에서는 핀이 몰려 있는 본토 쪽이 먼저 보이게 살짝 밀어 둔다
@@ -1004,17 +1221,40 @@
     }).join("");
 
     /* 프로그램 */
-    $("progList").innerHTML = (m.programsOffer || []).map(function (pg) {
+    $("progList").innerHTML = (m.programsOffer || []).map(function (pg, i) {
+      var spec = (pg.spec || []).map(function (r) {
+        var out = /결과물/.test(r.k);
+        return '<div class="sp' + (out ? " out" : "") + '"><dt>' + esc(r.k) + "</dt>"
+             + "<dd>" + esc(r.v) + "</dd></div>";
+      }).join("");
+      var steps = (pg.outline || []).map(function (o) {
+        return '<div class="step"><span class="s">' + esc(o.step) + '</span>'
+             + '<span class="t">' + esc(o.title) + '</span>'
+             + '<span class="d">' + esc(o.detail) + '</span></div>';
+      }).join("");
       return '<div class="prog"><div class="head"><h3>' + esc(pg.title) + '</h3>'
            + '<span class="meta">' + esc(pg.hours) + ' · ' + esc(pg.target) + '</span></div>'
            + '<p class="goal">' + esc(pg.goal) + '</p>'
-           + (pg.outline || []).map(function (o) {
-               return '<div class="step"><span class="s">' + esc(o.step) + '</span>'
-                    + '<span class="t">' + esc(o.title) + '</span>'
-                    + '<span class="d">' + esc(o.detail) + '</span></div>';
-             }).join("")
+           + (spec ? '<dl class="spec">' + spec + "</dl>" : "")
+           + (steps ? '<details><summary><span class="cv">' + ic("chevron-right", 15)
+                    + "</span>차시별 커리큘럼 보기</summary>" + steps + "</details>" : "")
            + '</div>';
     }).join("");
+
+    /* 수업 조건 FAQ */
+    $("faqList").innerHTML = (m.faq || []).map(function (f, i) {
+      return "<details><summary><span class=\"qn\">Q" + (i + 1) + '</span><span>' + esc(f.q) + "</span>"
+           + '<span class="cv">' + ic("chevron-right", 17) + "</span></summary>"
+           + '<p class="ans">' + esc(f.a) + "</p></details>";
+    }).join("");
+    $("terms").hidden = !(m.faq || []).length;
+
+    /* 진행 프로세스 */
+    $("processList").innerHTML = (m.process || []).map(function (st) {
+      return "<li><span class=\"si\">" + ic(st.icon, 26) + "</span><b>" + esc(st.t) + "</b>"
+           + "<span>" + esc(st.d) + "</span></li>";
+    }).join("");
+    $("process").hidden = !(m.process || []).length;
 
     /* 재료 — 게이지 바 */
     var mediaList = (m.media || []).slice();
@@ -1107,7 +1347,10 @@
       ? voices.map(function (v) {
           return '<div class="quote"><span class="cap">' + esc(v.kind || orgKind(v.org)) + '</span>'
                + '<div class="mark">' + ic("quote", 26) + '</div><p>' + esc(v.quote) + '</p>'
-               + '<div class="who"><b>' + esc(v.org) + '</b>' + esc(v.role || "") + '</div></div>';
+               + '<div class="who"><b>' + esc(v.org) + '</b>' + esc(v.role || "") + '</div>'
+               + (v.source ? '<span class="src">출처 · ' + esc(v.source) + '</span>'
+                           : (DRAFT ? '<span class="src todo">출처 확인 필요</span>' : ''))
+               + '</div>';
         }).join("")
       : (DRAFT ? '<div class="quote"><span class="cap">학교</span><div class="mark">' + ic("quote", 26) + '</div><p style="color:#BEB4A8">입력 대기 — portfolio.json 의 voices 에 기관·직함·인용문을 넣으면 이 자리에 나옵니다.</p></div>' : "");
     $("quoteList").hidden = !voices.length && !DRAFT;
@@ -1120,9 +1363,67 @@
       return '<div class="rev"><div class="av' + (i % 2 ? " t" : "") + '">' + esc(initial) + '</div>'
            + '<div class="bd"><div class="nm">' + esc(v.who) + ' <span>' + esc(v.year) + '</span></div>'
            + '<p class="tx">' + esc(v.text) + '</p>'
-           + '<span class="tag">' + esc(v.tag) + '</span></div>'
+           + '<span class="tag">' + esc(v.tag) + '</span>'
+           + (v.org ? '<span class="src">출처 · ' + esc(v.org) + '</span>'
+                    : (DRAFT ? '<span class="src todo">출처 확인 필요</span>' : ''))
+           + '</div>'
            + '<div class="swatch"></div></div>';
     }).join("");
+
+    /* 회신 약속 */
+    if (p.replyPromise) $("replyPromise").textContent = p.replyPromise;
+
+    /* 채널 버튼 + 강사 프로필 PDF */
+    var chans = [];
+    if (p.email) chans.push('<a class="btn light" href="mailto:' + esc(p.email) + '">'
+      + ic("mail", 16) + " 이메일 보내기</a>");
+    chans.push(p.phone
+      ? '<a class="btn ghost" href="tel:' + esc(p.phone.replace(/[^0-9+]/g, "")) + '">' + ic("phone", 16) + " " + esc(p.phone) + "</a>"
+      : '<span class="btn ghost off">' + ic("phone", 16) + " 전화 (번호 준비 중)</span>");
+    chans.push(p.kakao
+      ? '<a class="btn ghost" href="' + esc(p.kakao) + '" target="_blank" rel="noopener">' + ic("chat", 16) + " 카카오톡 채널</a>"
+      : '<span class="btn ghost off">' + ic("chat", 16) + " 카카오톡 채널 (개설 예정)</span>");
+    chans.push(p.profilePdf
+      ? '<a class="btn ghost" href="' + esc(p.profilePdf) + '" download>' + ic("download", 16) + " 강사 프로필 PDF 받기</a>"
+      : '<span class="btn ghost off">' + ic("download", 16) + " 강사 프로필 PDF (준비 중)</span>");
+    $("chanBtns").innerHTML = chans.join("");
+
+    var navPdf = $("navPdf");
+    if (p.profilePdf) {
+      navPdf.href = p.profilePdf;
+      navPdf.setAttribute("download", "");
+      navPdf.hidden = false;
+    }
+
+    /* 간단 문의 폼 */
+    var form = $("askForm"), note = $("formNote");
+    form.action = m.formEndpoint || FORM_ENDPOINT;
+    ["_subject", "_captcha", "_template", "_next"].forEach(function (k) {
+      var h = document.createElement("input");
+      h.type = "hidden"; h.name = k;
+      h.value = k === "_subject" ? "[포트폴리오] 수업 문의가 도착했습니다"
+              : k === "_captcha" ? "false"
+              : k === "_template" ? "table"
+              : location.href.split("#")[0] + "?sent=1";
+      form.appendChild(h);
+    });
+    note.textContent = (p.replyPromise || "") + " 메일이 열리지 않으면 " + (p.email || "") + " 로 바로 보내 주세요.";
+    form.addEventListener("submit", function (e) {
+      var bad = [].filter.call(form.querySelectorAll("[required]"), function (el) { return !el.value.trim(); });
+      if (bad.length) {
+        e.preventDefault();
+        note.className = "formnote bad";
+        note.textContent = "기관명 · 수업 대상 · 연락처는 꼭 적어 주세요.";
+        bad[0].focus();
+        return;
+      }
+      note.className = "formnote";
+      note.textContent = "보내는 중… 새 창에서 전송 결과가 열립니다.";
+    });
+    if (/[?&]sent=1/.test(location.search)) {
+      note.className = "formnote";
+      note.textContent = "문의가 전달되었습니다. " + (p.replyPromise || "");
+    }
 
     /* 기본 정보 (라벨:값) */
     var info = [
