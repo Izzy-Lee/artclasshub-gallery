@@ -167,6 +167,21 @@
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
+
+  /* 그림책 웹앱은 가끔 한두 반의 응답을 놓친다(짧은 시간에 여러 번 열면 특히).
+     실패하면 잠깐 쉬었다 두 번까지 다시 부르고, 그래도 못 받으면 개수를 감춘다. */
+  function getBooks(code, tries) {
+    tries = tries || 0;
+    return fetch(BOOKS_API + "?class=" + encodeURIComponent(code))
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { return (j && j.books) || []; })
+      .catch(function (e) {
+        if (tries >= 2) throw e;
+        return new Promise(function (res) { setTimeout(res, 500 * (tries + 1)); })
+          .then(function () { return getBooks(code, tries + 1); });
+      });
+  }
+
   /* 자료 읽기 ----------------------------------------------------- */
   function loadManifest() {
     return fetch("portfolio.json?v=" + Date.now())
@@ -224,10 +239,7 @@
     loadManifest().then(function (m) {
       var codes = m.classCodes || [], seen = {};
       return Promise.all(codes.map(function (c) {
-        return fetch(BOOKS_API + "?class=" + encodeURIComponent(c))
-          .then(function (r) { return r.json(); })
-          .then(function (j) { return (j && j.books) || []; })
-          .catch(function () { return []; });
+        return getBooks(c).catch(function () { return []; });
       })).then(function (lists) {
         lists.forEach(function (books) {
           books.forEach(function (b) {
