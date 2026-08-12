@@ -453,12 +453,13 @@
     "oneLine": "인천 기반 미술 강사 · 학교/복지관/섬마을 6년차",
     "email": "funnyshownet@gmail.com",
     "phone": "",
-    "photo": "",
+    "photo": "portfolio-assets/profile.webp",
     "area": "인천 전역 · 옹진군 도서지역(백령도·영흥도) 출강 가능",
     "availability": "정규 수업(주중) · 주말학교 · 방학 특강 · 진로체험 · 교사 연수",
     "badge": "교원자격(실기교사·디자인) 보유",
-    "photoFocus": "xMidYMin slice",
-    "social": []
+    "photoFocus": "xMidYMid meet",
+    "social": [],
+    "photoCutout": true
   },
   "credentials": {
     "education": [

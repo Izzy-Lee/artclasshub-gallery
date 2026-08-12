@@ -413,7 +413,13 @@
     <div class="hero-art" id="heroArt">
       <svg class="art" viewBox="0 0 460 460" aria-hidden="true">
         <defs>
+          <!-- 원 안에 담는 보통 사진 -->
           <clipPath id="faceClip"><circle cx="238" cy="222" r="150"/></clipPath>
+          <!-- 배경을 지운 사진: 어깨 아래만 원으로 자르고 머리는 도형 위로 나온다 -->
+          <clipPath id="figClip">
+            <rect x="30" y="0" width="400" height="222"/>
+            <circle cx="238" cy="222" r="152"/>
+          </clipPath>
           <pattern id="dots" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
             <circle cx="2.6" cy="2.6" r="2.6" fill="#2B2320"/>
           </pattern>
@@ -805,9 +811,17 @@
     var photoUrl = p.photo || "";
     if (photoUrl) {
       var im = $("heroPhoto");
+      // 배경을 지운 사진이면 어깨 아래만 원으로 자르고 머리는 도형 위로 내보낸다
+      var box = p.photoCutout ? { clip: "figClip", x: 61, y: 40, w: 354, h: 340, fit: "xMidYMid meet" }
+                              : { clip: "faceClip", x: 88, y: 72, w: 300, h: 300, fit: "xMidYMin slice" };
+      im.setAttribute("clip-path", "url(#" + box.clip + ")");
+      im.setAttribute("x", p.photoBox && p.photoBox.x != null ? p.photoBox.x : box.x);
+      im.setAttribute("y", p.photoBox && p.photoBox.y != null ? p.photoBox.y : box.y);
+      im.setAttribute("width", p.photoBox && p.photoBox.w != null ? p.photoBox.w : box.w);
+      im.setAttribute("height", p.photoBox && p.photoBox.h != null ? p.photoBox.h : box.h);
+      im.setAttribute("preserveAspectRatio", p.photoFocus || box.fit);
       im.setAttributeNS("http://www.w3.org/1999/xlink", "href", photoUrl);
       im.setAttribute("href", photoUrl);
-      if (p.photoFocus) im.setAttribute("preserveAspectRatio", p.photoFocus);
     } else {
       $("heroArt").classList.add("no-photo");
     }
