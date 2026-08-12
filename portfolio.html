@@ -184,19 +184,19 @@
   .band-deep .tabs button.on{background:#F4F1EA;color:var(--deep);border-color:#F4F1EA}
 
   /* ── 대표 컷 + 매소너리 ── */
-  .feature{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:14px}
-  .feature .fx{position:relative;border-radius:var(--r);overflow:hidden;background:#fff;cursor:pointer}
-  .feature .fx img{width:100%;height:100%;object-fit:cover;display:block}
-  .feature .fx.tall{aspect-ratio:16/10}
-  .feature .fx.side{aspect-ratio:4/5}
-  @media (max-width:700px){ .feature{grid-template-columns:1fr} .feature .fx.side{display:none} }
 
-  .masonry{columns:3;column-gap:12px}
-  @media (max-width:900px){ .masonry{columns:2} }
-  @media (max-width:520px){ .masonry{columns:1} }
-  .mitem{break-inside:avoid;margin-bottom:12px;border-radius:var(--r);overflow:hidden;background:#fff;
+  /* 가로 스크롤 카드 줄 */
+  .cardrail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;
+            scrollbar-width:none;padding:2px 2px 12px}
+  .cardrail::-webkit-scrollbar{display:none}
+  .cardrail > *{flex:0 0 auto;scroll-snap-align:start}
+  .mitem{border-radius:var(--r);overflow:hidden;background:#fff;
          border:1px solid var(--line);cursor:pointer;position:relative}
-  .mitem img{width:100%;display:block}
+  .mitem.shot-card{width:300px;height:225px}
+  .mitem.shot-card img{width:100%;height:100%;object-fit:cover;display:block}
+  .mitem.work-card{width:210px;height:210px}
+  .mitem.work-card img{width:100%;height:100%;object-fit:cover;display:block}
+  @media (max-width:520px){ .mitem.shot-card{width:250px;height:188px} .mitem.work-card{width:170px;height:170px} }
   .mitem.raw img{filter:blur(15px) saturate(.9);transform:scale(1.06)}
   .mitem .pend{position:absolute;right:8px;bottom:8px;background:rgba(194,96,63,.94);color:#fff;font-size:11px;
                padding:3px 9px;border-radius:999px}
@@ -211,7 +211,9 @@
              box-shadow:0 18px 26px rgba(0,0,0,.42), 0 2px 0 rgba(255,255,255,.25) inset;
              transition:transform .2s}
   .book:hover .cov{transform:translateY(-9px) rotate(-1deg)}
-  .book .cov img{width:100%;height:100%;object-fit:cover;display:block}
+  .book .cov .face{width:100%;height:100%;background-repeat:no-repeat;background-position:center;
+                   background-size:cover}
+  .book .cov .face.spread{background-size:auto 100%;background-position:right center}
   .book p{margin:12px 0 0;font-size:13.5px;font-weight:700;color:#F4F1EA;line-height:1.35}
   .arrows{display:flex;gap:8px;margin-left:auto}
   .arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;
@@ -433,26 +435,37 @@
         <span class="sect-en">In the Classroom</span>
         <h2 class="sect-h">수업 현장</h2>
       </div>
+      <div class="arrows">
+        <button class="arrow" data-rail="photos" data-dir="-1" aria-label="이전">‹</button>
+        <button class="arrow" data-rail="photos" data-dir="1" aria-label="다음">›</button>
+      </div>
     </div>
     <p class="lead">아이 얼굴은 캐릭터 스티커로 가려 올립니다. 이름은 어디에도 적지 않습니다.</p>
     <div class="tabs" id="photoTabs"></div>
-    <div class="feature" id="photoFeature"></div>
-    <div class="masonry" id="photos"></div>
+    <div class="cardrail" id="photos"></div>
   </div>
 </section>
 
 <!-- ── 아이들 작품 ── -->
 <section class="band-paper" id="works">
   <div class="wrap">
-    <span class="sect-en">Children's Work</span>
-    <h2 class="sect-h">아이들 작품
-      <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M2,5 C42,9 72,2 102,6 C132,10 164,3 198,6" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
-      </svg>
-    </h2>
+    <div class="railhead">
+      <div>
+        <span class="sect-en">Children's Work</span>
+        <h2 class="sect-h">아이들 작품
+          <svg class="ul" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2,5 C42,9 72,2 102,6 C132,10 164,3 198,6" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+          </svg>
+        </h2>
+      </div>
+      <div class="arrows">
+        <button class="arrow" data-rail="workGrid" data-dir="-1" aria-label="이전">‹</button>
+        <button class="arrow" data-rail="workGrid" data-dir="1" aria-label="다음">›</button>
+      </div>
+    </div>
     <p class="lead">갤러리에 올라온 작품에서 가져옵니다. 이름은 빼고 그림만 보여 줍니다.</p>
     <div class="tabs" id="workTabs"></div>
-    <div class="masonry" id="workGrid"></div>
+    <div class="cardrail" id="workGrid"></div>
     <div style="text-align:center;margin-top:6px">
       <button class="btn ghost" id="workMore" hidden>더 보기</button>
     </div>
@@ -581,7 +594,20 @@
   function lbShow() {
     var it = LB.list[LB.at];
     if (!it) return;
-    $("lbImg").src = it.img;
+    var im = $("lbImg");
+    im.removeAttribute("style");
+    if (it.half) {
+      im.onload = function () {
+        if (im.naturalWidth > im.naturalHeight * 1.15) {
+          im.style.objectFit = "cover";
+          im.style.objectPosition = "right center";
+          im.style.aspectRatio = (im.naturalWidth / 2) + " / " + im.naturalHeight;
+          im.style.width = "auto";
+          im.style.maxHeight = "78vh";
+        }
+      };
+    } else { im.onload = null; }
+    im.src = it.img;
     $("lbCap").textContent = it.cap || "";
     if (it.link) { $("lbOpen").href = it.link; $("lbOpen").hidden = false; }
     else { $("lbOpen").hidden = true; }
@@ -776,24 +802,16 @@
       var lbList = list.map(function (x) {
         return { img: IMG(x.id, 1400), cap: x.org + " · " + prettyDate(x.date) + (x.face === "sticker" ? "" : " (얼굴 처리 전)") };
       });
-      var head = list.slice(0, 2), rest = list.slice(2);
-      $("photoFeature").innerHTML = head.map(function (x, i) {
-        return '<div class="fx ' + (i ? "side" : "tall") + (x.face === "sticker" ? "" : " rawf") + '" data-i="' + i + '">'
-             + '<img loading="lazy" decoding="async" src="' + IMG(x.id, i ? 700 : 1100) + '" alt=""'
-             + (x.face === "sticker" ? "" : ' style="filter:blur(18px) saturate(.9);transform:scale(1.06)"') + '></div>';
-      }).join("");
-      $("photos").innerHTML = rest.map(function (x, i) {
-        return '<div class="mitem' + (x.face === "sticker" ? "" : " raw") + '" data-i="' + (i + 2) + '">'
+      $("photos").innerHTML = list.map(function (x, i) {
+        return '<div class="mitem shot-card' + (x.face === "sticker" ? "" : " raw") + '" data-i="' + i + '">'
              + '<img loading="lazy" decoding="async" src="' + IMG(x.id, 600) + '" alt="">'
              + (x.face === "sticker" ? "" : '<span class="pend">얼굴 처리 전</span>') + '</div>';
       }).join("");
-      function bind(box) {
-        box.onclick = function (e) {
-          var el = e.target.closest ? e.target.closest("[data-i]") : null;
-          if (el) lbOpen(lbList, Number(el.getAttribute("data-i")));
-        };
-      }
-      bind($("photoFeature")); bind($("photos"));
+      $("photos").scrollTo({ left: 0, behavior: "smooth" });
+      $("photos").onclick = function (e) {
+        var el = e.target.closest ? e.target.closest(".mitem") : null;
+        if (el) lbOpen(lbList, Number(el.getAttribute("data-i")));
+      };
     }
     var orgNames = [];
     photos.forEach(function (x) { if (orgNames.indexOf(x.org) < 0) orgNames.push(x.org); });
@@ -856,9 +874,10 @@
     var pool = curCat ? allWorks.filter(function (w) { return w.cat === curCat; }) : allWorks;
     shown = pool.slice(0, limit);
     $("workGrid").innerHTML = shown.map(function (w, i) {
-      return '<div class="mitem" data-i="' + i + '">'
+      return '<div class="mitem work-card" data-i="' + i + '">'
            + '<img loading="lazy" decoding="async" src="' + w.url + '" alt=""></div>';
     }).join("");
+    $("workGrid").scrollTo({ left: 0, behavior: "smooth" });
     var more = $("workMore");
     if (more) {
       var rest = pool.length - shown.length;
@@ -915,7 +934,7 @@
       if (!el) return;
       var i = Number(el.getAttribute("data-i"));
       lbOpen(all.map(function (b) {
-        return { img: b.cover, cap: (b.title || "그림책").trim() + " — 아이가 쓰고 그린 그림책",
+        return { img: b.cover, half: !!b.spread, cap: (b.title || "그림책").trim() + " — 아이가 쓰고 그린 그림책",
                  link: VIEWER + "?book=" + encodeURIComponent(b.bookId) };
       }), i);
     });
@@ -934,9 +953,21 @@
       });
       $("bookRail").innerHTML = all.map(function (b, i) {
         return '<div class="book" data-i="' + i + '"><div class="cov">'
-             + (b.cover ? '<img loading="lazy" decoding="async" src="' + b.cover + '" alt="">' : "")
+             + (b.cover ? '<div class="face" data-src="' + esc(b.cover) + '"></div>' : "")
              + '</div><p>' + esc((b.title || "그림책").trim()) + '</p></div>';
       }).join("");
+      // 첫 장이 [뒤표지|앞표지] 펼침면이면 오른쪽 절반(진짜 표지)만 보여 준다.
+      [].forEach.call($("bookRail").querySelectorAll(".face"), function (el, i) {
+        var src = el.getAttribute("data-src");
+        el.style.backgroundImage = 'url("' + src + '")';
+        var probe = new Image();
+        probe.onload = function () {
+          var spread = probe.naturalWidth > probe.naturalHeight * 1.15;
+          if (spread) el.classList.add("spread");
+          all[i].spread = spread;
+        };
+        probe.src = src;
+      });
     });
   }
 })();
