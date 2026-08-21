@@ -176,13 +176,32 @@
   if (URL_CLASS) fetchBooksByCode(URL_CLASS).catch(function () {});
 
   // 브라우저에 마지막 목록을 저장해 두면 다음 방문(같은 기기)에서 즉시 그려진다.
-  function booksCacheKey(className) { return "railBooks:" + className; }
+  // v2 = 최신순 정렬본. 예전(등록순) 저장본은 키가 달라 자연히 버려진다.
+  function booksCacheKey(className) { return "railBooks2:" + className; }
   function readBooksCache(className) {
     try { return JSON.parse(localStorage.getItem(booksCacheKey(className)) || "null"); }
     catch (e) { return null; }
   }
   function writeBooksCache(className, books) {
     try { localStorage.setItem(booksCacheKey(className), JSON.stringify(books)); } catch (e) {}
+  }
+
+  /// 화면 위 정렬 칸(작품과 같은 것)의 현재 값. 칸이 없으면 최신순으로 본다.
+  function sortValue() {
+    var el = document.getElementById("sortSelect");
+    return (el && el.value) || "newest";
+  }
+
+  /// 최신순(새로 만든 책이 앞) 정렬.
+  /// GAS가 만든 시각(at)을 주면 그걸로 세우고, 아직 안 주는 배포본이면
+  /// 기록 시트에 쌓인 순서(오래된 것부터)의 역순으로 뒤집는다.
+  function sortNewestFirst(books) {
+    var list = (books || []).slice();
+    var hasAt = list.some(function (b) { return b && b.at; });
+    if (!hasAt) return list.reverse();
+    return list.map(function (b, i) { return { b: b, i: i, t: Date.parse(b && b.at) || 0 }; })
+      .sort(function (x, y) { return (y.t - x.t) || (y.i - x.i); })
+      .map(function (x) { return x.b; });
   }
 
   /// 이 반의 온라인 발행 그림책을 GAS에서 가져온다(뷰어와 같은 출처).
@@ -214,6 +233,7 @@
           out.push(b);
         });
       });
+      out = sortNewestFirst(out);   // 새로 만든 그림책이 맨 앞에 오도록
       // 실패 섞인 빈 결과는 캐시하지 않는다 — 다음 렌더에서 다시 시도해 깜빡임을 막는다.
       lastBooksLoadFailed = failed;
       if (out.length || !failed) booksByClass[className] = out;
@@ -261,6 +281,8 @@
     if (studentFilter) {
       mine = mine.filter(function (b) { return (b.student || "").trim() === studentFilter; });
     }
+    // 목록은 최신순으로 들고 있다 — 위 정렬 칸이 '오래된순'이면 뒤집어 준다.
+    if (sortValue() === "oldest") mine = mine.slice().reverse();
     if (!mine.length) {
       rail.track.innerHTML = "";
       rail.setCount("");
@@ -756,6 +778,13 @@
       isAdmin = !!(e && e.detail);
       if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
     });
+    // 작품 정렬 칸(최신순/오래된순)을 바꾸면 그림책 줄도 같은 순서로 맞춘다.
+    var sortEl = document.getElementById("sortSelect");
+    if (sortEl) {
+      sortEl.addEventListener("change", function () {
+        if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
+      });
+    }
     // 이름 탭에서 학생을 고르면 그림책도 그 학생 것만 보여준다.
     document.addEventListener("gallery-namefilter", function (e) {
       studentFilter = String((e && e.detail) || "").trim();
