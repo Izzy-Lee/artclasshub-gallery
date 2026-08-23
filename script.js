@@ -42,7 +42,7 @@
   // 지금 브라우저가 실제로 실행 중인 코드의 버전.
   // 배포 워크플로가 아래 자리표시자를 커밋 해시로 바꿔 넣는다(로컬에서는 그대로 보임).
   // 화면 맨 아래에 찍어서 "고쳤는데 왜 그대로지?"를 개발자 도구 없이 구별한다.
-  const BUILD = "26b82fb";
+  const BUILD = "262ad59";
 
   // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -1373,6 +1373,100 @@
     refreshModalInfo(item);
     applyFilters();                                // 카드의 표기도 같이 갱신
   }
+
+  // =========================================================
+  //  🖼 이미지 바꾸기 (관리자) — 새 그림을 드라이브에 올리고 이 작품에 갈아 끼운다.
+  //  파일은 앱과 같은 Apps Script 웹앱(CLASS_API)에 올린다. 원본은 지우지 않으므로
+  //  잘못 바꿔도 드라이브에 그대로 남아 있다.
+  // =========================================================
+
+  /// 큰 사진은 긴 변 2000px로 줄여 올린다(업로드 시간·용량 절약). 실패하면 원본 그대로.
+  function shrinkImage(file, maxSide) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        if (scale >= 1) { resolve(null); return; }          // 이미 작으면 원본 사용
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * scale);
+        cv.height = Math.round(img.height * scale);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        cv.toBlob((b) => resolve(b), "image/jpeg", 0.92);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  /// Blob → base64(헤더 제거)
+  function toBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(",")[1] || "");
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  $("replaceBtn").addEventListener("click", () => {
+    if (!currentItem) return;
+    $("replaceFile").value = "";      // 같은 파일을 다시 골라도 change가 뜨도록
+    $("replaceFile").click();
+  });
+
+  $("replaceFile").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || !currentItem) return;
+    const item = currentItem;
+    if (!CLASS_API) { alert("업로드 주소(classApi)가 설정되어 있지 않아요."); return; }
+    if (usingSample || !db) { alert("샘플 모드에서는 이미지를 바꿀 수 없어요."); return; }
+
+    const btn = $("replaceBtn");
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "⏳ 올리는 중…";
+    try {
+      const small = await shrinkImage(file, 2000);
+      const blob = small || file;
+      const ext = small ? "jpg" : (extOf(file.name) || "jpg");
+      const mime = small ? "image/jpeg" : (file.type || "image/jpeg");
+      const n = new Date(), pad = (v) => String(v).padStart(2, "0");
+      const stamp = `${n.getFullYear()}${pad(n.getMonth() + 1)}${pad(n.getDate())}-${pad(n.getHours())}${pad(n.getMinutes())}`;
+      const fileName = `${String(item.student).replace(/[\\/:*?"<>|]/g, "_")}_${stamp}.${ext}`;
+      const dataBase64 = await toBase64(blob);
+
+      const res = await fetch(CLASS_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },   // 프리플라이트 없이(GAS 단순요청)
+        body: JSON.stringify({
+          action: "upload", secret: CFG.classSecret || "",
+          folderPath: [item.classCode || item.school || "갤러리", "교체본", item.student],
+          fileName: fileName, mimeType: mime, dataBase64: dataBase64
+        })
+      });
+      const d = await res.json();
+      if (!d || !d.ok || !d.fileId) throw new Error((d && d.error) || "업로드 실패");
+
+      // 보여주는 URL 우선순위(thumbnail_url → download_url → imageURL → 드라이브 링크)를
+      // 모두 새 파일로 맞춰야 옛 그림이 남지 않는다.
+      await db.collection(COLLECTION).doc(item.id).update({
+        thumbnail_url: d.thumbnailUrl,
+        download_url: d.thumbnailUrl,
+        imageURL: d.thumbnailUrl,
+        google_drive_link: d.link,
+        file_name: fileName,
+        file_extension: ext,
+        file_type: "image",
+        replaced_at: new Date().toISOString()
+      });
+      closeModal();
+    } catch (err) {
+      alert("이미지를 바꾸지 못했어요: " + (err && err.message ? err.message : err));
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
 
   // 숨김
   $("hideBtn").addEventListener("click", async () => {
