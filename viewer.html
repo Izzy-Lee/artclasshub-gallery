@@ -518,12 +518,31 @@
       var a = lineStat(sd, W, H, side, n).mean, b = lineStat(sd, W, H, side, n + 3).mean;
       if (Math.abs(a - b) > 55) n++; else break;
     }
+    if (!n) return 0;
+    // ① 테두리는 종이보다 뚜렷하게 어둡다(회색 그림자·검은 실선).
+    //    밝은 띠는 아이가 일부러 남긴 여백이므로 절대 건드리지 않는다.
+    if (lineStat(sd, W, H, side, 0).mean >= 225) return 0;
+    // ② 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
+    //    평평하고 어둡지만 안쪽으로 이어지므로 여기서 걸러진다(그건 아이 그림이다).
+    var darkest = 255;
+    for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(sd, W, H, side, q).mean);
+    var inside = lineStat(sd, W, H, side, Math.min(lines - 1, n + 2)).mean;
+    if (inside - darkest <= 45) return 0;
     return n;
   }
 
   // 한 변의 테두리를, 안쪽 그림을 바깥으로 늘려서 덮는다(여백 채우기와 같은 방식).
   function pushOut(ctx, W, H, side, edge) {
-    if (edge < 2) return;
+    if (edge < 1) return;
+    // 1~3px짜리 실선은 늘릴 것도 없이 바로 옆 줄로 덮어 버린다(그림이 전혀 안 움직인다).
+    if (edge <= 3) {
+      var self = ctx.canvas;
+      if (side === "l")      ctx.drawImage(self, edge, 0, 1, H, 0, 0, edge, H);
+      else if (side === "r") ctx.drawImage(self, W - 1 - edge, 0, 1, H, W - edge, 0, edge, H);
+      else if (side === "t") ctx.drawImage(self, 0, edge, W, 1, 0, 0, W, edge);
+      else                   ctx.drawImage(self, 0, H - 1 - edge, W, 1, 0, H - edge, W, edge);
+      return;
+    }
     var horiz = (side === "l" || side === "r");
     var lines = horiz ? W : H, across = horiz ? H : W;
     var band = Math.max(24, Math.min(edge * 7, Math.round(lines * 0.35)));
@@ -576,7 +595,7 @@
         var sd = ctx.getImageData(0, 0, W, H).data;
         var L = borderRun(sd, W, H, "l"), R = borderRun(sd, W, H, "r");
         var T = borderRun(sd, W, H, "t"), B = borderRun(sd, W, H, "b");
-        if (L < 2 && R < 2 && T < 2 && B < 2) { alert("이 쪽에는 없앨 테두리가 없어요."); busy(btn, false); return; }
+        if (!L && !R && !T && !B) { alert("이 쪽에는 없앨 테두리가 없어요."); busy(btn, false); return; }
         pushOut(ctx, W, H, "l", L); pushOut(ctx, W, H, "r", R);
         pushOut(ctx, W, H, "t", T); pushOut(ctx, W, H, "b", B);
         pages[idx] = { src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file, blankL: 0, blankR: 0 };
