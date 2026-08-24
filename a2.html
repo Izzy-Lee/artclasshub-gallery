@@ -139,6 +139,60 @@
   // 자동으로 찾은 이음매가 그림과 살짝 어긋날 때 손으로 밀어 맞추는 값(원본 픽셀).
   var seamNudge = 0;
 
+  // ── 그림 파일에 같이 저장된 테두리 잘라내기 ────────────────────────────
+  //   어떤 쪽은 종이 카드의 회색 그림자 띠와 검은 실선까지 그림 안에 찍혀 있다
+  //   (반 전체 11권 중 10권, 38쪽). 인쇄 시트에서는 그 부분만 빼고 쓴다.
+  //   원본 파일은 건드리지 않는다 — 화면·인쇄에서만 잘라 쓴다.
+  //   테두리는 '한 줄 안에서 색이 거의 변하지 않는다'는 점으로 알아본다.
+  function lineStat(d, W, H, side, n){
+    var horiz = (side === "l" || side === "r");
+    var lines = horiz ? W : H, across = horiz ? H : W;
+    var i = (side === "l" || side === "t") ? n : lines - 1 - n;
+    var sum = 0, sum2 = 0, cnt = 0;
+    for (var j = 0; j < across; j += 3) {
+      var o = (horiz ? (j * W + i) : (i * W + j)) * 4;
+      var g = (d[o] + d[o + 1] + d[o + 2]) / 3;
+      sum += g; sum2 += g * g; cnt++;
+    }
+    var m = sum / cnt;
+    return { mean: m, sd: Math.sqrt(Math.max(0, sum2 / cnt - m * m)) };
+  }
+  function borderRun(d, W, H, side){
+    var lines = (side === "l" || side === "r") ? W : H;
+    var cap = Math.round(lines * 0.12);       // 테두리는 얇다. 이보다 넓으면 그림의 일부로 본다.
+    var n = 0;
+    while (n < cap && lineStat(d, W, H, side, n).sd < 22) n++;
+    if (n >= cap) n = 0;                      // 넓은 단색 면 = 일부러 비워 둔 배경
+    for (var k = 0; k < 3; k++) {             // 남은 1~2px 실선까지 마저 벗긴다
+      if (n + 4 >= lines) break;
+      if (Math.abs(lineStat(d, W, H, side, n).mean - lineStat(d, W, H, side, n + 3).mean) > 55) n++;
+      else break;
+    }
+    return n;
+  }
+  function trimFrame(img){
+    return new Promise(function(res){
+      if (!img || !img.naturalWidth) { res(img); return; }
+      var W = img.naturalWidth, H = img.naturalHeight;
+      var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+      var ctx = cv.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      var d;
+      try { d = ctx.getImageData(0, 0, W, H).data; } catch (e) { res(img); return; }
+      var L = borderRun(d, W, H, "l"), R = borderRun(d, W, H, "r");
+      var T = borderRun(d, W, H, "t"), B = borderRun(d, W, H, "b");
+      if (L < 3 && R < 3 && T < 3 && B < 3) { res(img); return; }
+      var w2 = W - L - R, h2 = H - T - B;
+      if (w2 < W * 0.5 || h2 < H * 0.5) { res(img); return; }   // 너무 많이 자르면 그만둔다
+      var oc = document.createElement("canvas"); oc.width = w2; oc.height = h2;
+      oc.getContext("2d").drawImage(cv, L, T, w2, h2, 0, 0, w2, h2);
+      var out = new Image();
+      out.onload = function(){ res(out); };
+      out.onerror = function(){ res(img); };
+      out.src = oc.toDataURL("image/jpeg", 0.94);
+    });
+  }
+
   /// 그림 한가운데의 '거의 흰 세로 띠'(두 쪽 사이 여백)를 찾아 그 한가운데 x를 돌려준다.
   /// 아이 그림의 실제 이음매가 정확히 절반이 아닐 때, 칸막이 선과 어긋나 보이는 걸 막는다.
   /// 못 찾으면(가장자리까지 그림이 꽉 찬 경우) 그냥 절반을 쓴다.
@@ -327,7 +381,9 @@
         a.src = u;
       });
     }
-    Promise.all(list.map(load)).then(function(imgs){ build(list, imgs); });
+    Promise.all(list.map(load))
+      .then(function(imgs){ return Promise.all(imgs.map(trimFrame)); })
+      .then(function(imgs){ build(list, imgs); });
   }
 
   el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
