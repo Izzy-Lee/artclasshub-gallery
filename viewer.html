@@ -96,6 +96,8 @@
     <div id="adminBar">
       <button id="lockBtn" title="관리자">🔒</button>
       <button id="swapBtn" hidden>🖼 이 쪽 그림 바꾸기</button>
+      <button id="fillLBtn" hidden title="왼쪽에 생긴 빈 자리를 AI로 채웁니다">◧ 왼쪽 여백 채우기</button>
+      <button id="fillRBtn" hidden title="오른쪽에 생긴 빈 자리를 AI로 채웁니다">◨ 오른쪽 여백 채우기</button>
       <button id="saveViewBtn" hidden>💾 이 모습대로 저장</button>
       <input id="swapFile" type="file" accept="image/*" hidden />
     </div>
@@ -325,6 +327,7 @@
   el("lockBtn").addEventListener("click", function(){
     if (adminKey) {
       adminKey = ""; el("swapBtn").hidden = true; el("saveViewBtn").hidden = true;
+      el("fillLBtn").hidden = true; el("fillRBtn").hidden = true;
       el("lockBtn").textContent = "🔒"; document.body.classList.remove("admin");
       zoomMode = "fit"; resetZoom();
       return;
@@ -333,6 +336,7 @@
     if (!pw) return;
     adminKey = pw; el("lockBtn").textContent = "🔓";
     el("swapBtn").hidden = !bookId; el("saveViewBtn").hidden = !bookId;
+    el("fillLBtn").hidden = !bookId; el("fillRBtn").hidden = !bookId;
     document.body.classList.add("admin");
   });
   el("swapBtn").addEventListener("click", function(){ el("swapFile").value = ""; el("swapFile").click(); });
@@ -475,6 +479,84 @@
     };
     src.src = pg.src;            // 표지 반쪽도 원본은 '표지 한 장' 주소다
   });
+
+  // ── 빈 자리 AI로 채우기 ────────────────────────────────────────────────
+  //   확대·이동하다 한쪽이 비면, 그 자리만 배경과 이어지게 채워 준다.
+  //   그림 전체를 다시 그리는 게 아니라, **빈 자리만** 받아 와 덧그린다.
+  var AI_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  var AI_SECRET = "artclasshub-ai-7Kq3mZ9x";
+
+  function fillSide(side){
+    var pg = pages[idx];
+    var img = stage.querySelector(".page img");
+    var box = stage.getBoundingClientRect();
+    if (!pg || pg.half) { alert("표지는 앞·뒤가 한 장이라 여기서는 채울 수 없어요."); return; }
+    if (!img || !img.naturalWidth || !box.width) { alert("그림을 아직 다 불러오지 못했어요."); return; }
+
+    // 지금 보이는 모습 그대로의 좌표(저장할 때와 같은 계산)
+    var W = 1536, H = 1024;                                  // AI가 받는 크기(3:2)
+    var k = W / box.width;
+    var ar = img.naturalWidth / img.naturalHeight;
+    var dw0 = Math.min(box.width, box.height * ar), dh0 = dw0 / ar;
+    var w = dw0 * zoom * k, h = dh0 * zoom * k;
+    var cx = (box.width / 2 + panX) * k, cy = (box.height / 2 + panY) * k;
+    var left = cx - w / 2, right = cx + w / 2;
+
+    var gap = (side === "l") ? Math.round(left) : Math.round(W - right);
+    if (gap < 3) { alert((side === "l" ? "왼쪽" : "오른쪽") + "에 채울 빈 자리가 없어요."); return; }
+    var gx = (side === "l") ? 0 : Math.round(right);
+    var gw = Math.min(gap + 2, W);                            // 이음매가 보이지 않게 2px 겹치기
+
+    var btn = el(side === "l" ? "fillLBtn" : "fillRBtn");
+    busy(btn, true, "⏳ 채우는 중…");
+
+    var src = new Image(); src.crossOrigin = "anonymous";
+    src.onerror = function(){ alert("그림을 다시 불러오지 못했어요."); busy(btn, false); };
+    src.onload = function(){
+      // ① 채울 곳만 비워 둔 그림
+      var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+      var ctx = cv.getContext("2d");
+      ctx.drawImage(src, cx - w / 2, cy - h / 2, w, h);
+      // ② 채울 곳만 투명한 마스크
+      var mk = document.createElement("canvas"); mk.width = W; mk.height = H;
+      var mctx = mk.getContext("2d");
+      mctx.fillStyle = "#000"; mctx.fillRect(0, 0, W, H);
+      mctx.clearRect(gx, 0, gw, H);
+
+      fetch(AI_API, {
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          secret: AI_SECRET, action: "outpaint", size: "1536x1024",
+          prompt: "그림의 투명한 빈 자리를 바로 옆 배경과 이어지게 채워라. 배경색·무늬만 자연스럽게 연장하고, "
+                + "새로운 사물·인물·글자는 절대 그리지 마라. 나머지 부분은 그대로 두어라.",
+          image: cv.toDataURL("image/png").split(",")[1],
+          mask: mk.toDataURL("image/png").split(",")[1]
+        })
+      })
+        .then(function(r){ return r.text(); })
+        .then(function(t){
+          var d = null; try { d = JSON.parse(t); } catch (e) {}
+          if (!d || !d.ok || !d.image) throw new Error((d && d.error) || "채우지 못했어요");
+          return new Promise(function(res, rej){
+            var got = new Image();
+            got.onload = function(){ res(got); }; got.onerror = rej;
+            got.src = "data:image/png;base64," + d.image;
+          });
+        })
+        .then(function(got){
+          // ③ 받아온 그림에서 **빈 자리만** 오려 덧그린다(아이 그림은 그대로).
+          ctx.drawImage(got, gx, 0, gw, H, gx, 0, gw, H);
+          pages[idx] = { src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file };
+          zoomMode = "fit"; resetZoom(); render();
+          alert("채웠어요. 마음에 들면 ‘💾 이 모습대로 저장’을 눌러 주세요.");
+        })
+        .catch(function(err){ alert("빈 자리를 채우지 못했어요: " + (err && err.message ? err.message : err)); })
+        .then(function(){ busy(btn, false); });
+    };
+    src.src = pg.src;
+  }
+  el("fillLBtn").addEventListener("click", function(){ fillSide("l"); });
+  el("fillRBtn").addEventListener("click", function(){ fillSide("r"); });
 
   function load(){
     if (!API || API.indexOf("PASTE") === 0) { show("error"); return; }
