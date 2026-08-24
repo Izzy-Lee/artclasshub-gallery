@@ -486,6 +486,16 @@
   var AI_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
   var AI_SECRET = "artclasshub-ai-7Kq3mZ9x";
 
+  // 한쪽을 채우고 나면 반대쪽 흰 여백이 그림 속에 구워져, 다음에 그쪽을 채우려 하면
+  // "빈 자리가 없어요"가 된다. 그래서 남아 있는 여백 폭을 그 쪽 정보에 적어 둔다.
+  function filled(cv, side, left, right, W, H, pg) {
+    return {
+      src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file,
+      blankL: (side === "l") ? 0 : Math.max(0, Math.round(left)),
+      blankR: (side === "l") ? Math.max(0, Math.round(W - right)) : 0
+    };
+  }
+
   function fillSide(side){
     var pg = pages[idx];
     var img = stage.querySelector(".page img");
@@ -502,10 +512,67 @@
     var cx = (box.width / 2 + panX) * k, cy = (box.height / 2 + panY) * k;
     var left = cx - w / 2, right = cx + w / 2;
 
+    // 앞서 한쪽만 채워 둔 그림이면 반대쪽 흰 여백이 그림 안에 들어 있다.
+    // 크기·위치를 건드리지 않은 상태에서만 그 기억해 둔 폭을 빈 자리로 인정한다.
+    if (zoom === 1 && !panX) {
+      if (side === "l" && left < 3 && pg.blankL) left = pg.blankL * (w / W);
+      if (side === "r" && (W - right) < 3 && pg.blankR) right = W - pg.blankR * (w / W);
+    }
+
     var gap = (side === "l") ? Math.round(left) : Math.round(W - right);
     if (gap < 3) { alert((side === "l" ? "왼쪽" : "오른쪽") + "에 채울 빈 자리가 없어요."); return; }
-    var gx = (side === "l") ? 0 : Math.round(right);
-    var gw = Math.min(gap + 2, W);                            // 이음매가 보이지 않게 2px 겹치기
+    // 그림의 맨 끝 몇 픽셀은 반투명하게 흐려져 있어(확대해 그린 자국) 그대로 두면 밝은 줄로 보인다.
+    // 그래서 그림 안쪽으로 3px 더 덮고, 색을 재는 기준선은 그보다 더 안쪽에서 뽑는다.
+    var BLEED = 3;
+    var gx = (side === "l") ? 0 : Math.max(0, Math.round(right) - BLEED);
+    var gw = (side === "l") ? Math.min(gap + BLEED, W) : Math.min(W - gx, W);
+    var edgeX = (side === "l") ? Math.min(W - 1, gw + 2) : Math.max(0, gx - 2);
+
+    // ── 빈 자리가 좁으면(펼침면 비율 때문에 생기는 양옆 여백 등) AI를 부르지 않는다.
+    //    가장자리 띠를 '점점 더' 늘려서 메우면 색도 선도 그대로 이어지고, 이음매가 아예 없다.
+    //    (안쪽에서는 하나도 안 늘리고 바깥으로 갈수록 늘어나므로 꺾이는 자국도 안 생긴다.)
+    if (gap <= W * 0.08) {
+      var cvS = document.createElement("canvas"); cvS.width = W; cvS.height = H;
+      var sctx = cvS.getContext("2d", { willReadFrequently: true });
+      var srcS = new Image(); srcS.crossOrigin = "anonymous";
+      srcS.onerror = function(){ alert("그림을 다시 불러오지 못했어요."); };
+      srcS.onload = function(){
+        sctx.fillStyle = "#fff"; sctx.fillRect(0, 0, W, H);
+        sctx.drawImage(srcS, cx - w / 2, cy - h / 2, w, h);
+        var band = Math.max(24, Math.min(Math.round(gap * 7), Math.round(w * 0.4)));
+        var inner = (side === "l") ? Math.round(left) + band : Math.round(right) - band;   // 늘리기 시작하는 안쪽 선
+        var span  = band + gap;
+        var x0 = (side === "l") ? Math.round(left) - gap : Math.round(right) - band;       // 다시 그릴 구간의 왼쪽 끝
+        x0 = Math.max(0, Math.min(W - 1, x0));
+        var wid = Math.min(span, W - x0);
+        var srcImg = sctx.getImageData(0, 0, W, H), sd = srcImg.data;
+        var out = sctx.createImageData(wid, H), od = out.data;
+        for (var X = 0; X < wid; X++) {
+          // 이음매(안쪽 선)에서 얼마나 떨어졌는지 → 원본의 어느 열을 가져올지 거꾸로 계산
+          var d = (side === "l") ? (inner - (x0 + X)) : ((x0 + X) - inner);
+          var u = (gap > 0) ? ((-band + Math.sqrt(band * band + 4 * gap * d)) / (2 * gap)) : (d / band);
+          u = Math.max(0, Math.min(1, u));
+          // 맨 끝 2px은 흐릿하게 번진 자국이라 색을 뽑는 데 쓰지 않는다.
+          var sxf = (side === "l") ? (inner - u * (band - 2)) : (inner + u * (band - 2));
+          var i0 = Math.max(0, Math.min(W - 1, Math.floor(sxf)));
+          var i1 = Math.max(0, Math.min(W - 1, i0 + 1));
+          var f = sxf - i0;
+          for (var Y = 0; Y < H; Y++) {
+            var a = (Y * W + i0) * 4, b = (Y * W + i1) * 4, o = (Y * wid + X) * 4;
+            od[o]     = sd[a]     + (sd[b]     - sd[a])     * f;
+            od[o + 1] = sd[a + 1] + (sd[b + 1] - sd[a + 1]) * f;
+            od[o + 2] = sd[a + 2] + (sd[b + 2] - sd[a + 2]) * f;
+            od[o + 3] = 255;
+          }
+        }
+        sctx.putImageData(out, x0, 0);
+        pages[idx] = filled(cvS, side, left, right, W, H, pg);
+        zoomMode = "fit"; resetZoom(); render();
+        alert("채웠어요. 마음에 들면 ‘💾 이 모습대로 저장’을 눌러 주세요.");
+      };
+      srcS.src = img.src;
+      return;
+    }
 
     var btn = el(side === "l" ? "fillLBtn" : "fillRBtn");
     busy(btn, true, "⏳ 채우는 중…");
@@ -547,24 +614,49 @@
         })
         .then(function(got){
           // ③ 먼저 빈 자리를 '가장자리 색'으로 깔아 둔다(AI가 살짝 어긋나도 흰 줄이 안 생기게).
-          var edgeX = (side === "l") ? Math.round(left) : Math.round(right) - 1;
-          ctx.drawImage(cv, Math.max(0, Math.min(W - 1, edgeX)), 0, 1, H, gx, 0, gw, H);
+          ctx.drawImage(cv, edgeX, 0, 1, H, gx, 0, gw, H);
 
-          // ④ 받아온 그림에서 빈 자리만 오려, 이음매 쪽은 서서히 나타나게 겹친다.
+          // ④ 받아온 그림에서 빈 자리만 오려 온다.
           var fill = document.createElement("canvas"); fill.width = gw; fill.height = H;
-          var fctx = fill.getContext("2d");
+          var fctx = fill.getContext("2d", { willReadFrequently: true });
           fctx.drawImage(got, gx, 0, gw, H, 0, 0, gw, H);
-          var fw = Math.min(40, Math.round(gw / 2));                 // 부드럽게 섞을 폭
+
+          // ⑤ 색 이어붙이기 — 줄(가로선)마다 원본 가장자리 색과의 차이를 재서
+          //    채운 부분에 그만큼 더해 주고, 멀어질수록 그 보정을 서서히 푼다.
+          //    (경계에서 색이 튀지 않게 하는 가장 확실한 방법)
+          try {
+            var edgeCol = ctx.getImageData(edgeX, 0, 1, H).data;
+            var fimg = fctx.getImageData(0, 0, gw, H);
+            var fd = fimg.data;
+            var seamX = (side === "l") ? gw - 1 : 0;          // 원본과 맞닿는 쪽
+            var ramp = gw;                                    // 빈 자리 전체에 걸쳐 서서히 푼다
+            for (var y = 0; y < H; y++) {
+              var si = (y * gw + seamX) * 4;
+              var dR = edgeCol[y * 4]     - fd[si];
+              var dG = edgeCol[y * 4 + 1] - fd[si + 1];
+              var dB = edgeCol[y * 4 + 2] - fd[si + 2];
+              for (var x = 0; x < gw; x++) {
+                var dist = (side === "l") ? (gw - 1 - x) : x;  // 이음매에서 떨어진 정도
+                var t = 1 - Math.min(1, dist / ramp);          // 이음매에서 1 → 끝에서 0
+                var i = (y * gw + x) * 4;
+                fd[i]     = Math.max(0, Math.min(255, fd[i]     + dR * t));
+                fd[i + 1] = Math.max(0, Math.min(255, fd[i + 1] + dG * t));
+                fd[i + 2] = Math.max(0, Math.min(255, fd[i + 2] + dB * t));
+              }
+            }
+            fctx.putImageData(fimg, 0, 0);
+          } catch (e) { /* 픽셀을 못 읽으면 색 보정 없이 그대로 */ }
+
+          // ⑥ 이음매 쪽만 살짝 비쳐 보이게 겹친다.
+          //    (색은 ⑤에서 이미 맞췄으므로 완전히 투명하게 만들면 오히려 밑색 줄이 드러난다.
+          //     0.72 → 1 로만 옅게 준다.)
+          var fw = Math.min(60, Math.round(gw / 2));
           if (fw > 2) {
-            var g = fctx.createLinearGradient(side === "l" ? gw : 0, 0, side === "l" ? gw - fw : fw, 0);
-            g.addColorStop(0, "rgba(0,0,0,0)");                      // 이음매 쪽은 투명(원본이 비침)
-            g.addColorStop(1, "rgba(0,0,0,1)");
+            var g2 = fctx.createLinearGradient(side === "l" ? gw : 0, 0, side === "l" ? gw - fw : fw, 0);
+            g2.addColorStop(0, "rgba(0,0,0,0.72)");
+            g2.addColorStop(1, "rgba(0,0,0,1)");
             fctx.globalCompositeOperation = "destination-in";
-            fctx.fillStyle = g; fctx.fillRect(0, 0, gw, H);
-            fctx.globalCompositeOperation = "source-over";
-            // 이음매에서 먼 쪽은 그대로 보이게 다시 채운다.
-            fctx.globalCompositeOperation = "destination-over";
-            fctx.drawImage(got, gx, 0, gw, H, 0, 0, gw, H);
+            fctx.fillStyle = g2; fctx.fillRect(0, 0, gw, H);
             fctx.globalCompositeOperation = "source-over";
           }
           ctx.drawImage(fill, gx, 0);
@@ -574,7 +666,7 @@
           ctx.globalCompositeOperation = "destination-over";
           ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
           ctx.restore();
-          pages[idx] = { src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file };
+          pages[idx] = filled(cv, side, left, right, W, H, pg);
           zoomMode = "fit"; resetZoom(); render();
           alert("채웠어요. 마음에 들면 ‘💾 이 모습대로 저장’을 눌러 주세요.");
         })
