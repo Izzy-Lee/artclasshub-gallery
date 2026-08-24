@@ -238,15 +238,10 @@
     var FLAT = 2.0;                                         // 이 정도면 '무늬 없음'
     var flat = energy.map(function(e){ return e <= FLAT; });
     var c = mid - x0;
-    if (!flat[c]) {                                         // 가운데가 그림이면 가까운 평평한 줄로
-      var found = -1;
-      for (var d = 1; d < cw; d++) {
-        if (c - d >= 0 && flat[c - d]) { found = c - d; break; }
-        if (c + d < cw && flat[c + d]) { found = c + d; break; }
-      }
-      if (found < 0) { seamCache[key] = mid; return mid; }
-      c = found;
-    }
+    // 한가운데에 무늬가 있으면(접는 선을 그렸거나 그림이 걸쳐 있으면) 거기가 곧 이음매다.
+    // 예전엔 옆의 평평한 줄을 찾아갔는데, 그 여백은 대개 한쪽 쪽의 '배경'이라
+    // 이음매가 그쪽으로 끌려갔다(실측: 768이어야 할 것이 719·730·752로 잡힘 → 옆 쪽 그림이 넘어옴).
+    if (!flat[c]) { seamCache[key] = mid; return mid; }
     var a = c, b = c;
     while (a - 1 >= 0 && flat[a - 1]) a--;
     while (b + 1 < cw && flat[b + 1]) b++;
