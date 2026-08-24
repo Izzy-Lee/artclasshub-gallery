@@ -98,6 +98,7 @@
       <button id="swapBtn" hidden>🖼 이 쪽 그림 바꾸기</button>
       <button id="fillLBtn" hidden title="왼쪽에 생긴 빈 자리를 AI로 채웁니다">◧ 왼쪽 여백 채우기</button>
       <button id="fillRBtn" hidden title="오른쪽에 생긴 빈 자리를 AI로 채웁니다">◨ 오른쪽 여백 채우기</button>
+      <button id="trimBtn" hidden title="그림 파일에 같이 저장된 회색 그림자·검은 실선 테두리를 없앱니다">▢ 테두리 없애기</button>
       <button id="saveViewBtn" hidden>💾 이 모습대로 저장</button>
       <input id="swapFile" type="file" accept="image/*" hidden />
     </div>
@@ -327,7 +328,7 @@
   el("lockBtn").addEventListener("click", function(){
     if (adminKey) {
       adminKey = ""; el("swapBtn").hidden = true; el("saveViewBtn").hidden = true;
-      el("fillLBtn").hidden = true; el("fillRBtn").hidden = true;
+      el("fillLBtn").hidden = true; el("fillRBtn").hidden = true; el("trimBtn").hidden = true;
       el("lockBtn").textContent = "🔒"; document.body.classList.remove("admin");
       zoomMode = "fit"; resetZoom();
       return;
@@ -336,7 +337,7 @@
     if (!pw) return;
     adminKey = pw; el("lockBtn").textContent = "🔓";
     el("swapBtn").hidden = !bookId; el("saveViewBtn").hidden = !bookId;
-    el("fillLBtn").hidden = !bookId; el("fillRBtn").hidden = !bookId;
+    el("fillLBtn").hidden = !bookId; el("fillRBtn").hidden = !bookId; el("trimBtn").hidden = !bookId;
     document.body.classList.add("admin");
   });
   el("swapBtn").addEventListener("click", function(){ el("swapFile").value = ""; el("swapFile").click(); });
@@ -485,6 +486,111 @@
   //   그림 전체를 다시 그리는 게 아니라, **빈 자리만** 받아 와 덧그린다.
   var AI_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
   var AI_SECRET = "artclasshub-ai-7Kq3mZ9x";
+
+  // ── 그림 파일에 같이 저장된 테두리 없애기 ──────────────────────────────
+  //   어떤 쪽은 종이 카드의 회색 그림자 띠와 검은 실선까지 그림 안에 찍혀 있다.
+  //   (예: 돌고래 쪽 = 좌 46px·우 45px 회색 띠 + 맨 윗줄 검은 선)
+  //   테두리는 '한 줄 안에서 색이 거의 변하지 않는다'는 점으로 알아본다.
+  //   그림은 한 줄 안에서 색이 들쭉날쭉하다.
+
+  function lineStat(sd, W, H, side, n) {
+    var horiz = (side === "l" || side === "r");
+    var lines = horiz ? W : H, across = horiz ? H : W;
+    var i = (side === "l" || side === "t") ? n : lines - 1 - n;
+    var sum = 0, sum2 = 0, cnt = 0;
+    for (var j = 0; j < across; j += 3) {
+      var o = (horiz ? (j * W + i) : (i * W + j)) * 4;
+      var g = (sd[o] + sd[o + 1] + sd[o + 2]) / 3;
+      sum += g; sum2 += g * g; cnt++;
+    }
+    var m = sum / cnt;
+    return { mean: m, sd: Math.sqrt(Math.max(0, sum2 / cnt - m * m)) };
+  }
+
+  function borderRun(sd, W, H, side) {
+    var lines = (side === "l" || side === "r") ? W : H;
+    var cap = Math.round(lines * 0.12);       // 테두리는 얇다. 이보다 넓으면 그림의 일부로 본다.
+    var n = 0;
+    while (n < cap && lineStat(sd, W, H, side, n).sd < 22) n++;
+    if (n >= cap) n = 0;                      // 넓은 단색 면 = 일부러 비워 둔 배경이므로 건드리지 않는다
+    for (var k = 0; k < 3; k++) {             // 남은 1~2px 실선까지 마저 벗긴다
+      if (n + 4 >= lines) break;
+      var a = lineStat(sd, W, H, side, n).mean, b = lineStat(sd, W, H, side, n + 3).mean;
+      if (Math.abs(a - b) > 55) n++; else break;
+    }
+    return n;
+  }
+
+  // 한 변의 테두리를, 안쪽 그림을 바깥으로 늘려서 덮는다(여백 채우기와 같은 방식).
+  function pushOut(ctx, W, H, side, edge) {
+    if (edge < 2) return;
+    var horiz = (side === "l" || side === "r");
+    var lines = horiz ? W : H, across = horiz ? H : W;
+    var band = Math.max(24, Math.min(edge * 7, Math.round(lines * 0.35)));
+    if (edge + band > lines) band = lines - edge - 1;
+    if (band < 8) return;
+    var near = (side === "l" || side === "t");
+    var inner = near ? (edge + band) : (lines - edge - band);   // 늘리기 시작하는 안쪽 선
+    var p0 = near ? 0 : (lines - edge - band);                  // 다시 그릴 구간의 시작
+    var wid = band + edge;
+    var src = ctx.getImageData(0, 0, W, H), s0 = src.data;
+    var out = ctx.createImageData(horiz ? wid : W, horiz ? H : wid), od = out.data;
+    for (var P = 0; P < wid; P++) {
+      var d = near ? (inner - (p0 + P)) : ((p0 + P) - inner);
+      var u = (-band + Math.sqrt(band * band + 4 * edge * d)) / (2 * edge);
+      u = Math.max(0, Math.min(1, u));
+      var sf = near ? (inner - u * (band - 2)) : (inner + u * (band - 2));
+      var i0 = Math.max(0, Math.min(lines - 1, Math.floor(sf)));
+      var i1 = Math.max(0, Math.min(lines - 1, i0 + 1));
+      var f = sf - i0;
+      for (var J = 0; J < across; J++) {
+        var a = (horiz ? (J * W + i0) : (i0 * W + J)) * 4;
+        var b = (horiz ? (J * W + i1) : (i1 * W + J)) * 4;
+        var o = (horiz ? (J * wid + P) : (P * W + J)) * 4;
+        od[o]     = s0[a]     + (s0[b]     - s0[a])     * f;
+        od[o + 1] = s0[a + 1] + (s0[b + 1] - s0[a + 1]) * f;
+        od[o + 2] = s0[a + 2] + (s0[b + 2] - s0[a + 2]) * f;
+        od[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(out, horiz ? p0 : 0, horiz ? 0 : p0);
+  }
+
+  function trimWhite(){
+    var pg = pages[idx];
+    var img = stage.querySelector(".page img");
+    if (!pg || pg.half) { alert("표지는 앞·뒤가 한 장이라 여기서는 못 해요."); return; }
+    if (!img || !img.naturalWidth) { alert("그림을 아직 다 불러오지 못했어요."); return; }
+
+    var btn = el("trimBtn");
+    busy(btn, true, "⏳ 없애는 중…");
+    var src = new Image(); src.crossOrigin = "anonymous";
+    src.onerror = function(){ alert("그림을 다시 불러오지 못했어요."); busy(btn, false); };
+    src.onload = function(){
+      var W = src.naturalWidth, H = src.naturalHeight;
+      var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+      var ctx = cv.getContext("2d", { willReadFrequently: true });
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(src, 0, 0);
+      try {
+        var sd = ctx.getImageData(0, 0, W, H).data;
+        var L = borderRun(sd, W, H, "l"), R = borderRun(sd, W, H, "r");
+        var T = borderRun(sd, W, H, "t"), B = borderRun(sd, W, H, "b");
+        if (L < 2 && R < 2 && T < 2 && B < 2) { alert("이 쪽에는 없앨 테두리가 없어요."); busy(btn, false); return; }
+        pushOut(ctx, W, H, "l", L); pushOut(ctx, W, H, "r", R);
+        pushOut(ctx, W, H, "t", T); pushOut(ctx, W, H, "b", B);
+        pages[idx] = { src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file, blankL: 0, blankR: 0 };
+        zoomMode = "fit"; resetZoom(); render();
+        busy(btn, false);
+        alert("테두리를 없앴어요(좌 " + L + " · 우 " + R + " · 위 " + T + " · 아래 " + B + "px).\n"
+            + "마음에 들면 ‘💾 이 모습대로 저장’을 눌러 주세요.");
+      } catch (e) {
+        busy(btn, false);
+        alert("그림을 읽지 못했어요. 새로고침하고 다시 해 주세요.");
+      }
+    };
+    src.src = img.src;
+  }
 
   // 한쪽을 채우고 나면 반대쪽 흰 여백이 그림 속에 구워져, 다음에 그쪽을 채우려 하면
   // "빈 자리가 없어요"가 된다. 그래서 남아 있는 여백 폭을 그 쪽 정보에 적어 둔다.
@@ -677,6 +783,7 @@
   }
   el("fillLBtn").addEventListener("click", function(){ fillSide("l"); });
   el("fillRBtn").addEventListener("click", function(){ fillSide("r"); });
+  el("trimBtn").addEventListener("click", trimWhite);
 
   function load(){
     if (!API || API.indexOf("PASTE") === 0) { show("error"); return; }
