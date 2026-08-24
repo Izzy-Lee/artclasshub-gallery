@@ -25,7 +25,11 @@
   .sheet { width:594mm; height:420mm; flex:0 0 auto; background:#fff; display:grid;
            grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr);
            transform-origin:top center; box-shadow:0 10px 40px rgba(0,0,0,.15); }
+  /* 쪽과 쪽 사이 칸막이 선 — 자르거나 붙일 때 기준이 된다(바깥 테두리는 없음). */
   .cell { position:relative; overflow:hidden; }
+  .cell { border-right:1px solid #9a9a9a; }
+  .cell:nth-child(4n) { border-right:0; }
+  .cell:nth-child(-n+4) { border-bottom:1px solid #9a9a9a; }
   /* 펼침면 한 장에서 왼쪽/오른쪽 반만 보여준다.
      칸 2배 너비 상자에 그림을 넣고(맞춤/채움), 오른쪽 반은 한 칸만큼 밀어 놓는다. */
   .cell img { position:absolute; top:0; height:100%; width:200%; display:block; object-fit:contain; }
