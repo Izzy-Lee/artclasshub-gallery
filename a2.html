@@ -49,12 +49,20 @@
   <button id="fillBtn" class="ghost">여백 없이 꽉 채우기</button>
   <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
   <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
+  <span id="dpi" class="hint"></span>
   <span class="hint">인쇄 창에서 용지 <b>A2 가로</b>, 배율 100%, 여백 없음으로 맞춰 주세요</span>
 </div>
 <div id="msg">전시용으로 펼치는 중… 📐</div>
 <div id="wrap" hidden><div class="sheet" id="sheet"></div></div>
 <script>
   var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
+  // 그림 키우기(업스케일)를 부탁할 곳 — 앱이 쓰는 AI 프록시와 같은 웹앱.
+  var AI_API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+  var AI_SECRET = "artclasshub-ai-7Kq3mZ9x";
+  // A2 한 칸(A5, 가로 148.5mm)에 필요한 가로 픽셀 — 인쇄소 권장 200dpi 기준.
+  var HALF_MM = 148.5;
+  function dpiOf(spreadWidth){ return Math.round((spreadWidth / 2) / (HALF_MM / 25.4)); }
+  var LOW_DPI = 150;                 // 이보다 낮으면 전시 인쇄엔 너무 낮다고 본다
   var qp = new URLSearchParams(location.search);
   var bookId = qp.get("book");
   var classId = qp.get("class") || "";
@@ -68,6 +76,48 @@
     { file:0, half:"r" }, { file:1, half:"l" }, { file:1, half:"r" }, { file:2, half:"l" },
     { file:2, half:"r" }, { file:3, half:"l" }, { file:3, half:"r" }, { file:0, half:"l" }
   ];
+
+  /// 아주 낮은 해상도일 때만 AI로 키운다(선화·일러스트용 확대 모델, 내용은 그대로 두고 크기만).
+  /// 키가 없거나 실패하면 조용히 원본을 쓴다 — 인쇄는 어차피 된다.
+  function upscaleIfTooLow(list){
+    return Promise.all(list.map(function(u){
+      return new Promise(function(res){
+        var im = new Image(); im.crossOrigin = "anonymous";
+        im.onerror = function(){ res({ url: u, w: 0 }); };
+        im.onload = function(){ res({ url: u, w: im.naturalWidth, img: im }); };
+        im.src = u;
+      });
+    })).then(function(info){
+      var widths = info.map(function(x){ return x.w || 99999; });
+      var worst = Math.min.apply(null, widths);
+      var dpi = dpiOf(worst);
+      el("dpi").textContent = "인쇄 해상도 약 " + dpi + " dpi";
+      if (dpi >= LOW_DPI) return list;                       // 충분하면 그대로 쓴다
+
+      el("dpi").textContent = "해상도가 낮아 키우는 중… (" + dpi + " dpi)";
+      return Promise.all(info.map(function(x){
+        if (!x.img || dpiOf(x.w) >= LOW_DPI) return x.url;   // 이 쪽은 충분
+        var cv = document.createElement("canvas");
+        cv.width = x.img.naturalWidth; cv.height = x.img.naturalHeight;
+        cv.getContext("2d").drawImage(x.img, 0, 0);
+        var b64;
+        try { b64 = cv.toDataURL("image/jpeg", 0.92).split(",")[1]; } catch (e) { return x.url; }
+        return fetch(AI_API, {
+          method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ secret: AI_SECRET, action: "upscale", image: b64, scale: 2 })
+        })
+          .then(function(r){ return r.text(); })
+          .then(function(t){ var d = null; try { d = JSON.parse(t); } catch (e) {}
+            return (d && d.ok && d.image) ? ("data:image/png;base64," + d.image) : x.url; })
+          .catch(function(){ return x.url; });
+      })).then(function(done){
+        var changed = done.some(function(u, i){ return u !== list[i]; });
+        el("dpi").textContent = changed ? ("크게 키움 · 약 " + dpiOf(worst * 2) + " dpi")
+                                        : ("약 " + dpi + " dpi (그대로 인쇄됩니다)");
+        return done;
+      });
+    });
+  }
 
   function build(pages){
     var sheet = el("sheet");
@@ -118,7 +168,10 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.ok || !d.pages || !d.pages.length) { el("msg").textContent = "그림책을 찾지 못했어요 😢"; return; }
-        build(d.pages);
+        build(d.pages);                        // 먼저 원본으로 보여주고
+        upscaleIfTooLow(d.pages).then(function(better){
+          if (better.some(function(u, i){ return u !== d.pages[i]; })) build(better);
+        });
       })
       .catch(function(){ el("msg").textContent = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; });
   }
