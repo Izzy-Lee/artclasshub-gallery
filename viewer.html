@@ -69,6 +69,7 @@
       <span id="zoomPct">100%</span>
       <button id="zoomOut" title="작게">－</button>
       <button id="zoomIn" title="크게">＋</button>
+      <button id="zoomWide" title="가로에 맞춤">가로 맞춤</button>
       <button id="zoomFit" title="화면에 맞춤">맞춤</button>
     </div>
     <div id="adminBar">
@@ -131,18 +132,33 @@
   function setZoom(z){
     var next = Math.max(ZMIN, Math.min(ZMAX, z));
     if (next === 1) { panX = 0; panY = 0; }
-    zoom = next; applyZoom();
+    zoom = Math.round(next * 1000) / 1000; applyZoom();
   }
   function resetZoom(){ zoom = 1; panX = 0; panY = 0; applyZoom(); }
 
-  el("zoomIn").addEventListener("click", function(){ setZoom(zoom * 1.4); });
-  el("zoomOut").addEventListener("click", function(){ setZoom(zoom / 1.4); });
+  var STEP = 0.05;                       // 한 번에 5%씩 — 40%씩 뛰면 원하는 크기를 못 맞춘다
+  el("zoomIn").addEventListener("click", function(){ setZoom(zoom + STEP); });
+  el("zoomOut").addEventListener("click", function(){ setZoom(zoom - STEP); });
   el("zoomFit").addEventListener("click", resetZoom);
+  el("zoomWide").addEventListener("click", fitWidth);
+
+  /// 가로에 맞추기 — 그림의 좌우 흰 여백을 없애고 판 너비를 꽉 채운다.
+  /// (세로가 넘치면 끌어서 위아래로 볼 수 있다)
+  function fitWidth(){
+    var img = curImg(); if (!img || !img.naturalWidth) return;
+    var box = stage.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    // object-fit:contain 으로 실제로 그려진 크기 → 그 너비를 판 너비에 맞춘다.
+    var shown = Math.min(box.width, box.height * (img.naturalWidth / img.naturalHeight));
+    if (shown <= 0) return;
+    panX = 0; panY = 0;
+    setZoom(box.width / shown);
+  }
 
   // 마우스 휠(노트북) — 화면 전체가 스크롤되지 않게 막고 확대만.
   stage.addEventListener("wheel", function(e){
     e.preventDefault();
-    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+    setZoom(zoom + (e.deltaY < 0 ? STEP : -STEP));
   }, { passive:false });
 
   // 두 번 톡 / 더블클릭 — 크게 ↔ 맞춤 전환
