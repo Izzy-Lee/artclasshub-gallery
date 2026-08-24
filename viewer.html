@@ -103,7 +103,13 @@
     var img = document.createElement("img"); img.src = pages[idx]; img.alt = "page " + (idx+1);
     p.appendChild(img); stage.appendChild(p);
     el("counter").textContent = (idx+1) + " / " + pages.length;
+    panX = 0; panY = 0;                    // 위치만 가운데로(배율은 보던 대로 유지)
+    if (zoomMode === "fit") zoom = 1;
     applyZoom();
+    if (zoomMode === "wide") {             // 쪽마다 그림 크기가 달라 다시 계산한다
+      if (img.complete && img.naturalWidth) fitWidth();
+      else img.addEventListener("load", fitWidth, { once: true });
+    }
   }
 
   // ── 크기 조절(확대·축소·이동) ─────────────────────────────────────────
@@ -112,6 +118,9 @@
   //   · 쪽을 넘기면 원래 크기로 돌아온다.
   var zoom = 1, panX = 0, panY = 0;
   var ZMIN = 1, ZMAX = 5;
+  // 보는 방식을 기억한다 — 쪽을 넘겨도 그대로 유지되게.
+  //   fit=화면에 맞춤 · wide=가로 맞춤(쪽마다 다시 계산) · manual=직접 맞춘 배율
+  var zoomMode = "fit";
 
   function curImg(){ return stage.querySelector(".page img"); }
 
@@ -137,10 +146,10 @@
   function resetZoom(){ zoom = 1; panX = 0; panY = 0; applyZoom(); }
 
   var STEP = 0.05;                       // 한 번에 5%씩 — 40%씩 뛰면 원하는 크기를 못 맞춘다
-  el("zoomIn").addEventListener("click", function(){ setZoom(zoom + STEP); });
-  el("zoomOut").addEventListener("click", function(){ setZoom(zoom - STEP); });
-  el("zoomFit").addEventListener("click", resetZoom);
-  el("zoomWide").addEventListener("click", fitWidth);
+  el("zoomIn").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom + STEP); });
+  el("zoomOut").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom - STEP); });
+  el("zoomFit").addEventListener("click", function(){ zoomMode = "fit"; resetZoom(); });
+  el("zoomWide").addEventListener("click", function(){ zoomMode = "wide"; fitWidth(); });
 
   /// 가로에 맞추기 — 그림의 좌우 흰 여백을 없애고 판 너비를 꽉 채운다.
   /// (세로가 넘치면 끌어서 위아래로 볼 수 있다)
@@ -158,11 +167,14 @@
   // 마우스 휠(노트북) — 화면 전체가 스크롤되지 않게 막고 확대만.
   stage.addEventListener("wheel", function(e){
     e.preventDefault();
+    zoomMode = "manual";
     setZoom(zoom + (e.deltaY < 0 ? STEP : -STEP));
   }, { passive:false });
 
   // 두 번 톡 / 더블클릭 — 크게 ↔ 맞춤 전환
-  stage.addEventListener("dblclick", function(){ zoom > 1 ? resetZoom() : setZoom(2.2); });
+  stage.addEventListener("dblclick", function(){
+    if (zoom > 1) { zoomMode = "fit"; resetZoom(); } else { zoomMode = "manual"; setZoom(2.2); }
+  });
 
   function go(dir){
     if (animating) return;
@@ -171,7 +183,7 @@
     animating = true;
     var cur = stage.querySelector(".page");
     if (dir > 0 && cur) { cur.classList.add("flipping"); }
-    setTimeout(function(){ idx = ni; render(); resetZoom(); animating = false; }, dir > 0 ? 360 : 0);
+    setTimeout(function(){ idx = ni; render(); animating = false; }, dir > 0 ? 360 : 0);
   }
 
   el("prev").addEventListener("click", function(){ go(-1); });
@@ -189,7 +201,9 @@
       sx = e.touches[0].clientX; sy = e.touches[0].clientY;
       panning = zoom > 1;                            // 확대 중이면 끌어서 이동
       var now = Date.now();                          // 두 번 톡 = 크게 ↔ 맞춤
-      if (now - lastTap < 300) { zoom > 1 ? resetZoom() : setZoom(2.2); }
+      if (now - lastTap < 300) {
+        if (zoom > 1) { zoomMode = "fit"; resetZoom(); } else { zoomMode = "manual"; setZoom(2.2); }
+      }
       lastTap = now;
     }
   }, {passive:true});
@@ -197,6 +211,7 @@
   stage.parentElement.addEventListener("touchmove", function(e){
     if (e.touches.length === 2 && pinchStart > 0) {
       e.preventDefault();
+      zoomMode = "manual";
       setZoom(zoomStart * (dist(e.touches) / pinchStart));
     } else if (panning && e.touches.length === 1) {
       e.preventDefault();
