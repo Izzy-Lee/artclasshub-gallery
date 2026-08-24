@@ -11,6 +11,10 @@
   #app { height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .msg { color:#9a7; font-size:18px; padding:24px; text-align:center; }
   #book { position:relative; width:100%; max-width:900px; height:100%; display:flex; align-items:center; justify-content:center; padding:12px; }
+  /* 가로 맞춤 — 좌우 여백을 버리고 창 너비까지 크게 본다(선택은 기억된다). */
+  body.wide #book { max-width:none; padding:6px; }
+  body.wide .stage.spread { width:min(100%, calc(92vh * 3 / 2)); }
+  body.wide .stage.single { height:min(92vh, calc(96vw * 4 / 3)); }
   .stage { position:relative; perspective:2000px; margin:0 auto; }
   /* 펼침면(가로 3:2)과 표지 반쪽(세로 3:4)은 화면에 맞추는 기준이 반대다.
      가로는 폭 기준, 세로는 높이 기준으로 잡아야 잘리거나 늘어나지 않는다. */
@@ -147,11 +151,7 @@
     panX = 0; panY = 0;                    // 위치만 가운데로(배율은 보던 대로 유지)
     if (zoomMode === "fit") zoom = 1;
     applyZoom();
-    if (zoomMode === "wide") {             // 쪽마다 그림 크기가 달라 다시 계산한다
-      var im = stage.querySelector(".page img");
-      if (!im || (im.complete && im.naturalWidth)) fitWidth();
-      else im.addEventListener("load", fitWidth, { once: true });
-    }
+
   }
 
   // ── 크기 조절(확대·축소·이동) ─────────────────────────────────────────
@@ -196,7 +196,16 @@
   el("zoomIn").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom + STEP); });
   el("zoomOut").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom - STEP); });
   el("zoomFit").addEventListener("click", function(){ zoomMode = "fit"; resetZoom(); });
-  el("zoomWide").addEventListener("click", function(){ zoomMode = "wide"; fitWidth(); });
+  el("zoomWide").addEventListener("click", function(){ setWide(!document.body.classList.contains("wide")); });
+
+  /// 가로 맞춤 켜기/끄기 — 책 판을 창 너비까지 넓힌다. 고른 값은 이 기기에 기억한다.
+  function setWide(on){
+    document.body.classList.toggle("wide", on);
+    el("zoomWide").textContent = on ? "가로 맞춤 끄기" : "가로 맞춤";
+    try { localStorage.setItem("viewerWide", on ? "1" : "0"); } catch (e) {}
+    applyZoom();
+  }
+  try { if (localStorage.getItem("viewerWide") === "1") setWide(true); } catch (e) {}
 
   stage.addEventListener("wheel", function(e){
     e.preventDefault(); zoomMode = "manual";
@@ -306,10 +315,15 @@
       .catch(function(){ show("error"); });
   }
 
-  // 목록으로 — 반코드를 알면 그 반 목록으로, 모르면 브라우저 뒤로.
+  // 목록으로 — 반코드를 알면 그 반 갤러리로, 모르면 브라우저 뒤로.
+  //   · 뷰어의 '우리 반 문집' 목록에서 들어왔으면 그 목록으로,
+  //   · 갤러리에서 들어왔으면 갤러리 그 반 페이지(./?class=…)로 돌아간다.
   el("backlist").addEventListener("click", function(){
-    if (classId) location.href = "?class=" + encodeURIComponent(classId);
-    else history.back();
+    if (!classId) { history.back(); return; }
+    // 뷰어의 '우리 반 문집' 목록 주소는 viewer.html?class=… 하나뿐이다.
+    // 그냥 'viewer.html'로만 보면 새로고침(자기 자신)도 걸려 엉뚱한 곳으로 간다.
+    var fromViewerList = (document.referrer || "").indexOf("viewer.html?class=") >= 0;
+    location.href = (fromViewerList ? "viewer.html?class=" : "./?class=") + encodeURIComponent(classId);
   });
 
   // ── 관리자: 이 쪽 그림만 새 파일로 갈아 끼우기 ─────────────────────────
