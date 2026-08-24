@@ -23,7 +23,14 @@
   #zoomBar button { border:0; width:40px; height:40px; border-radius:50%; font-size:18px; font-weight:800;
                     cursor:pointer; background:rgba(255,255,255,.92); color:var(--pink);
                     box-shadow:0 3px 10px rgba(0,0,0,.12); }
-  #zoomBar #zoomFit { width:auto; padding:0 12px; font-size:13px; }
+  /* 글자 버튼은 줄바꿈 없이 한 줄로 — 좁은 화면에서 '가 로 맞 춤'으로 쪼개지던 문제 */
+  #zoomBar #zoomFit, #zoomBar #zoomWide { width:auto; padding:0 12px; font-size:13px; white-space:nowrap; }
+  @media (max-width: 520px) {          /* 폰 세로 등 좁은 화면 */
+    #zoomBar { gap:4px; }
+    #zoomBar button { width:34px; height:34px; font-size:16px; }
+    #zoomBar #zoomFit, #zoomBar #zoomWide { padding:0 8px; font-size:12px; }
+    #zoomPct { padding:5px 7px; font-size:11px; }
+  }
   #zoomPct { background:rgba(255,255,255,.92); color:#888; font-size:12px; font-weight:700;
              padding:6px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
   .page.flipping { transform:rotateY(-160deg); opacity:0; }
