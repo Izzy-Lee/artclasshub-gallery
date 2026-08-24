@@ -168,6 +168,16 @@
       if (Math.abs(lineStat(d, W, H, side, n).mean - lineStat(d, W, H, side, n + 3).mean) > 55) n++;
       else break;
     }
+    if (!n) return 0;
+    // ① 테두리는 종이보다 뚜렷하게 어둡다(회색 그림자·검은 실선).
+    //    밝은 띠는 아이가 일부러 남긴 여백이므로 절대 건드리지 않는다.
+    if (lineStat(d, W, H, side, 0).mean >= 225) return 0;
+    // ② 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
+    //    평평하고 어둡지만 안쪽으로 이어지므로 여기서 걸러진다(그건 아이 그림이다).
+    var darkest = 255;
+    for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(d, W, H, side, q).mean);
+    var inside = lineStat(d, W, H, side, Math.min(lines - 1, n + 2)).mean;
+    if (inside - darkest <= 45) return 0;
     return n;
   }
   function trimFrame(img){
@@ -181,7 +191,8 @@
       try { d = ctx.getImageData(0, 0, W, H).data; } catch (e) { res(img); return; }
       var L = borderRun(d, W, H, "l"), R = borderRun(d, W, H, "r");
       var T = borderRun(d, W, H, "t"), B = borderRun(d, W, H, "b");
-      if (L < 3 && R < 3 && T < 3 && B < 3) { res(img); return; }
+      if (!L && !R && !T && !B) { res(img); return; }   // 1px 실선도 놓치면 안 된다 —
+                                                        // 칸 여백을 1px 늘려 채우다 검은 띠가 된다
       var w2 = W - L - R, h2 = H - T - B;
       if (w2 < W * 0.5 || h2 < H * 0.5) { res(img); return; }   // 너무 많이 자르면 그만둔다
       var oc = document.createElement("canvas"); oc.width = w2; oc.height = h2;
