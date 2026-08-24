@@ -34,7 +34,8 @@
   var revalidating = false;
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
-  var bookRailRef = null;                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
+  var bookRailRef = null;
+  var a2RailRef = null;                  // 🖼 전시용 A2 줄(그림책과 같은 목록을 쓴다)                // 관리자 전환 시 그림책 레일만 다시 그리기 위한 참조
   var photoRailRef = null;               // 반이 바뀌면 사진 레일을 다시 채우기 위한 참조
   var studentFilter = "";                // 이름 탭에서 고른 학생('' = 전체) — 그림책도 같이 거른다
   // 지금 열린 반(스프레드시트 "클래스" 탭) — { name, code, org, pw }.
@@ -287,6 +288,7 @@
       rail.track.innerHTML = "";
       rail.setCount("");
       rail.section.hidden = true;   // 이 학생 책이 없으면 줄을 감춘다
+      renderA2(a2RailRef, className, []);
       return;
     }
     rail.track.innerHTML = "";
@@ -298,6 +300,28 @@
       }, del));
     });
     rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));
+    rail.section.hidden = false;
+    rail.sync();
+    renderA2(a2RailRef, className, mine);   // 같은 목록으로 전시용 줄도 함께
+  }
+
+  /// 🖼 전시용 A2 — 이미 올라간 그림책을 A2 한 장(8쪽 펼침)으로 펴서 보여준다.
+  /// 따로 변환해 저장하지 않는다. 타일을 누르면 그 자리에서 펼쳐 인쇄·PDF 저장까지 된다.
+  function renderA2(rail, className, mine) {
+    if (!rail) return;
+    if (locked || !mine || !mine.length) {
+      rail.track.innerHTML = ""; rail.setCount(""); rail.section.hidden = true; return;
+    }
+    var code = URL_CLASS || Object.keys(codesByClass[className] || {})[0] || "";
+    rail.track.innerHTML = "";
+    mine.forEach(function (b) {
+      var title = (b.title || "").trim() || "그림책";
+      rail.track.appendChild(bookTile(b.cover, title, b.student || "", function () {
+        window.open("a2.html?book=" + encodeURIComponent(b.bookId)
+                    + (code ? "&class=" + encodeURIComponent(code) : ""), "_blank");
+      }, null));
+    });
+    rail.setCount(mine.length + "장");
     rail.section.hidden = false;
     rail.sync();
   }
@@ -740,6 +764,8 @@
 
     var bookRail = makeRail("railBooks", "📚", "그림책");
     bookRailRef = bookRail;
+    var a2Rail = makeRail("railA2", "🖼", "전시용 A2 (인쇄용 펼침)");
+    a2RailRef = a2Rail;
     var photoRail = makeRail("railPhotos", "📷", "수업 모습");
     photoRailRef = photoRail;
 
@@ -750,6 +776,7 @@
       locked = next;
       if (locked) {
         bookRail.track.innerHTML = ""; bookRail.section.hidden = true;
+        a2Rail.track.innerHTML = ""; a2Rail.section.hidden = true;
         photoRail.track.innerHTML = ""; photoRail.section.hidden = true;
         var g = photoRail.section.querySelector(".rail-gate, .rail-days");
         while (g) { g.remove(); g = photoRail.section.querySelector(".rail-gate, .rail-days"); }
@@ -796,6 +823,7 @@
     artHead.hidden = true;
 
     galleryEl.parentNode.insertBefore(bookRail.section, galleryEl);
+    galleryEl.parentNode.insertBefore(a2Rail.section, galleryEl);   // 그림책 줄 바로 아래
     galleryEl.parentNode.insertBefore(artHead, galleryEl);
     // '작품이 없어요' 안내는 그리드가 있던 자리(🎨 우리 그림 아래)로 옮긴다.
     // 안 그러면 그림이 없는 반에서 안내문이 📚 그림책 위로 올라와 줄 순서가 뒤바뀐 것처럼 보인다.
