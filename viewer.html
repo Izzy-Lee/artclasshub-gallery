@@ -527,8 +527,10 @@
         method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           secret: AI_SECRET, action: "outpaint", size: "1536x1024",
-          prompt: "그림의 투명한 빈 자리를 바로 옆 배경과 이어지게 채워라. 배경색·무늬만 자연스럽게 연장하고, "
-                + "새로운 사물·인물·글자는 절대 그리지 마라. 나머지 부분은 그대로 두어라.",
+          prompt: "투명하게 비어 있는 좁은 띠만 채워라. 바로 옆 배경의 색과 결(하늘·바다·모래·단색 등)을 "
+                + "그대로 옆으로 늘린 것처럼 채워라. 사진 보정의 '내용 인식 채우기'처럼 자연스럽게. "
+                + "절대 금지: 인물·동물·캐릭터·사물·글자·말풍선·선·테두리를 새로 그리는 것, "
+                + "옆에 있는 그림을 복제하거나 이어 그리는 것. 오직 배경의 색과 부드러운 번짐만.",
           image: cv.toDataURL("image/png").split(",")[1],
           mask: mk.toDataURL("image/png").split(",")[1]
         })
@@ -544,8 +546,34 @@
           });
         })
         .then(function(got){
-          // ③ 받아온 그림에서 **빈 자리만** 오려 덧그린다(아이 그림은 그대로).
-          ctx.drawImage(got, gx, 0, gw, H, gx, 0, gw, H);
+          // ③ 먼저 빈 자리를 '가장자리 색'으로 깔아 둔다(AI가 살짝 어긋나도 흰 줄이 안 생기게).
+          var edgeX = (side === "l") ? Math.round(left) : Math.round(right) - 1;
+          ctx.drawImage(cv, Math.max(0, Math.min(W - 1, edgeX)), 0, 1, H, gx, 0, gw, H);
+
+          // ④ 받아온 그림에서 빈 자리만 오려, 이음매 쪽은 서서히 나타나게 겹친다.
+          var fill = document.createElement("canvas"); fill.width = gw; fill.height = H;
+          var fctx = fill.getContext("2d");
+          fctx.drawImage(got, gx, 0, gw, H, 0, 0, gw, H);
+          var fw = Math.min(40, Math.round(gw / 2));                 // 부드럽게 섞을 폭
+          if (fw > 2) {
+            var g = fctx.createLinearGradient(side === "l" ? gw : 0, 0, side === "l" ? gw - fw : fw, 0);
+            g.addColorStop(0, "rgba(0,0,0,0)");                      // 이음매 쪽은 투명(원본이 비침)
+            g.addColorStop(1, "rgba(0,0,0,1)");
+            fctx.globalCompositeOperation = "destination-in";
+            fctx.fillStyle = g; fctx.fillRect(0, 0, gw, H);
+            fctx.globalCompositeOperation = "source-over";
+            // 이음매에서 먼 쪽은 그대로 보이게 다시 채운다.
+            fctx.globalCompositeOperation = "destination-over";
+            fctx.drawImage(got, gx, 0, gw, H, 0, 0, gw, H);
+            fctx.globalCompositeOperation = "source-over";
+          }
+          ctx.drawImage(fill, gx, 0);
+
+          // ⑤ 아직 비어 있는 곳(반대쪽 등)은 흰색으로 — JPEG로 저장하면 까맣게 나온다.
+          ctx.save();
+          ctx.globalCompositeOperation = "destination-over";
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+          ctx.restore();
           pages[idx] = { src: cv.toDataURL("image/jpeg", 0.94), half: null, file: pg.file };
           zoomMode = "fit"; resetZoom(); render();
           alert("채웠어요. 마음에 들면 ‘💾 이 모습대로 저장’을 눌러 주세요.");
