@@ -11,29 +11,45 @@
   #app { height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .msg { color:#9a7; font-size:18px; padding:24px; text-align:center; }
   #book { position:relative; width:100%; max-width:900px; height:100%; display:flex; align-items:center; justify-content:center; padding:12px; }
-  .stage { width:100%; aspect-ratio:3/2; max-height:88%; position:relative; perspective:2000px; }
+  .stage { position:relative; perspective:2000px; margin:0 auto; }
+  /* 펼침면(가로 3:2)과 표지 반쪽(세로 3:4)은 화면에 맞추는 기준이 반대다.
+     가로는 폭 기준, 세로는 높이 기준으로 잡아야 잘리거나 늘어나지 않는다. */
+  .stage.spread { width:min(100%, calc(84vh * 3 / 2)); aspect-ratio:3 / 2; }
+  .stage.single { height:min(84vh, calc(92vw * 4 / 3)); aspect-ratio:3 / 4; }
   .page { position:absolute; inset:0; border-radius:14px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.18);
           background:#fff; display:flex; align-items:center; justify-content:center;
           transition:transform .5s ease, opacity .3s ease; transform-origin:left center; backface-visibility:hidden; }
-  .page img { width:100%; height:100%; object-fit:contain; display:block;
-              transform-origin:center center; will-change:transform; touch-action:none; }
-  .page img.zoomed { cursor:grab; }
+  .page img { width:100%; height:100%; object-fit:contain; display:block; }
+  /* 표지 스프레드는 [뒤표지|앞표지]가 한 장에 붙어 있어 반쪽만 보여준다(배경 위치로 크롭). */
+  .page .half { width:100%; height:100%; background-size:200% 100%; background-repeat:no-repeat; }
+  .page .half.left  { background-position:left center; }
+  .page .half.right { background-position:right center; }
+  .page.flipping { transform:rotateY(-160deg); opacity:0; }
+  .page img, .page .half { transform-origin:center center; will-change:transform; touch-action:none; }
+  .page img.zoomed, .page .half.zoomed { cursor:grab; }
   /* 확대·축소 도구 — 누구나 쓸 수 있게(부모님도 자세히 보시라고) */
   #zoomBar { position:absolute; bottom:10px; right:10px; z-index:7; display:flex; gap:6px; align-items:center; }
   #zoomBar button { border:0; width:40px; height:40px; border-radius:50%; font-size:18px; font-weight:800;
                     cursor:pointer; background:rgba(255,255,255,.92); color:var(--pink);
-                    box-shadow:0 3px 10px rgba(0,0,0,.12); }
-  /* 글자 버튼은 줄바꿈 없이 한 줄로 — 좁은 화면에서 '가 로 맞 춤'으로 쪼개지던 문제 */
+                    box-shadow:0 3px 10px rgba(0,0,0,.12); font-family:inherit; }
   #zoomBar #zoomFit, #zoomBar #zoomWide { width:auto; padding:0 12px; font-size:13px; white-space:nowrap; }
-  @media (max-width: 520px) {          /* 폰 세로 등 좁은 화면 */
+  #zoomPct { background:rgba(255,255,255,.92); color:#888; font-size:12px; font-weight:700;
+             padding:6px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+  /* 관리자 도구 — 평소엔 자물쇠만, 열면 '그림 바꾸기'가 나온다 */
+  #adminBar { position:absolute; top:8px; right:10px; z-index:8; display:flex; gap:8px; align-items:center; }
+  #adminBar button { border:0; border-radius:999px; padding:7px 12px; font-size:13px; font-weight:700;
+                     cursor:pointer; background:rgba(255,255,255,.85); color:#8a6;
+                     box-shadow:0 2px 8px rgba(0,0,0,.08); font-family:inherit; }
+  #swapBtn { background:var(--pink); color:#fff; }
+  #adminBar button[disabled] { opacity:.6; cursor:default; }
+  @media (max-width: 520px) {
     #zoomBar { gap:4px; }
     #zoomBar button { width:34px; height:34px; font-size:16px; }
     #zoomBar #zoomFit, #zoomBar #zoomWide { padding:0 8px; font-size:12px; }
     #zoomPct { padding:5px 7px; font-size:11px; }
   }
-  #zoomPct { background:rgba(255,255,255,.92); color:#888; font-size:12px; font-weight:700;
-             padding:6px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
-  .page.flipping { transform:rotateY(-160deg); opacity:0; }
+  #backlist { position:absolute; top:10px; left:12px; z-index:8; background:transparent; border:0; cursor:pointer;
+              font-weight:800; font-size:15px; color:#333; padding:6px 4px; font-family:inherit; }
   .nav { position:absolute; top:0; bottom:0; width:36%; border:0; background:transparent; cursor:pointer; z-index:5; }
   .nav.prev { left:0; } .nav.next { right:0; }
   .arrow { position:absolute; top:50%; transform:translateY(-50%); font-size:34px; color:var(--pink); opacity:.55;
@@ -42,12 +58,6 @@
   .arrow.l { left:8px; } .arrow.r { right:8px; }
   #counter { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:var(--pink); color:#fff;
              font-weight:700; font-size:14px; padding:5px 14px; border-radius:999px; z-index:7; }
-  /* 관리자 도구 — 평소엔 자물쇠만, 열면 '그림 바꾸기'가 나온다 */
-  #adminBar { position:absolute; top:8px; right:10px; z-index:8; display:flex; gap:8px; align-items:center; }
-  #adminBar button { border:0; border-radius:999px; padding:7px 12px; font-size:13px; font-weight:700;
-                     cursor:pointer; background:rgba(255,255,255,.85); color:#8a6; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-  #swapBtn { background:var(--pink); color:#fff; }
-  #adminBar button[disabled] { opacity:.6; cursor:default; }
   #title { position:absolute; top:10px; left:50%; transform:translateX(-50%); color:var(--pink); font-weight:800; font-size:16px; z-index:7; }
   #classlist { width:100%; max-width:960px; height:100%; overflow:auto; padding:18px; }
   #classlist h1 { color:var(--pink); font-size:20px; text-align:center; margin:8px 0 18px; }
@@ -63,8 +73,10 @@
 <div id="app">
   <div id="loading" class="msg">그림책을 불러오는 중… 📖</div>
   <div id="error" class="msg" hidden>그림책을 찾지 못했어요 😢<br>주소를 다시 확인해 주세요.</div>
+  <div id="empty" class="msg" hidden>📭 이 반엔 아직 온라인에 올린 그림책이 없어요.<br><span id="emptyHint" style="font-size:13px;opacity:.7"></span></div>
   <div id="classlist" hidden><h1>우리 반 그림책 문집 📖</h1><div class="grid" id="grid"></div></div>
   <div id="book" hidden>
+    <button id="backlist" hidden>‹ 리스트로 돌아가기</button>
     <div id="title">그림책 📖</div>
     <div class="stage" id="stage"></div>
     <div class="arrow l">‹</div>
@@ -100,49 +112,66 @@
   function show(state){
     el("loading").hidden    = state !== "loading";
     el("error").hidden      = state !== "error";
+    el("empty").hidden      = state !== "empty";
     el("book").hidden       = state !== "book";
     el("classlist").hidden  = state !== "class";
   }
 
+  /* 앱이 보내는 건 펼침면 4장(표지·1-2쪽·3-4쪽·5-6쪽).
+     표지 장은 [뒤표지|앞표지]가 좌우로 붙어 있으므로 이북에서는 반으로 갈라
+     앞표지(오른쪽 반)를 맨 앞, 뒤표지(왼쪽 반)를 맨 뒤로 보낸다. → 앞표지·1-2·3-4·5-6·뒤표지 */
+  function buildPages(srcs){
+    if (srcs.length < 2) return srcs.map(function(u, i){ return { src:u, half:null, file:i }; });
+    var out = [{ src:srcs[0], half:"right", file:0 }];                // 앞표지
+    for (var i = 1; i < srcs.length; i++) out.push({ src:srcs[i], half:null, file:i });
+    out.push({ src:srcs[0], half:"left", file:0 });                   // 뒤표지(판권)
+    return out;
+  }
+
   function render(){
     stage.innerHTML = "";
+    var pg = pages[idx];
+    // 반쪽 페이지는 세로(3:4), 펼침면은 가로(3:2).
+    stage.className = "stage " + (pg.half ? "single" : "spread");
     var p = document.createElement("div"); p.className = "page";
-    var img = document.createElement("img"); img.src = pages[idx]; img.alt = "page " + (idx+1);
-    p.appendChild(img); stage.appendChild(p);
+    if (pg.half) {
+      var h = document.createElement("div"); h.className = "half " + pg.half;
+      h.style.backgroundImage = 'url("' + pg.src + '")';
+      p.appendChild(h);
+    } else {
+      var img = document.createElement("img"); img.src = pg.src; img.alt = "page " + (idx+1);
+      p.appendChild(img);
+    }
+    stage.appendChild(p);
     el("counter").textContent = (idx+1) + " / " + pages.length;
     panX = 0; panY = 0;                    // 위치만 가운데로(배율은 보던 대로 유지)
     if (zoomMode === "fit") zoom = 1;
     applyZoom();
     if (zoomMode === "wide") {             // 쪽마다 그림 크기가 달라 다시 계산한다
-      if (img.complete && img.naturalWidth) fitWidth();
-      else img.addEventListener("load", fitWidth, { once: true });
+      var im = stage.querySelector(".page img");
+      if (!im || (im.complete && im.naturalWidth)) fitWidth();
+      else im.addEventListener("load", fitWidth, { once: true });
     }
   }
 
   // ── 크기 조절(확대·축소·이동) ─────────────────────────────────────────
-  //   · 버튼 ＋/－, 마우스 휠, 두 손가락 오므렸다 벌리기, 두 번 톡(더블탭)
+  //   · 버튼 ＋/－(5%씩), 마우스 휠, 두 손가락, 두 번 톡(더블탭)
   //   · 확대한 상태에서 한 손가락으로 끌면 그림이 움직인다(쪽 넘김 대신).
-  //   · 쪽을 넘기면 원래 크기로 돌아온다.
-  var zoom = 1, panX = 0, panY = 0;
-  var ZMIN = 1, ZMAX = 5;
-  // 보는 방식을 기억한다 — 쪽을 넘겨도 그대로 유지되게.
-  //   fit=화면에 맞춤 · wide=가로 맞춤(쪽마다 다시 계산) · manual=직접 맞춘 배율
-  var zoomMode = "fit";
+  //   · 보는 방식(맞춤/가로 맞춤/직접 배율)은 쪽을 넘겨도 이어진다.
+  var zoom = 1, panX = 0, panY = 0, zoomMode = "fit";
+  var ZMIN = 1, ZMAX = 5, STEP = 0.05;
 
-  function curImg(){ return stage.querySelector(".page img"); }
+  function curEl(){ return stage.querySelector(".page img, .page .half"); }
 
   function applyZoom(){
-    var img = curImg(); if (!img) return;
-    // 확대 배율이 커질수록 더 멀리 움직일 수 있게 이동 범위를 넓힌다.
+    var t = curEl(); if (!t) return;
     var lim = Math.max(0, (zoom - 1) * 0.5);
-    // 이동 한계는 화면에 보이는 판 크기 기준. 아직 크기를 못 재는 순간(막 그린 직후 등)엔
-    // 넉넉한 기본값을 써서, 잘못 0으로 재는 바람에 그림이 꿈쩍 않는 일이 없게 한다.
     var box = stage.getBoundingClientRect();
-    var w = box.width || img.clientWidth || 600, h = box.height || img.clientHeight || 400;
+    var w = box.width || 600, h = box.height || 400;
     panX = Math.max(-lim * w, Math.min(lim * w, panX));
     panY = Math.max(-lim * h, Math.min(lim * h, panY));
-    img.style.transform = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
-    img.classList.toggle("zoomed", zoom > 1);
+    t.style.transform = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
+    t.classList.toggle("zoomed", zoom > 1);
     el("zoomPct").textContent = Math.round(zoom * 100) + "%";
   }
   function setZoom(z){
@@ -152,36 +181,40 @@
   }
   function resetZoom(){ zoom = 1; panX = 0; panY = 0; applyZoom(); }
 
-  var STEP = 0.05;                       // 한 번에 5%씩 — 40%씩 뛰면 원하는 크기를 못 맞춘다
-  el("zoomIn").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom + STEP); });
-  el("zoomOut").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom - STEP); });
-  el("zoomFit").addEventListener("click", function(){ zoomMode = "fit"; resetZoom(); });
-  el("zoomWide").addEventListener("click", function(){ zoomMode = "wide"; fitWidth(); });
-
-  /// 가로에 맞추기 — 그림의 좌우 흰 여백을 없애고 판 너비를 꽉 채운다.
-  /// (세로가 넘치면 끌어서 위아래로 볼 수 있다)
+  /// 가로에 맞추기 — 그림 좌우 흰 여백을 없애고 판 너비를 꽉 채운다.
   function fitWidth(){
-    var img = curImg(); if (!img || !img.naturalWidth) return;
+    var img = stage.querySelector(".page img");
     var box = stage.getBoundingClientRect();
     if (!box.width || !box.height) return;
-    // object-fit:contain 으로 실제로 그려진 크기 → 그 너비를 판 너비에 맞춘다.
+    if (!img || !img.naturalWidth) { setZoom(1); return; }   // 반쪽 면은 이미 꽉 차 있다
     var shown = Math.min(box.width, box.height * (img.naturalWidth / img.naturalHeight));
     if (shown <= 0) return;
     panX = 0; panY = 0;
     setZoom(box.width / shown);
   }
 
-  // 마우스 휠(노트북) — 화면 전체가 스크롤되지 않게 막고 확대만.
+  el("zoomIn").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom + STEP); });
+  el("zoomOut").addEventListener("click", function(){ zoomMode = "manual"; setZoom(zoom - STEP); });
+  el("zoomFit").addEventListener("click", function(){ zoomMode = "fit"; resetZoom(); });
+  el("zoomWide").addEventListener("click", function(){ zoomMode = "wide"; fitWidth(); });
+
   stage.addEventListener("wheel", function(e){
-    e.preventDefault();
-    zoomMode = "manual";
+    e.preventDefault(); zoomMode = "manual";
     setZoom(zoom + (e.deltaY < 0 ? STEP : -STEP));
   }, { passive:false });
-
-  // 두 번 톡 / 더블클릭 — 크게 ↔ 맞춤 전환
   stage.addEventListener("dblclick", function(){
     if (zoom > 1) { zoomMode = "fit"; resetZoom(); } else { zoomMode = "manual"; setZoom(2.2); }
   });
+  var dragging = false, mx = 0, my = 0;
+  stage.addEventListener("mousedown", function(e){
+    if (zoom <= 1) return;
+    dragging = true; mx = e.clientX; my = e.clientY; e.preventDefault();
+  });
+  window.addEventListener("mousemove", function(e){
+    if (!dragging) return;
+    panX += e.clientX - mx; panY += e.clientY - my; mx = e.clientX; my = e.clientY; applyZoom();
+  });
+  window.addEventListener("mouseup", function(){ dragging = false; });
 
   function go(dir){
     if (animating) return;
@@ -200,25 +233,21 @@
   var sx = 0, sy = 0, pinchStart = 0, zoomStart = 1, panning = false, lastTap = 0;
   function dist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
                     return Math.sqrt(dx * dx + dy * dy); }
-
   stage.parentElement.addEventListener("touchstart", function(e){
-    if (e.touches.length === 2) {                    // 두 손가락 = 크기 조절 시작
-      pinchStart = dist(e.touches); zoomStart = zoom; panning = false;
-    } else {
+    if (e.touches.length === 2) { pinchStart = dist(e.touches); zoomStart = zoom; panning = false; }
+    else {
       sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-      panning = zoom > 1;                            // 확대 중이면 끌어서 이동
-      var now = Date.now();                          // 두 번 톡 = 크게 ↔ 맞춤
+      panning = zoom > 1;
+      var now = Date.now();
       if (now - lastTap < 300) {
         if (zoom > 1) { zoomMode = "fit"; resetZoom(); } else { zoomMode = "manual"; setZoom(2.2); }
       }
       lastTap = now;
     }
   }, {passive:true});
-
   stage.parentElement.addEventListener("touchmove", function(e){
     if (e.touches.length === 2 && pinchStart > 0) {
-      e.preventDefault();
-      zoomMode = "manual";
+      e.preventDefault(); zoomMode = "manual";
       setZoom(zoomStart * (dist(e.touches) / pinchStart));
     } else if (panning && e.touches.length === 1) {
       e.preventDefault();
@@ -227,26 +256,13 @@
       applyZoom();
     }
   }, {passive:false});
-
   stage.parentElement.addEventListener("touchend", function(e){
     if (pinchStart > 0 && e.touches.length < 2) { pinchStart = 0; return; }
-    if (panning) { panning = false; return; }        // 이동 중이었으면 쪽을 넘기지 않는다
+    if (panning) { panning = false; return; }
     if (zoom > 1) return;
     var dx = e.changedTouches[0].clientX - sx;
     if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
   }, {passive:true});
-
-  // 마우스로 끌어 옮기기(노트북에서 확대했을 때)
-  var dragging = false, mx = 0, my = 0;
-  stage.addEventListener("mousedown", function(e){
-    if (zoom <= 1) return;
-    dragging = true; mx = e.clientX; my = e.clientY; e.preventDefault();
-  });
-  window.addEventListener("mousemove", function(e){
-    if (!dragging) return;
-    panX += e.clientX - mx; panY += e.clientY - my; mx = e.clientX; my = e.clientY; applyZoom();
-  });
-  window.addEventListener("mouseup", function(){ dragging = false; });
   document.addEventListener("keydown", function(e){
     if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1);
   });
@@ -256,13 +272,20 @@
     fetch(API + "?class=" + encodeURIComponent(classId))
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if (!d.ok || !d.books || !d.books.length) { show("error"); return; }
+        if (!d.ok) { show("error"); return; }
+        if (!d.books || !d.books.length) {           // 주소는 맞지만 이 반에 게시된 책이 0권
+          el("emptyHint").textContent = "반코드: " + classId + " · 앱에서 ‘온라인 갤러리에 올리기’로 책을 올리면 여기에 나와요.";
+          show("empty"); return;
+        }
         var grid = el("grid"); grid.innerHTML = "";
         d.books.forEach(function(b){
           var card = document.createElement("div"); card.className = "bookcard";
           card.innerHTML = '<img src="' + (b.cover || "") + '" alt=""><div class="cap"><div class="t">'
             + (b.title || "제목 없음") + '</div><div class="s">' + (b.student || "") + '</div></div>';
-          card.addEventListener("click", function(){ location.href = "?book=" + encodeURIComponent(b.bookId); });
+          // 반코드를 함께 넘겨야 책에서 '리스트로 돌아가기'가 이 반 목록으로 돌아온다.
+          card.addEventListener("click", function(){
+            location.href = "?book=" + encodeURIComponent(b.bookId) + "&class=" + encodeURIComponent(classId);
+          });
           grid.appendChild(card);
         });
         show("class");
@@ -276,37 +299,33 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.ok || !d.pages || !d.pages.length) { show("error"); return; }
-        pages = d.pages;
-        pages.forEach(function(u){ var im = new Image(); im.src = u; });
+        d.pages.forEach(function(u){ var im = new Image(); im.src = u; });
+        pages = buildPages(d.pages);
         idx = 0; render(); show("book");
       })
       .catch(function(){ show("error"); });
   }
 
+  // 목록으로 — 반코드를 알면 그 반 목록으로, 모르면 브라우저 뒤로.
+  el("backlist").addEventListener("click", function(){
+    if (classId) location.href = "?class=" + encodeURIComponent(classId);
+    else history.back();
+  });
+
   // ── 관리자: 이 쪽 그림만 새 파일로 갈아 끼우기 ─────────────────────────
   //   · 자물쇠를 눌러 비밀번호를 넣어야 버튼이 나온다(부모님께 보내는 링크에선 안 보임).
   //   · 옛 그림은 드라이브 휴지통으로 가므로 잘못 바꿔도 30일 안에 되돌릴 수 있다.
-  var SECRET = "artclasshub-storybook";   // 업로드용(갤러리와 동일, 공개값)
+  var SECRET = "artclasshub-storybook";
   var adminKey = "";
 
   el("lockBtn").addEventListener("click", function(){
-    if (adminKey) {                       // 다시 누르면 잠금
-      adminKey = ""; el("swapBtn").hidden = true; el("lockBtn").textContent = "🔒";
-      return;
-    }
+    if (adminKey) { adminKey = ""; el("swapBtn").hidden = true; el("lockBtn").textContent = "🔒"; return; }
     var pw = window.prompt("관리자 비밀번호를 넣어 주세요");
     if (!pw) return;
-    adminKey = pw;
-    el("lockBtn").textContent = "🔓";
-    el("swapBtn").hidden = !bookId;       // 학급 목록 화면에선 바꿀 쪽이 없다
+    adminKey = pw; el("lockBtn").textContent = "🔓"; el("swapBtn").hidden = !bookId;
   });
+  el("swapBtn").addEventListener("click", function(){ el("swapFile").value = ""; el("swapFile").click(); });
 
-  el("swapBtn").addEventListener("click", function(){
-    el("swapFile").value = "";            // 같은 파일을 다시 골라도 change가 뜨게
-    el("swapFile").click();
-  });
-
-  /// 긴 변 1600px로 줄인다(그림책 쪽 해상도). 이미 작으면 원본 그대로.
   function shrink(file, maxSide){
     return new Promise(function(resolve){
       var url = URL.createObjectURL(file), img = new Image();
@@ -327,23 +346,24 @@
     return new Promise(function(resolve, reject){
       var r = new FileReader();
       r.onload = function(){ resolve(String(r.result).split(",")[1] || ""); };
-      r.onerror = reject;
-      r.readAsDataURL(blob);
+      r.onerror = reject; r.readAsDataURL(blob);
     });
   }
 
   el("swapFile").addEventListener("change", function(e){
     var file = e.target.files && e.target.files[0];
-    if (!file || !bookId) return;
+    if (!file || !bookId || !pages[idx]) return;
     var btn = el("swapBtn"), label = btn.textContent;
     btn.disabled = true; btn.textContent = "⏳ 올리는 중…";
-    var page = idx + 1;                   // 지금 보고 있는 쪽(1부터)
+    // 화면의 쪽 번호가 아니라 '원본 파일 번호'로 바꾼다(표지는 앞·뒤가 한 파일).
+    var page = (pages[idx].file || 0) + 1;
     shrink(file, 1600)
-      .then(function(small){ return toBase64(small || file).then(function(b64){ return { b64: b64, mime: small ? "image/jpeg" : (file.type || "image/jpeg") }; }); })
+      .then(function(small){ return toBase64(small || file).then(function(b64){
+        return { b64: b64, mime: small ? "image/jpeg" : (file.type || "image/jpeg") }; }); })
       .then(function(x){
         return fetch(API, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },   // 프리플라이트 없이(GAS 단순요청)
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "replacePage", secret: SECRET, adminKey: adminKey,
                                  bookId: bookId, page: page, dataBase64: x.b64, mimeType: x.mime })
         });
@@ -351,10 +371,10 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d || !d.ok) throw new Error((d && d.error) || "실패");
-        pages = d.pages;                                  // 새 목록으로 교체
+        // 드라이브 주소는 그대로라 브라우저가 옛 그림을 캐시한다 → 시각을 붙여 새로 받는다.
+        var t = Date.now();
+        pages = buildPages(d.pages.map(function(u){ return u + (u.indexOf("?") < 0 ? "?" : "&") + "t=" + t; }));
         idx = Math.min(idx, pages.length - 1);
-        // 드라이브 썸네일 주소는 그대로라 브라우저가 옛 그림을 캐시한다 → 주소에 시각을 붙여 새로 받는다.
-        pages = pages.map(function(u){ return u + (u.indexOf("?") < 0 ? "?" : "&") + "t=" + Date.now(); });
         render();
       })
       .catch(function(err){
@@ -366,8 +386,12 @@
 
   function load(){
     if (!API || API.indexOf("PASTE") === 0) { show("error"); return; }
-    if (classId) loadClass();
-    else if (bookId) loadBook();
+    // book이 있으면 책 우선(주소에 class가 같이 붙어 있어도 책을 연다).
+    if (bookId) {
+      el("backlist").hidden = !(classId || document.referrer);
+      loadBook();
+    }
+    else if (classId) loadClass();
     else show("error");
   }
   load();
