@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그림책 전시용 A2 📐</title>
+<style>
+  :root { --pink:#F35AA0; --bg:#FDF6F9; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+
+  /* 화면 위 도구 모음 — 인쇄할 땐 숨긴다 */
+  #bar { position:fixed; top:0; left:0; right:0; z-index:10; display:flex; gap:10px; align-items:center;
+         padding:10px 14px; background:rgba(255,255,255,.94); box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  #bar .t { font-weight:800; color:var(--pink); margin-right:4px; }
+  #bar .hint { color:#888; font-size:12px; margin-left:auto; }
+  #bar button, #bar a { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
+                        cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
+  #bar button.ghost { background:#eee; color:#666; }
+  #msg { padding:80px 20px; text-align:center; color:#9a7; font-size:17px; }
+
+  /* A2 가로 한 장 = 594 x 420mm. 4열 x 2행 → 한 칸이 정확히 A5(148.5 x 210mm). */
+  #wrap { display:flex; justify-content:center; padding:70px 10px 24px; }
+  /* flex 자식이라 그냥 두면 창 너비에 맞춰 눌린다 → 줄어들지 않게 고정. */
+  .sheet { width:594mm; height:420mm; flex:0 0 auto; background:#fff; display:grid;
+           grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr);
+           transform-origin:top center; box-shadow:0 10px 40px rgba(0,0,0,.15); }
+  .cell { position:relative; overflow:hidden; }
+  /* 펼침면 한 장에서 왼쪽/오른쪽 반만 보여준다.
+     칸 2배 너비 상자에 그림을 넣고(맞춤/채움), 오른쪽 반은 한 칸만큼 밀어 놓는다. */
+  .cell img { position:absolute; top:0; height:100%; width:200%; display:block; object-fit:contain; }
+  .cell img.r { left:-100%; }
+  .cell img.l { left:0; }
+  .sheet.fill .cell img { object-fit:cover; }
+
+  @media print {
+    @page { size:594mm 420mm; margin:0; }
+    html,body { background:#fff; }
+    #bar, #msg { display:none !important; }
+    #wrap { padding:0; }
+    .sheet { transform:none !important; box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+<div id="bar" hidden>
+  <span class="t">전시용 A2 📐</span>
+  <button id="printBtn">🖨 인쇄 · PDF로 저장</button>
+  <button id="fillBtn" class="ghost">여백 없이 꽉 채우기</button>
+  <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
+  <span class="hint">인쇄 창에서 용지 <b>A2 가로</b>, 배율 100%, 여백 없음으로 맞춰 주세요</span>
+</div>
+<div id="msg">전시용으로 펼치는 중… 📐</div>
+<div id="wrap" hidden><div class="sheet" id="sheet"></div></div>
+<script>
+  var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
+  var qp = new URLSearchParams(location.search);
+  var bookId = qp.get("book");
+  var classId = qp.get("class") || "";
+  var el = function(id){ return document.getElementById(id); };
+
+  /* 칸 배치 — 접지 않고 벽에 붙이는 전시용.
+       위:  [1번 오른쪽=앞표지] [2번 왼쪽] [2번 오른쪽] [3번 왼쪽]
+       아래: [3번 오른쪽]       [4번 왼쪽] [4번 오른쪽] [1번 왼쪽=뒤표지]
+     → 2번·4번 펼침면은 그대로 이어 붙고, 3번은 위 오른쪽 끝에서 아래 왼쪽 끝으로 이어진다. */
+  var LAYOUT = [
+    { file:0, half:"r" }, { file:1, half:"l" }, { file:1, half:"r" }, { file:2, half:"l" },
+    { file:2, half:"r" }, { file:3, half:"l" }, { file:3, half:"r" }, { file:0, half:"l" }
+  ];
+
+  function build(pages){
+    var sheet = el("sheet");
+    sheet.innerHTML = "";
+    LAYOUT.forEach(function(c){
+      var cell = document.createElement("div"); cell.className = "cell";
+      var src = pages[c.file];
+      if (src) {
+        var img = document.createElement("img");
+        img.className = c.half; img.src = src; img.alt = "";
+        cell.appendChild(img);
+      }
+      sheet.appendChild(cell);
+    });
+    el("msg").hidden = true; el("bar").hidden = false; el("wrap").hidden = false;
+    fitToScreen();
+  }
+
+  /// 화면에서는 A2 한 장이 창보다 훨씬 크므로 축소해서 통째로 보여준다(인쇄 크기는 그대로).
+  function fitToScreen(){
+    var sheet = el("sheet");
+    // 창 크기를 아직 못 재는 순간(0이나 음수)엔 억지로 줄이지 않는다.
+    var availW = Math.max(200, window.innerWidth - 24);
+    var availH = Math.max(200, window.innerHeight - 96);   // 위 도구 모음과 여백을 뺀 높이
+    var w = sheet.offsetWidth || 1, h = sheet.offsetHeight || 1;
+    var s = Math.max(0.05, Math.min(1, availW / w, availH / h));   // 한 장이 통째로 보이게
+    sheet.style.transform = "scale(" + s + ")";
+    el("wrap").style.height = (sheet.offsetHeight * s + 24) + "px";
+  }
+  window.addEventListener("resize", fitToScreen);
+
+  el("printBtn").addEventListener("click", function(){ window.print(); });
+  el("fillBtn").addEventListener("click", function(){
+    var on = el("sheet").classList.toggle("fill");
+    this.textContent = on ? "여백 남기기(안 자름)" : "여백 없이 꽉 채우기";
+  });
+
+  el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
+                     + (classId ? "&class=" + encodeURIComponent(classId) : "");
+
+  if (!bookId) { el("msg").textContent = "주소에 book 이 없어요."; }
+  else {
+    fetch(API + "?book=" + encodeURIComponent(bookId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok || !d.pages || !d.pages.length) { el("msg").textContent = "그림책을 찾지 못했어요 😢"; return; }
+        build(d.pages);
+      })
+      .catch(function(){ el("msg").textContent = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; });
+  }
+</script>
+</body>
+</html>
