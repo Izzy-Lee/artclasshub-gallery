@@ -32,7 +32,8 @@
   .cell:nth-child(-n+4) { border-bottom:1px solid #9a9a9a; }
   /* 펼침면 한 장에서 왼쪽/오른쪽 반만 보여준다.
      칸 2배 너비 상자에 그림을 넣고(맞춤/채움), 오른쪽 반은 한 칸만큼 밀어 놓는다. */
-  .cell img { position:absolute; top:0; height:100%; width:200%; display:block; object-fit:contain; }
+  .cell img, .cell canvas { position:absolute; top:0; height:100%; width:200%; display:block; object-fit:contain; }
+  .cell canvas { width:100%; }          /* 자동 채움은 칸에 딱 맞게 그려 둔다 */
   .cell img.r { left:-100%; }
   .cell img.l { left:0; }
   .sheet.fill .cell img { object-fit:cover; }
@@ -50,7 +51,7 @@
 <div id="bar" hidden>
   <span class="t">전시용 A2 📐</span>
   <button id="printBtn">🖨 인쇄 · PDF로 저장</button>
-  <button id="fillBtn" class="ghost">여백 없이 꽉 채우기</button>
+  <button id="fillBtn" class="ghost">여백: 자동 채움</button>
   <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
   <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
   <span id="dpi" class="hint"></span>
@@ -123,16 +124,49 @@
     });
   }
 
-  function build(pages){
+  // 여백 처리 — keep(남김) / extend(가장자리 색으로 늘려 채움) / fill(꽉 채우되 잘림)
+  var fillMode = "extend";
+  var lastPages = null;
+
+  /// 한 칸을 캔버스로 그린다: 반쪽을 가로에 맞춰 넣고, 남는 위아래는
+  /// 그림 맨 윗줄·맨 아랫줄 색을 늘려 메운다(없던 그림을 지어내지 않는다).
+  function drawExtendedCell(cell, img, half){
+    var sw = Math.floor(img.naturalWidth / 2), sh = img.naturalHeight;
+    if (!sw || !sh) return false;
+    var sx = (half === "r") ? (img.naturalWidth - sw) : 0;
+    var cw = sw, ch = Math.round(cw / 0.70707);        // 칸(A5) 비율
+    var cv = document.createElement("canvas");
+    cv.width = cw; cv.height = ch;
+    var ctx = cv.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cw, ch);
+    var dh = Math.round(sh * (cw / sw));                // 가로를 칸에 맞췄을 때 높이
+    var top = Math.round((ch - dh) / 2);
+    if (top > 0) {                                      // 위아래 여백을 가장자리 색으로
+      ctx.drawImage(img, sx, 0, sw, 1, 0, 0, cw, top + 1);
+      ctx.drawImage(img, sx, sh - 1, sw, 1, 0, top + dh - 1, cw, ch - (top + dh) + 1);
+    }
+    ctx.drawImage(img, sx, 0, sw, sh, 0, top, cw, dh);
+    cell.appendChild(cv);
+    return true;
+  }
+
+  function build(pages, imgs){
+    lastPages = pages;
     var sheet = el("sheet");
+    sheet.classList.toggle("fill", fillMode === "fill");
     sheet.innerHTML = "";
     LAYOUT.forEach(function(c){
       var cell = document.createElement("div"); cell.className = "cell";
       var src = pages[c.file];
       if (src) {
-        var img = document.createElement("img");
-        img.className = c.half; img.src = src; img.alt = "";
-        cell.appendChild(img);
+        var im = imgs && imgs[c.file];
+        var done = false;
+        if (fillMode === "extend" && im && im.naturalWidth) done = drawExtendedCell(cell, im, c.half);
+        if (!done) {
+          var img = document.createElement("img");
+          img.className = c.half; img.src = src; img.alt = "";
+          cell.appendChild(img);
+        }
       }
       sheet.appendChild(cell);
     });
@@ -157,9 +191,23 @@
 
   el("printBtn").addEventListener("click", function(){ window.print(); });
   el("fillBtn").addEventListener("click", function(){
-    var on = el("sheet").classList.toggle("fill");
-    this.textContent = on ? "여백 남기기(안 자름)" : "여백 없이 꽉 채우기";
+    fillMode = (fillMode === "extend") ? "fill" : (fillMode === "fill" ? "keep" : "extend");
+    this.textContent = fillMode === "extend" ? "여백: 자동 채움"
+                     : fillMode === "fill"   ? "여백: 꽉 채움(가장자리 잘림)"
+                                             : "여백: 남김";
+    if (lastPages) rebuild(lastPages);
   });
+
+  /// 지금 쓰는 그림들을 다시 불러 화면을 새로 그린다(자동 채움은 캔버스라 원본이 필요).
+  function rebuild(list){
+    Promise.all(list.map(function(u){
+      return new Promise(function(res){
+        var im = new Image(); im.crossOrigin = "anonymous";
+        im.onload = function(){ res(im); }; im.onerror = function(){ res(null); };
+        im.src = u;
+      });
+    })).then(function(imgs){ build(list, imgs); });
+  }
 
   el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
                      + (classId ? "&class=" + encodeURIComponent(classId) : "");
@@ -172,9 +220,9 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d.ok || !d.pages || !d.pages.length) { el("msg").textContent = "그림책을 찾지 못했어요 😢"; return; }
-        build(d.pages);                        // 먼저 원본으로 보여주고
+        rebuild(d.pages);                      // 먼저 원본으로 보여주고
         upscaleIfTooLow(d.pages).then(function(better){
-          if (better.some(function(u, i){ return u !== d.pages[i]; })) build(better);
+          if (better.some(function(u, i){ return u !== d.pages[i]; })) rebuild(better);
         });
       })
       .catch(function(){ el("msg").textContent = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; });
