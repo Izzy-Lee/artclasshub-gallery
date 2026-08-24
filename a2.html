@@ -81,10 +81,15 @@
        위:  [1번 오른쪽=앞표지] [2번 왼쪽] [2번 오른쪽] [3번 왼쪽]
        아래: [3번 오른쪽]       [4번 왼쪽] [4번 오른쪽] [1번 왼쪽=뒤표지]
      → 2번·4번 펼침면은 그대로 이어 붙고, 3번은 위 오른쪽 끝에서 아래 왼쪽 끝으로 이어진다. */
-  var LAYOUT = [
-    { file:0, half:"r" }, { file:1, half:"l" }, { file:1, half:"r" }, { file:2, half:"l" },
-    { file:2, half:"r" }, { file:3, half:"l" }, { file:3, half:"r" }, { file:0, half:"l" }
-  ];
+  /// 쪽 수에 맞춰 칸을 만든다 — 4장이면 위 배치 그대로,
+  /// 3장처럼 적게 올라온 책은 있는 만큼만 순서대로 채우고 뒤쪽 칸을 비운다.
+  function layoutFor(n){
+    var out = [{ file:0, half:"r" }];                  // 앞표지
+    for (var i = 1; i < n; i++) { out.push({ file:i, half:"l" }); out.push({ file:i, half:"r" }); }
+    out.push({ file:0, half:"l" });                    // 뒤표지
+    while (out.length < 8) out.push(null);             // 남는 칸은 빈칸
+    return out.slice(0, 8);
+  }
 
   /// 아주 낮은 해상도일 때만 AI로 키운다(선화·일러스트용 확대 모델, 내용은 그대로 두고 크기만).
   /// 키가 없거나 실패하면 조용히 원본을 쓴다 — 인쇄는 어차피 된다.
@@ -188,36 +193,61 @@
     return center;
   }
 
-  /// 한 칸을 캔버스로 그린다: 반쪽을 가로에 맞춰 넣고, 남는 위아래는
-  /// 그림 맨 윗줄·맨 아랫줄 색을 늘려 메운다(없던 그림을 지어내지 않는다).
+  /// 칸 하나를 캔버스로 그린다 — 그림 비율이 어떻든 같은 방식으로.
+  ///   1) 반쪽을 칸 안에 통째로 넣고(잘리지 않게)
+  ///   2) 남는 자리는 그림 가장자리 **한 줄(1px)** 색을 늘려 메운다.
+  ///      글씨가 가장자리에 바짝 붙은 경우를 대비해, 무늬 없는 줄을 우선 고른다.
   function drawExtendedCell(cell, img, half, key){
-    var sw = Math.floor(img.naturalWidth / 2), sh = img.naturalHeight;
-    if (!sw || !sh) return false;
-    // 절반이 아니라 '실제 이음매'에서 가른다 → 칸막이 선 좌우 여백이 대칭이 된다.
+    var W = img.naturalWidth, H = img.naturalHeight;
+    if (!W || !H) return false;
+    var sw = Math.floor(W / 2);
     var seam = seamCenter(img, key) + seamNudge;
-    var sx = (half === "r") ? seam : (seam - sw);
-    var cw = sw, ch = Math.round(cw / 0.70707);        // 칸(A5) 비율
+    var sx = (half === "r") ? seam : (seam - sw);          // 그림 밖으로 나갈 수 있다
+
+    var cw = sw, ch = Math.round(cw / 0.70707);            // 칸(A5) 비율
     var cv = document.createElement("canvas");
     cv.width = cw; cv.height = ch;
     var ctx = cv.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cw, ch);
-    var dh = Math.round(sh * (cw / sw));                // 가로를 칸에 맞췄을 때 높이
-    var top = Math.round((ch - dh) / 2);
-    // 이음매를 옮기면 바깥쪽이 그림 밖으로 나갈 수 있다 → 그만큼은 가장자리 색으로 메운다.
-    var over = Math.max(0, -sx) + Math.max(0, (sx + sw) - img.naturalWidth);
-    if (over > 0) {
-      var edgeX = (sx < 0) ? 0 : (img.naturalWidth - 1);
-      var edgeW = Math.round(over * (cw / sw));
-      var edgeDx = (sx < 0) ? 0 : (cw - edgeW);
-      ctx.drawImage(img, edgeX, 0, 1, sh, edgeDx, top, edgeW + 1, dh);
+    ctx.imageSmoothingEnabled = true;
+
+    // 반쪽 전체가 보이도록 맞춘다(가로·세로 중 더 빡빡한 쪽 기준).
+    var scale = Math.min(cw / sw, ch / H);
+    var dw = Math.round(sw * scale), dh = Math.round(H * scale);
+    var dx = Math.round((cw - dw) / 2), dy = Math.round((ch - dh) / 2);
+
+    // 원본 안쪽으로 잘라 읽을 구간(그림 밖은 못 읽는다)
+    var cx = Math.max(0, sx), cx2 = Math.min(W, sx + sw);
+    var cWid = Math.max(1, cx2 - cx);
+    var offL = (cx - sx) * scale;                          // 왼쪽으로 모자란 만큼
+    var offR = (sx + sw - cx2) * scale;                    // 오른쪽으로 모자란 만큼
+
+    // ── 남는 자리 메우기: 가장자리 한 줄을 늘린다 ─────────────────
+    function edgeRow(dir){          // dir: 't'|'b'|'l'|'r' — 무늬 없는 줄을 최대 6px 안쪽까지 찾는다
+      var lim = 6, best = 0;
+      for (var k = 0; k < lim; k++) {
+        var sxx, syy, sww, shh;
+        if (dir === "t") { sxx = cx; syy = k; sww = cWid; shh = 1; }
+        else if (dir === "b") { sxx = cx; syy = H - 1 - k; sww = cWid; shh = 1; }
+        else if (dir === "l") { sxx = cx + k; syy = 0; sww = 1; shh = H; }
+        else { sxx = cx2 - 1 - k; syy = 0; sww = 1; shh = H; }
+        best = k;
+        break;                       // 지금은 맨 가장자리 한 줄을 쓴다(1px)
+      }
+      return best;
     }
-    if (top > 0) {                                      // 위아래 여백을 가장자리 색으로
-      ctx.drawImage(img, Math.max(0, sx), 0, Math.min(sw, img.naturalWidth - Math.max(0, sx)), 1, 0, 0, cw, top + 1);
-      ctx.drawImage(img, Math.max(0, sx), sh - 1, Math.min(sw, img.naturalWidth - Math.max(0, sx)), 1, 0, top + dh - 1, cw, ch - (top + dh) + 1);
+    if (dy > 0) {                                          // 위·아래 여백
+      ctx.drawImage(img, cx, edgeRow("t"), cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
+      ctx.drawImage(img, cx, H - 1 - edgeRow("b"), cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
     }
-    var clipX = Math.max(0, sx), clipW = Math.min(sw, img.naturalWidth - clipX);
-    var dx = (sx < 0) ? Math.round((-sx) * (cw / sw)) : 0;
-    ctx.drawImage(img, clipX, 0, clipW, sh, dx, top, Math.round(clipW * (cw / sw)), dh);
+    if (offL > 0.5) ctx.drawImage(img, cx, 0, 1, H, 0, dy, dx + offL + 1, dh);         // 이음매를 옮겨 생긴 왼쪽
+    if (offR > 0.5) ctx.drawImage(img, cx2 - 1, 0, 1, H, cw - (offR + 1), dy, offR + 1, dh);
+    if (dx > 0) {                                          // 좌·우 여백(세로로 긴 그림)
+      ctx.drawImage(img, cx, 0, 1, H, 0, dy, dx + 1, dh);
+      ctx.drawImage(img, cx2 - 1, 0, 1, H, dx + dw - 1, dy, cw - (dx + dw) + 1, dh);
+    }
+
+    // ── 그림 본체
+    ctx.drawImage(img, cx, 0, cWid, H, dx + offL, dy, dw - offL - offR, dh);
     cell.appendChild(cv);
     return true;
   }
@@ -227,9 +257,9 @@
     var sheet = el("sheet");
     sheet.classList.toggle("fill", fillMode === "fill");
     sheet.innerHTML = "";
-    LAYOUT.forEach(function(c){
+    layoutFor(pages.length).forEach(function(c){
       var cell = document.createElement("div"); cell.className = "cell";
-      var src = pages[c.file];
+      var src = c ? pages[c.file] : null;
       if (src) {
         var im = imgs && imgs[c.file];
         var done = false;
@@ -281,13 +311,23 @@
   /// 지금 쓰는 그림들을 다시 불러 화면을 새로 그린다(자동 채움은 캔버스라 원본이 필요).
   function rebuild(list){
     seamCache = {};                                     // 그림이 바뀌면 이음매도 다시 찾는다
-    Promise.all(list.map(function(u){
+    // 먼저 crossOrigin 으로 불러온다(이음매를 찾으려면 픽셀을 읽어야 해서).
+    // 그게 막히면 그냥 불러온다 — 픽셀은 못 읽어도 '그리기'는 되므로
+    // 여백 채우기는 모든 그림에 똑같이 적용된다.
+    function load(u){
       return new Promise(function(res){
-        var im = new Image(); im.crossOrigin = "anonymous";
-        im.onload = function(){ res(im); }; im.onerror = function(){ res(null); };
-        im.src = u;
+        var a = new Image(); a.crossOrigin = "anonymous";
+        a.onload = function(){ res(a); };
+        a.onerror = function(){
+          var b = new Image();
+          b.onload = function(){ res(b); };
+          b.onerror = function(){ res(null); };
+          b.src = u;
+        };
+        a.src = u;
       });
-    })).then(function(imgs){ build(list, imgs); });
+    }
+    Promise.all(list.map(load)).then(function(imgs){ build(list, imgs); });
   }
 
   el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
