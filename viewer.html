@@ -361,102 +361,119 @@
     });
   }
 
+  /// 서버에 쪽 그림 교체 요청. 구글 서버가 가끔 JSON 대신 안내 HTML을 돌려주는데,
+  /// 그럴 땐 한 번 더 시도한다(대개 다음 번엔 성공).
+  function sendReplace(page, base64, mime, tries){
+    tries = tries || 0;
+    return fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "replacePage", secret: SECRET, adminKey: adminKey,
+                             bookId: bookId, page: page, dataBase64: base64, mimeType: mime })
+    })
+      .then(function(r){ return r.text(); })
+      .then(function(t){
+        var d = null;
+        try { d = JSON.parse(t); } catch (e) {}
+        if (!d) {                                    // JSON이 아니면(안내 HTML 등) 한 번 더
+          if (tries < 1) return new Promise(function(res){ setTimeout(res, 1200); })
+                                .then(function(){ return sendReplace(page, base64, mime, tries + 1); });
+          throw new Error("서버가 잠깐 응답을 못했어요. 잠시 뒤 다시 해주세요.");
+        }
+        if (!d.ok) throw new Error(d.error || "실패");
+        return d;
+      });
+  }
+
+  /// 교체 성공 뒤 화면 갱신(주소에 시각을 붙여 옛 그림 캐시를 피한다).
+  function applyNewPages(list){
+    var t = Date.now();
+    pages = buildPages(list.map(function(u){ return u + (u.indexOf("?") < 0 ? "?" : "&") + "t=" + t; }));
+    idx = Math.min(idx, pages.length - 1);
+    zoomMode = "fit"; resetZoom();
+    render();
+  }
+
+  /// 버튼을 잠그고 되돌리는 잔일.
+  function busy(btn, on, label){
+    btn.disabled = on;
+    if (on) { btn.dataset.label = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+  }
+
   el("swapFile").addEventListener("change", function(e){
     var file = e.target.files && e.target.files[0];
     if (!file || !bookId || !pages[idx]) return;
-    var btn = el("swapBtn"), label = btn.textContent;
-    btn.disabled = true; btn.textContent = "⏳ 올리는 중…";
+    var btn = el("swapBtn");
+    busy(btn, true, "⏳ 올리는 중…");
     // 화면의 쪽 번호가 아니라 '원본 파일 번호'로 바꾼다(표지는 앞·뒤가 한 파일).
     var page = (pages[idx].file || 0) + 1;
     shrink(file, 1600)
       .then(function(small){ return toBase64(small || file).then(function(b64){
         return { b64: b64, mime: small ? "image/jpeg" : (file.type || "image/jpeg") }; }); })
-      .then(function(x){
-        return fetch(API, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "replacePage", secret: SECRET, adminKey: adminKey,
-                                 bookId: bookId, page: page, dataBase64: x.b64, mimeType: x.mime })
-        });
-      })
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (!d || !d.ok) throw new Error((d && d.error) || "실패");
-        // 드라이브 주소는 그대로라 브라우저가 옛 그림을 캐시한다 → 시각을 붙여 새로 받는다.
-        var t = Date.now();
-        pages = buildPages(d.pages.map(function(u){ return u + (u.indexOf("?") < 0 ? "?" : "&") + "t=" + t; }));
-        idx = Math.min(idx, pages.length - 1);
-        render();
-      })
-      .catch(function(err){
-        alert("그림을 바꾸지 못했어요: " + (err && err.message ? err.message : err)
-              + "\n\n비밀번호가 맞는지, 그림책 백엔드가 최신인지 확인해 주세요.");
-      })
-      .then(function(){ btn.disabled = false; btn.textContent = label; });
+      .then(function(x){ return sendReplace(page, x.b64, x.mime); })
+      .then(function(d){ applyNewPages(d.pages); })
+      .catch(function(err){ alert("그림을 바꾸지 못했어요: " + (err && err.message ? err.message : err)); })
+      .then(function(){ busy(btn, false); });
   });
 
   /// 지금 화면에 보이는 그대로(확대·이동 반영) 이 쪽 그림을 다시 만들어 저장한다.
-  /// 표지는 앞·뒤가 한 파일이라 반쪽만 보고 저장할 수 없어 막는다.
+  ///   · 펼침면: 판 전체를 그대로 다시 그린다.
+  ///   · 표지 반쪽(앞표지/뒤표지): 원본 표지 한 장을 그대로 두고 **보고 있는 반쪽만** 갈아 끼운다.
   el("saveViewBtn").addEventListener("click", function(){
     var pg = pages[idx];
     if (!pg || !bookId) return;
-    if (pg.half) { alert("표지는 앞표지·뒤표지가 한 장이라 여기서는 저장할 수 없어요.\n‘이 쪽 그림 바꾸기’로 통째로 올려 주세요."); return; }
-    var img = stage.querySelector(".page img");
     var box = stage.getBoundingClientRect();
-    if (!img || !img.naturalWidth || !box.width) { alert("그림을 아직 다 불러오지 못했어요."); return; }
+    if (!box.width || !box.height) { alert("화면 크기를 읽지 못했어요."); return; }
 
-    var btn = el("saveViewBtn"), label = btn.textContent;
-    btn.disabled = true; btn.textContent = "⏳ 저장 중…";
-
-    // 화면(판) 비율을 그대로 두고, 원본 해상도에 맞춰 다시 그린다.
-    var outW = img.naturalWidth;
-    var outH = Math.round(outW * (box.height / box.width));
-    var k = outW / box.width;                       // 화면 픽셀 → 저장 픽셀
-
-    // object-fit:contain 으로 그려진 크기(확대 전)
-    var ar = img.naturalWidth / img.naturalHeight;
-    var dw = Math.min(box.width, box.height * ar), dh = dw / ar;
-    var w = dw * zoom * k, h = dh * zoom * k;
-    var cx = (box.width / 2 + panX) * k, cy = (box.height / 2 + panY) * k;
-
-    var cv = document.createElement("canvas");
-    cv.width = outW; cv.height = outH;
-    var ctx = cv.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, outW, outH);
+    var btn = el("saveViewBtn");
+    busy(btn, true, "⏳ 저장 중…");
 
     var src = new Image();
     src.crossOrigin = "anonymous";                  // 캔버스가 막히지 않게
+    src.onerror = function(){ alert("그림을 다시 불러오지 못했어요."); busy(btn, false); };
     src.onload = function(){
-      ctx.drawImage(src, cx - w / 2, cy - h / 2, w, h);
+      var natW = src.naturalWidth, natH = src.naturalHeight;
+      var cv = document.createElement("canvas");
+      var ctx;
+      if (!pg.half) {
+        // ── 펼침면: 판 비율 그대로, 원본 가로 해상도로 다시 그린다.
+        cv.width = natW; cv.height = Math.round(natW * (box.height / box.width));
+        ctx = cv.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+        var k = cv.width / box.width;
+        var ar = natW / natH;
+        var dw = Math.min(box.width, box.height * ar), dh = dw / ar;
+        var w = dw * zoom * k, h = dh * zoom * k;
+        var cx = (box.width / 2 + panX) * k, cy = (box.height / 2 + panY) * k;
+        ctx.drawImage(src, cx - w / 2, cy - h / 2, w, h);
+      } else {
+        // ── 표지 반쪽: 표지 한 장을 통째로 다시 만들되, 손댄 반쪽만 새로 그린다.
+        cv.width = natW; cv.height = natH;
+        ctx = cv.getContext("2d");
+        ctx.drawImage(src, 0, 0, natW, natH);        // 나머지 반쪽은 원래 그대로
+        var hw = natW / 2;
+        var hx = (pg.half === "right") ? hw : 0;     // 손대는 반쪽의 시작 x
+        var kk = hw / box.width;                     // 화면 → 저장 픽셀
+        ctx.save();
+        ctx.beginPath(); ctx.rect(hx, 0, hw, natH); ctx.clip();
+        ctx.fillStyle = "#fff"; ctx.fillRect(hx, 0, hw, natH);
+        var dw2 = hw * zoom, dh2 = natH * zoom;
+        var cx2 = hx + hw / 2 + panX * kk, cy2 = natH / 2 + panY * kk;
+        ctx.drawImage(src, hx, 0, hw, natH, cx2 - dw2 / 2, cy2 - dh2 / 2, dw2, dh2);
+        ctx.restore();
+      }
+
       cv.toBlob(function(blob){
-        if (!blob) { alert("그림을 만들지 못했어요."); btn.disabled = false; btn.textContent = label; return; }
+        if (!blob) { alert("그림을 만들지 못했어요."); busy(btn, false); return; }
         toBase64(blob)
-          .then(function(b64){
-            return fetch(API, {
-              method: "POST",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ action: "replacePage", secret: SECRET, adminKey: adminKey,
-                                     bookId: bookId, page: (pg.file || 0) + 1,
-                                     dataBase64: b64, mimeType: "image/jpeg" })
-            });
-          })
-          .then(function(r){ return r.json(); })
-          .then(function(d){
-            if (!d || !d.ok) throw new Error((d && d.error) || "실패");
-            var t = Date.now();
-            pages = buildPages(d.pages.map(function(u){ return u + (u.indexOf("?") < 0 ? "?" : "&") + "t=" + t; }));
-            idx = Math.min(idx, pages.length - 1);
-            zoomMode = "fit"; resetZoom();          // 저장했으니 원래 크기로 보면 그 모습이다
-            render();
-          })
+          .then(function(b64){ return sendReplace((pg.file || 0) + 1, b64, "image/jpeg"); })
+          .then(function(d){ applyNewPages(d.pages); })
           .catch(function(err){ alert("저장하지 못했어요: " + (err && err.message ? err.message : err)); })
-          .then(function(){ btn.disabled = false; btn.textContent = label; });
+          .then(function(){ busy(btn, false); });
       }, "image/jpeg", 0.92);
     };
-    src.onerror = function(){
-      alert("그림을 다시 불러오지 못했어요."); btn.disabled = false; btn.textContent = label;
-    };
-    src.src = img.src;
+    src.src = pg.src;            // 표지 반쪽도 원본은 '표지 한 장' 주소다
   });
 
   function load(){
