@@ -295,8 +295,11 @@
     mine.forEach(function (b) {
       var title = (b.title || "").trim() || "그림책";
       var del = isAdmin ? function () { deleteBookOnline(b, rail, className); } : null;
+      // 반코드를 함께 넘겨야 뷰어의 '리스트로 돌아가기'가 이 반 갤러리로 돌아온다.
+      var code = URL_CLASS || Object.keys(codesByClass[className] || {})[0] || "";
       rail.track.appendChild(bookTile(b.cover, title, b.student || "", function () {
-        location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId);
+        location.href = VIEWER + "?book=" + encodeURIComponent(b.bookId)
+                      + (code ? "&class=" + encodeURIComponent(code) : "");
       }, del));
     });
     rail.setCount(mine.length + "권" + (isAdmin ? " · 관리자" : ""));

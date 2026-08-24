@@ -370,18 +370,21 @@ html, body {
 
 /* 그림책 썸네일 — 뷰어의 1페이지(앞표지)와 동일하게 3:4 세로.
    원본 첫 장이 [뒤표지|앞표지] 펼침(가로)이면 .spread 로 오른쪽 절반만 보여준다. */
-#railBooks .rail-cover {
+#railBooks .rail-cover,
+#railA2 .rail-cover {
   width: 100%; aspect-ratio: 3 / 4; border-radius: 12px;
   background-color: #f1ecef; background-repeat: no-repeat;
   background-size: contain; background-position: center;
   border: 3px solid #dcdce0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
 }
-#railBooks .rail-cover.spread {
+#railBooks .rail-cover.spread,
+#railA2 .rail-cover.spread {
   background-size: 200% 100%;
   background-position: right center;
 }
-#railBooks .rail-noimg {
+#railBooks .rail-noimg,
+#railA2 .rail-noimg {
   aspect-ratio: 3 / 4;
   border: 3px solid #dcdce0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
@@ -392,7 +395,8 @@ html, body {
 .rail-skel-box { width: 100%; aspect-ratio: 1; border-radius: 12px;
   background: linear-gradient(100deg, #eee7ec 40%, #f7f2f5 50%, #eee7ec 60%);
   background-size: 200% 100%; animation: railshimmer 1.2s linear infinite; }
-#railBooks .rail-skel-box { aspect-ratio: 3 / 4; border: 3px solid #e8e4ea; }
+#railBooks .rail-skel-box,
+#railA2 .rail-skel-box { aspect-ratio: 3 / 4; border: 3px solid #e8e4ea; }
 .rail-skel-line { height: 12px; width: 70%; border-radius: 6px; background: #eee7ec; }
 @keyframes railshimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) { .rail-skel-box { animation: none; } }
