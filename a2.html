@@ -95,7 +95,9 @@
     var w = sheet.offsetWidth || 1, h = sheet.offsetHeight || 1;
     var s = Math.max(0.05, Math.min(1, availW / w, availH / h));   // 한 장이 통째로 보이게
     sheet.style.transform = "scale(" + s + ")";
-    el("wrap").style.height = (sheet.offsetHeight * s + 24) + "px";
+    // 아래위 padding(70+24)도 높이에 포함된다(box-sizing:border-box).
+    // 이걸 빼먹어서 축소된 A2 한 장의 아래쪽 70px이 잘려 나갔다(아래 줄 그림이 짤림).
+    el("wrap").style.height = (sheet.offsetHeight * s + 70 + 24) + "px";
   }
   window.addEventListener("resize", fitToScreen);
 
