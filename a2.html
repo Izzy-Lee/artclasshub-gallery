@@ -48,6 +48,7 @@
   <button id="printBtn">🖨 인쇄 · PDF로 저장</button>
   <button id="fillBtn" class="ghost">여백 없이 꽉 채우기</button>
   <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
+  <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
   <span class="hint">인쇄 창에서 용지 <b>A2 가로</b>, 배율 100%, 여백 없음으로 맞춰 주세요</span>
 </div>
 <div id="msg">전시용으로 펼치는 중… 📐</div>
@@ -106,6 +107,8 @@
 
   el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
                      + (classId ? "&class=" + encodeURIComponent(classId) : "");
+  // 반 갤러리 목록으로 — 반코드를 모르면 갤러리 첫 화면으로.
+  el("listBtn").href = classId ? "./?class=" + encodeURIComponent(classId) : "./";
 
   if (!bookId) { el("msg").textContent = "주소에 book 이 없어요."; }
   else {
