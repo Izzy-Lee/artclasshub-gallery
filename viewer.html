@@ -15,7 +15,17 @@
   .page { position:absolute; inset:0; border-radius:14px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.18);
           background:#fff; display:flex; align-items:center; justify-content:center;
           transition:transform .5s ease, opacity .3s ease; transform-origin:left center; backface-visibility:hidden; }
-  .page img { width:100%; height:100%; object-fit:contain; display:block; }
+  .page img { width:100%; height:100%; object-fit:contain; display:block;
+              transform-origin:center center; will-change:transform; touch-action:none; }
+  .page img.zoomed { cursor:grab; }
+  /* 확대·축소 도구 — 누구나 쓸 수 있게(부모님도 자세히 보시라고) */
+  #zoomBar { position:absolute; bottom:10px; right:10px; z-index:7; display:flex; gap:6px; align-items:center; }
+  #zoomBar button { border:0; width:40px; height:40px; border-radius:50%; font-size:18px; font-weight:800;
+                    cursor:pointer; background:rgba(255,255,255,.92); color:var(--pink);
+                    box-shadow:0 3px 10px rgba(0,0,0,.12); }
+  #zoomBar #zoomFit { width:auto; padding:0 12px; font-size:13px; }
+  #zoomPct { background:rgba(255,255,255,.92); color:#888; font-size:12px; font-weight:700;
+             padding:6px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
   .page.flipping { transform:rotateY(-160deg); opacity:0; }
   .nav { position:absolute; top:0; bottom:0; width:36%; border:0; background:transparent; cursor:pointer; z-index:5; }
   .nav.prev { left:0; } .nav.next { right:0; }
@@ -55,6 +65,12 @@
     <button class="nav prev" id="prev" aria-label="이전"></button>
     <button class="nav next" id="next" aria-label="다음"></button>
     <div id="counter">1 / 1</div>
+    <div id="zoomBar">
+      <span id="zoomPct">100%</span>
+      <button id="zoomOut" title="작게">－</button>
+      <button id="zoomIn" title="크게">＋</button>
+      <button id="zoomFit" title="화면에 맞춤">맞춤</button>
+    </div>
     <div id="adminBar">
       <button id="lockBtn" title="관리자">🔒</button>
       <button id="swapBtn" hidden>🖼 이 쪽 그림 바꾸기</button>
@@ -86,7 +102,51 @@
     var img = document.createElement("img"); img.src = pages[idx]; img.alt = "page " + (idx+1);
     p.appendChild(img); stage.appendChild(p);
     el("counter").textContent = (idx+1) + " / " + pages.length;
+    applyZoom();
   }
+
+  // ── 크기 조절(확대·축소·이동) ─────────────────────────────────────────
+  //   · 버튼 ＋/－, 마우스 휠, 두 손가락 오므렸다 벌리기, 두 번 톡(더블탭)
+  //   · 확대한 상태에서 한 손가락으로 끌면 그림이 움직인다(쪽 넘김 대신).
+  //   · 쪽을 넘기면 원래 크기로 돌아온다.
+  var zoom = 1, panX = 0, panY = 0;
+  var ZMIN = 1, ZMAX = 5;
+
+  function curImg(){ return stage.querySelector(".page img"); }
+
+  function applyZoom(){
+    var img = curImg(); if (!img) return;
+    // 확대 배율이 커질수록 더 멀리 움직일 수 있게 이동 범위를 넓힌다.
+    var lim = Math.max(0, (zoom - 1) * 0.5);
+    // 이동 한계는 화면에 보이는 판 크기 기준. 아직 크기를 못 재는 순간(막 그린 직후 등)엔
+    // 넉넉한 기본값을 써서, 잘못 0으로 재는 바람에 그림이 꿈쩍 않는 일이 없게 한다.
+    var box = stage.getBoundingClientRect();
+    var w = box.width || img.clientWidth || 600, h = box.height || img.clientHeight || 400;
+    panX = Math.max(-lim * w, Math.min(lim * w, panX));
+    panY = Math.max(-lim * h, Math.min(lim * h, panY));
+    img.style.transform = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
+    img.classList.toggle("zoomed", zoom > 1);
+    el("zoomPct").textContent = Math.round(zoom * 100) + "%";
+  }
+  function setZoom(z){
+    var next = Math.max(ZMIN, Math.min(ZMAX, z));
+    if (next === 1) { panX = 0; panY = 0; }
+    zoom = next; applyZoom();
+  }
+  function resetZoom(){ zoom = 1; panX = 0; panY = 0; applyZoom(); }
+
+  el("zoomIn").addEventListener("click", function(){ setZoom(zoom * 1.4); });
+  el("zoomOut").addEventListener("click", function(){ setZoom(zoom / 1.4); });
+  el("zoomFit").addEventListener("click", resetZoom);
+
+  // 마우스 휠(노트북) — 화면 전체가 스크롤되지 않게 막고 확대만.
+  stage.addEventListener("wheel", function(e){
+    e.preventDefault();
+    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+  }, { passive:false });
+
+  // 두 번 톡 / 더블클릭 — 크게 ↔ 맞춤 전환
+  stage.addEventListener("dblclick", function(){ zoom > 1 ? resetZoom() : setZoom(2.2); });
 
   function go(dir){
     if (animating) return;
@@ -95,19 +155,60 @@
     animating = true;
     var cur = stage.querySelector(".page");
     if (dir > 0 && cur) { cur.classList.add("flipping"); }
-    setTimeout(function(){ idx = ni; render(); animating = false; }, dir > 0 ? 360 : 0);
+    setTimeout(function(){ idx = ni; render(); resetZoom(); animating = false; }, dir > 0 ? 360 : 0);
   }
 
   el("prev").addEventListener("click", function(){ go(-1); });
   el("next").addEventListener("click", function(){ go(1); });
 
-  // 스와이프
-  var sx = 0;
-  stage.parentElement.addEventListener("touchstart", function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  // 스와이프(쪽 넘김) + 두 손가락 확대 + 확대 중 끌어 옮기기
+  var sx = 0, sy = 0, pinchStart = 0, zoomStart = 1, panning = false, lastTap = 0;
+  function dist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+                    return Math.sqrt(dx * dx + dy * dy); }
+
+  stage.parentElement.addEventListener("touchstart", function(e){
+    if (e.touches.length === 2) {                    // 두 손가락 = 크기 조절 시작
+      pinchStart = dist(e.touches); zoomStart = zoom; panning = false;
+    } else {
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      panning = zoom > 1;                            // 확대 중이면 끌어서 이동
+      var now = Date.now();                          // 두 번 톡 = 크게 ↔ 맞춤
+      if (now - lastTap < 300) { zoom > 1 ? resetZoom() : setZoom(2.2); }
+      lastTap = now;
+    }
+  }, {passive:true});
+
+  stage.parentElement.addEventListener("touchmove", function(e){
+    if (e.touches.length === 2 && pinchStart > 0) {
+      e.preventDefault();
+      setZoom(zoomStart * (dist(e.touches) / pinchStart));
+    } else if (panning && e.touches.length === 1) {
+      e.preventDefault();
+      panX += e.touches[0].clientX - sx; panY += e.touches[0].clientY - sy;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      applyZoom();
+    }
+  }, {passive:false});
+
   stage.parentElement.addEventListener("touchend", function(e){
+    if (pinchStart > 0 && e.touches.length < 2) { pinchStart = 0; return; }
+    if (panning) { panning = false; return; }        // 이동 중이었으면 쪽을 넘기지 않는다
+    if (zoom > 1) return;
     var dx = e.changedTouches[0].clientX - sx;
     if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
   }, {passive:true});
+
+  // 마우스로 끌어 옮기기(노트북에서 확대했을 때)
+  var dragging = false, mx = 0, my = 0;
+  stage.addEventListener("mousedown", function(e){
+    if (zoom <= 1) return;
+    dragging = true; mx = e.clientX; my = e.clientY; e.preventDefault();
+  });
+  window.addEventListener("mousemove", function(e){
+    if (!dragging) return;
+    panX += e.clientX - mx; panY += e.clientY - my; mx = e.clientX; my = e.clientY; applyZoom();
+  });
+  window.addEventListener("mouseup", function(){ dragging = false; });
   document.addEventListener("keydown", function(e){
     if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1);
   });
