@@ -20,7 +20,7 @@
   #msg { padding:80px 20px; text-align:center; color:#9a7; font-size:17px; }
 
   /* A2 가로 한 장 = 594 x 420mm. 4열 x 2행 → 한 칸이 정확히 A5(148.5 x 210mm). */
-  #wrap { display:flex; justify-content:center; padding:70px 10px 24px; }
+  #wrap { display:flex; justify-content:center; padding:70px 10px 24px; overflow:hidden; width:100%; }
   /* flex 자식이라 그냥 두면 창 너비에 맞춰 눌린다 → 줄어들지 않게 고정. */
   .sheet { width:594mm; height:420mm; flex:0 0 auto; background:#fff; display:grid;
            grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr);
@@ -37,7 +37,7 @@
     @page { size:594mm 420mm; margin:0; }
     html,body { background:#fff; }
     #bar, #msg { display:none !important; }
-    #wrap { padding:0; }
+    #wrap { padding:0; overflow:visible; height:auto !important; }
     .sheet { transform:none !important; box-shadow:none; }
   }
 </style>
