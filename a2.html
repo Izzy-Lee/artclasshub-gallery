@@ -17,7 +17,11 @@
   #bar button, #bar a { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
                         cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
   #bar button.ghost { background:#eee; color:#666; }
-  #seamBox { display:flex; align-items:center; gap:4px; }
+  #seamBox, #lineBox { display:flex; align-items:center; gap:4px; }
+  #lineBox button { padding:9px 10px; }
+  #lineBox input[type=color] { width:30px; height:30px; padding:0; border:1px solid #ddd; border-radius:8px;
+                               background:#fff; cursor:pointer; }
+  #lineWVal { font-size:12px; color:#888; min-width:40px; text-align:center; }
   #seamBox button { padding:9px 10px; }
   #seamVal { font-size:12px; color:#888; min-width:64px; text-align:center; }
   #msg { padding:80px 20px; text-align:center; color:#9a7; font-size:17px; }
@@ -25,14 +29,19 @@
   /* A2 가로 한 장 = 594 x 420mm. 4열 x 2행 → 한 칸이 정확히 A5(148.5 x 210mm). */
   #wrap { display:flex; justify-content:center; padding:70px 10px 24px; overflow:hidden; width:100%; }
   /* flex 자식이라 그냥 두면 창 너비에 맞춰 눌린다 → 줄어들지 않게 고정. */
-  .sheet { width:594mm; height:420mm; flex:0 0 auto; background:#fff; display:grid;
+  .sheet { position:relative; --lineW:1px; --lineC:#9a9a9a; --vC:var(--lineC); --hC:var(--lineC);
+           width:594mm; height:420mm; flex:0 0 auto; background:#fff; display:grid;
            grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr);
            transform-origin:top center; box-shadow:0 10px 40px rgba(0,0,0,.15); }
-  /* 쪽과 쪽 사이 칸막이 선 — 자르거나 붙일 때 기준이 된다(바깥 테두리는 없음). */
   .cell { position:relative; overflow:hidden; }
-  .cell { border-right:1px solid #9a9a9a; }
-  .cell:nth-child(4n) { border-right:0; }
-  .cell:nth-child(-n+4) { border-bottom:1px solid #9a9a9a; }
+  /* 쪽과 쪽 사이 칸막이 선 — 자르거나 붙일 때 기준이 된다(바깥 테두리는 없음).
+     칸에 border를 주면 그만큼 칸이 줄어 A5가 어긋난다 → 위에 겹쳐 그리는 층으로 뺐다.
+     배경색이 아니라 border라서 인쇄 창의 '배경 그래픽' 설정과 상관없이 찍힌다. */
+  .guides { position:absolute; inset:0; pointer-events:none; }
+  .guides i { position:absolute; top:0; bottom:0; border-left:var(--lineW,1px) solid var(--vC,#9a9a9a); }
+  .guides b { position:absolute; left:0; right:0; top:50%; border-top:var(--lineW,1px) solid var(--hC,#9a9a9a); }
+  .sheet.lines-h    { --vC:transparent; }
+  .sheet.lines-none { --vC:transparent; --hC:transparent; }
   /* 펼침면 한 장에서 왼쪽/오른쪽 반만 보여준다.
      칸 2배 너비 상자에 그림을 넣고(맞춤/채움), 오른쪽 반은 한 칸만큼 밀어 놓는다. */
   .cell img, .cell canvas { position:absolute; top:0; height:100%; width:200%; display:block; object-fit:contain; }
@@ -57,6 +66,11 @@
   <button id="fillBtn" class="ghost">여백: 자동 채움</button>
   <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
   <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
+  <span id="lineBox">
+    <button id="lineBtn" class="ghost" title="칸막이 선: 가로·세로 / 가로만 / 없음">선: 가로·세로</button>
+    <input id="lineColor" type="color" value="#9a9a9a" title="선 색">
+    <button id="lineThin" class="ghost" title="선 얇게">−</button><span id="lineWVal">1px</span><button id="lineThick" class="ghost" title="선 굵게">+</button>
+  </span>
   <span id="seamBox"><button id="seamL" class="ghost" title="이음매 왼쪽으로">◀</button><span id="seamVal">이음매 0</span><button id="seamR" class="ghost" title="이음매 오른쪽으로">▶</button></span>
   <span id="dpi" class="hint"></span>
   <span class="hint">인쇄 창에서 용지 <b>A2 가로</b>, 배율 100%, 여백 없음으로 맞춰 주세요</span>
@@ -169,14 +183,16 @@
       else break;
     }
     if (!n) return 0;
-    // ① 테두리는 종이보다 뚜렷하게 어둡다(회색 그림자·검은 실선).
-    //    밝은 띠는 아이가 일부러 남긴 여백이므로 절대 건드리지 않는다.
-    if (lineStat(d, W, H, side, 0).mean >= 225) return 0;
-    // ② 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
+    var edge = lineStat(d, W, H, side, 0).mean;
+    var inside = lineStat(d, W, H, side, Math.min(lines - 1, n + 2)).mean;
+    // ① 종이보다 밝은 띠는 아이가 일부러 남긴 여백이다 — 손대지 않는다.
+    //    다만 1~3px짜리 새하얀 실선은 얘기가 다르다. 그냥 두면 칸 여백을 그 줄로
+    //    늘려 채우다 하얀 띠가 되어 '안 채워진 것처럼' 보인다(가리 이야기 3번 쪽).
+    if (edge >= 225) return (n <= 3 && Math.abs(inside - edge) > 45) ? n : 0;
+    // ② 어두운 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
     //    평평하고 어둡지만 안쪽으로 이어지므로 여기서 걸러진다(그건 아이 그림이다).
     var darkest = 255;
     for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(d, W, H, side, q).mean);
-    var inside = lineStat(d, W, H, side, Math.min(lines - 1, n + 2)).mean;
     if (inside - darkest <= 45) return 0;
     return n;
   }
@@ -332,6 +348,9 @@
       }
       sheet.appendChild(cell);
     });
+    var g = document.createElement("div"); g.className = "guides"; g.setAttribute("aria-hidden", "true");
+    g.innerHTML = '<i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><b></b>';
+    sheet.appendChild(g);
     el("msg").hidden = true; el("bar").hidden = false; el("wrap").hidden = false;
     fitToScreen();
   }
@@ -359,6 +378,45 @@
                                              : "여백: 남김";
     if (lastPages) rebuild(lastPages);
   });
+
+  // ── 칸막이 선 조절 ────────────────────────────────────────────────
+  //   전시 방법에 따라 필요한 게 다르다 — 잘라 붙일 땐 가로·세로 다,
+  //   한 장으로 붙일 땐 없거나 가로만. 색·굵기도 벽 색에 맞춰 바꾼다.
+  var LINE_MODES = ["all", "h", "none"];
+  var LINE_LABEL = { all: "선: 가로·세로", h: "선: 가로만", none: "선: 없음" };
+  var LINE_STEPS = [0.5, 1, 1.5, 2, 3, 4, 6];
+  function lineGet(k, dflt){ try { return localStorage.getItem(k) || dflt; } catch (e) { return dflt; } }
+  function lineSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  var lineMode  = LINE_MODES.indexOf(lineGet("a2LineMode", "all")) >= 0 ? lineGet("a2LineMode", "all") : "all";
+  var lineColor = lineGet("a2LineColor", "#9a9a9a");
+  var lineW     = parseFloat(lineGet("a2LineW", "1")) || 1;
+
+  function applyLines(){
+    var sheet = el("sheet");
+    sheet.classList.remove("lines-h", "lines-none");
+    if (lineMode !== "all") sheet.classList.add("lines-" + lineMode);
+    sheet.style.setProperty("--lineC", lineColor);
+    sheet.style.setProperty("--lineW", lineW + "px");
+    el("lineBtn").textContent = LINE_LABEL[lineMode];
+    el("lineColor").value = lineColor;
+    el("lineWVal").textContent = lineW + "px";
+  }
+  el("lineBtn").addEventListener("click", function(){
+    lineMode = LINE_MODES[(LINE_MODES.indexOf(lineMode) + 1) % LINE_MODES.length];
+    lineSet("a2LineMode", lineMode); applyLines();
+  });
+  el("lineColor").addEventListener("input", function(){
+    lineColor = this.value; lineSet("a2LineColor", lineColor); applyLines();
+  });
+  function stepW(dir){
+    var i = LINE_STEPS.indexOf(lineW);
+    if (i < 0) { i = 1; }                                  // 목록에 없는 값이면 1px 자리에서 출발
+    i = Math.max(0, Math.min(LINE_STEPS.length - 1, i + dir));
+    lineW = LINE_STEPS[i]; lineSet("a2LineW", String(lineW)); applyLines();
+  }
+  el("lineThin").addEventListener("click", function(){ stepW(-1); });
+  el("lineThick").addEventListener("click", function(){ stepW(1); });
+  applyLines();
 
   function setNudge(v){
     seamNudge = v;
