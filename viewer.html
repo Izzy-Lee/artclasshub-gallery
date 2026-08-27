@@ -519,14 +519,16 @@
       if (Math.abs(a - b) > 55) n++; else break;
     }
     if (!n) return 0;
-    // ① 테두리는 종이보다 뚜렷하게 어둡다(회색 그림자·검은 실선).
-    //    밝은 띠는 아이가 일부러 남긴 여백이므로 절대 건드리지 않는다.
-    if (lineStat(sd, W, H, side, 0).mean >= 225) return 0;
-    // ② 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
+    var edge = lineStat(sd, W, H, side, 0).mean;
+    var inside = lineStat(sd, W, H, side, Math.min(lines - 1, n + 2)).mean;
+    // ① 종이보다 밝은 띠는 아이가 일부러 남긴 여백이다 — 손대지 않는다.
+    //    다만 1~3px짜리 새하얀 실선은 얘기가 다르다. 그냥 두면 칸 여백을 그 줄로
+    //    늘려 채우다 하얀 띠가 되어 '안 채워진 것처럼' 보인다(가리 이야기 3번 쪽).
+    if (edge >= 225) return (n <= 3 && Math.abs(inside - edge) > 45) ? n : 0;
+    // ② 어두운 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색처럼 어두운 그러데이션은
     //    평평하고 어둡지만 안쪽으로 이어지므로 여기서 걸러진다(그건 아이 그림이다).
     var darkest = 255;
     for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(sd, W, H, side, q).mean);
-    var inside = lineStat(sd, W, H, side, Math.min(lines - 1, n + 2)).mean;
     if (inside - darkest <= 45) return 0;
     return n;
   }
