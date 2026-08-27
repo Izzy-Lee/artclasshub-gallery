@@ -269,6 +269,33 @@
     return center;
   }
 
+  /// 그림 가장자리 8줄에서 칸(세로줄)마다 중간값을 뽑아 '대표 한 줄'을 만든다.
+  /// 픽셀을 못 읽으면(다른 곳에서 온 그림) null — 그때는 예전처럼 맨 끝 줄을 쓴다.
+  function medianEdgeRow(img, cx, cWid, H, side){
+    var N = Math.min(8, H);
+    var t = document.createElement("canvas"); t.width = cWid; t.height = N;
+    var tc = t.getContext("2d", { willReadFrequently: true });
+    var d;
+    try {
+      tc.drawImage(img, cx, (side === "t") ? 0 : H - N, cWid, N, 0, 0, cWid, N);
+      d = tc.getImageData(0, 0, cWid, N).data;
+    } catch (e) { return null; }
+    var out = document.createElement("canvas"); out.width = cWid; out.height = 1;
+    var oc = out.getContext("2d");
+    var im = oc.createImageData(cWid, 1), od = im.data, buf = new Array(N);
+    var mid = N >> 1;
+    for (var x = 0; x < cWid; x++) {
+      for (var c = 0; c < 3; c++) {
+        for (var k = 0; k < N; k++) buf[k] = d[(k * cWid + x) * 4 + c];
+        buf.sort(function(a, b){ return a - b; });
+        od[x * 4 + c] = buf[mid];
+      }
+      od[x * 4 + 3] = 255;
+    }
+    oc.putImageData(im, 0, 0);
+    return out;
+  }
+
   /// 칸 하나를 캔버스로 그린다 — 그림 비율이 어떻든 같은 방식으로.
   ///   1) 반쪽을 칸 안에 통째로 넣고(잘리지 않게)
   ///   2) 남는 자리는 그림 가장자리 **한 줄(1px)** 색을 늘려 메운다.
@@ -297,23 +324,17 @@
     var offL = (cx - sx) * scale;                          // 왼쪽으로 모자란 만큼
     var offR = (sx + sw - cx2) * scale;                    // 오른쪽으로 모자란 만큼
 
-    // ── 남는 자리 메우기: 가장자리 한 줄을 늘린다 ─────────────────
-    function edgeRow(dir){          // dir: 't'|'b'|'l'|'r' — 무늬 없는 줄을 최대 6px 안쪽까지 찾는다
-      var lim = 6, best = 0;
-      for (var k = 0; k < lim; k++) {
-        var sxx, syy, sww, shh;
-        if (dir === "t") { sxx = cx; syy = k; sww = cWid; shh = 1; }
-        else if (dir === "b") { sxx = cx; syy = H - 1 - k; sww = cWid; shh = 1; }
-        else if (dir === "l") { sxx = cx + k; syy = 0; sww = 1; shh = H; }
-        else { sxx = cx2 - 1 - k; syy = 0; sww = 1; shh = H; }
-        best = k;
-        break;                       // 지금은 맨 가장자리 한 줄을 쓴다(1px)
-      }
-      return best;
-    }
+    // ── 남는 자리 메우기: '대표 한 줄'을 만들어 늘린다 ─────────────
+    //   맨 끝 한 줄을 그대로 늘리면, 그 줄이 주변보다 조금만 어두워도(측정: 245 대 251)
+    //   넓게 퍼져 회색 그림자처럼 보인다. 가장자리 8줄에서 칸마다 중간값을 뽑아 쓰면
+    //   어두운 실선 한 줄에 휘둘리지 않으면서, 가로 방향 색 변화는 그대로 살아 있다.
     if (dy > 0) {                                          // 위·아래 여백
-      ctx.drawImage(img, cx, edgeRow("t"), cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
-      ctx.drawImage(img, cx, H - 1 - edgeRow("b"), cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
+      var topRow = medianEdgeRow(img, cx, cWid, H, "t");
+      var botRow = medianEdgeRow(img, cx, cWid, H, "b");
+      if (topRow) ctx.drawImage(topRow, 0, 0, cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
+      else        ctx.drawImage(img, cx, 0, cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
+      if (botRow) ctx.drawImage(botRow, 0, 0, cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
+      else        ctx.drawImage(img, cx, H - 1, cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
     }
     if (offL > 0.5) ctx.drawImage(img, cx, 0, 1, H, 0, dy, dx + offL + 1, dh);         // 이음매를 옮겨 생긴 왼쪽
     if (offR > 0.5) ctx.drawImage(img, cx2 - 1, 0, 1, H, cw - (offR + 1), dy, offR + 1, dh);
