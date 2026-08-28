@@ -310,7 +310,7 @@
     var cw = sw, ch = Math.round(cw / 0.70707);            // 칸(A5) 비율
     var cv = document.createElement("canvas");
     cv.width = cw; cv.height = ch;
-    var ctx = cv.getContext("2d");
+    var ctx = cv.getContext("2d", { willReadFrequently: true });
     ctx.imageSmoothingEnabled = true;
 
     // 반쪽 전체가 보이도록 맞춘다(가로·세로 중 더 빡빡한 쪽 기준).
@@ -345,6 +345,24 @@
 
     // ── 그림 본체
     ctx.drawImage(img, cx, 0, cWid, H, dx + offL, dy, dw - offL - offR, dh);
+
+    // ── 인쇄할 때만 드러나는 '거의 흰색' 얼룩 지우기 ───────────────────
+    //   어떤 쪽은 흰 바탕에 (254,254,254)짜리 넓은 자국이 남아 있다.
+    //   순백(255)과 딱 1단계 차이라 화면에선 안 보이지만, 프린터는 254를
+    //   작은 점으로 흩뿌려 찍기 때문에 종이에서는 회색 그림자로 나온다.
+    //   거의 흰색이면서 색기 없는(무채색) 점만 순백으로 눌러 준다 —
+    //   연한 하늘색·미색 같은 '색이 있는' 옅은 칠은 그대로 둔다.
+    try {
+      var flat = ctx.getImageData(0, 0, cw, ch), fp = flat.data;
+      for (var i = 0; i < fp.length; i += 4) {
+        var r = fp[i], g = fp[i + 1], b = fp[i + 2];
+        var mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        var mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        if (mn >= 250 && mx - mn <= 4) { fp[i] = 255; fp[i + 1] = 255; fp[i + 2] = 255; }
+      }
+      ctx.putImageData(flat, 0, 0);
+    } catch (e) { /* 픽셀을 못 읽으면 그냥 둔다 */ }
+
     cell.appendChild(cv);
     return true;
   }
