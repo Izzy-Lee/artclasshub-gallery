@@ -494,6 +494,33 @@
   // 반 갤러리 목록으로 — 반코드를 모르면 갤러리 첫 화면으로.
   el("listBtn").href = classId ? "./?class=" + encodeURIComponent(classId) : "./";
 
+  // ── 인쇄·PDF 저장 때 파일 이름 ────────────────────────────────────
+  //   크롬은 '문서 제목'을 그대로 파일 이름으로 쓴다. 그냥 두면 모든 책이
+  //   '그림책 전시용 A2 📐.pdf'로 저장돼 서로 덮어쓴다.
+  //   반 목록에서 이 책의 학생 이름을 찾아 제목을 바꾼다.
+  //   (같은 학생이 두 권을 올린 경우도 있어 책 제목을 함께 붙인다.)
+  function setDocTitle(){
+    if (!bookId || !classId) return;
+    fetch(API + "?class=" + encodeURIComponent(classId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok || !d.books) return;
+        var me = null;
+        for (var i = 0; i < d.books.length; i++) {
+          if (d.books[i].bookId === bookId) { me = d.books[i]; break; }
+        }
+        if (!me) return;
+        var name = String(me.student || "").trim();
+        var t = String(me.title || "").replace(/\s+/g, " ").trim();
+        var base = (name && t) ? (name + " - " + t) : (name || t);
+        // 파일 이름에 못 쓰는 글자는 빼고, 너무 길면 자른다.
+        base = base.replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+        if (base) document.title = base + " (전시용 A2)";
+      })
+      .catch(function(){ /* 못 읽으면 원래 제목 그대로 */ });
+  }
+  setDocTitle();
+
   if (!bookId) { el("msg").textContent = "주소에 book 이 없어요."; }
   else {
     fetch(API + "?book=" + encodeURIComponent(bookId))
