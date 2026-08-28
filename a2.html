@@ -269,37 +269,63 @@
     return center;
   }
 
-  /// 그림 가장자리 8줄에서 칸(세로줄)마다 중간값을 뽑아 '대표 한 줄'을 만든다.
-  /// 픽셀을 못 읽으면(다른 곳에서 온 그림) null — 그때는 예전처럼 맨 끝 줄을 쓴다.
-  function medianEdgeRow(img, cx, cWid, H, side){
-    var N = Math.min(8, H);
-    var t = document.createElement("canvas"); t.width = cWid; t.height = N;
-    var tc = t.getContext("2d", { willReadFrequently: true });
-    var d;
+  /// 칸에 남는 여백을, 안쪽 그림을 '점점 더' 늘려서 메운다.
+  ///   안쪽(그림이 시작되는 선)에서는 하나도 안 늘리고, 바깥으로 갈수록 늘어난다.
+  ///   → 늘리기 시작하는 자리에 꺾인 자국이 없고, 색도 선도 그대로 이어진다.
+  ///   (뷰어의 '왼쪽/오른쪽 여백 채우기'와 같은 방식)
+  ///   맨 끝 한 줄만 늘리던 예전 방식은 그 한 줄이 넓게 번져 얼룩처럼 보였다.
+  function pushOut(ctx, cw, ch, side, gap){
+    gap = Math.round(gap);
+    if (gap < 1) return;
+    var horiz = (side === "l" || side === "r");
+    var lines  = horiz ? cw : ch;                 // 늘리는 방향의 길이
+    var across = horiz ? ch : cw;                 // 그 반대 방향
+    var band = Math.max(24, Math.min(gap * 7, Math.round((lines - 2 * gap) * 0.35)));
+    var near = (side === "l" || side === "t");
+    if (band < 8 || gap + band > lines) return;
+    var p0    = near ? 0 : lines - gap - band;    // 다시 그릴 구간의 시작
+    var inner = near ? (gap + band) : (lines - gap - band);   // 늘리기 시작하는 안쪽 선
+    var wid = band + gap;
+    var sd;
     try {
-      tc.drawImage(img, cx, (side === "t") ? 0 : H - N, cWid, N, 0, 0, cWid, N);
-      d = tc.getImageData(0, 0, cWid, N).data;
-    } catch (e) { return null; }
-    var out = document.createElement("canvas"); out.width = cWid; out.height = 1;
-    var oc = out.getContext("2d");
-    var im = oc.createImageData(cWid, 1), od = im.data, buf = new Array(N);
-    var mid = N >> 1;
-    for (var x = 0; x < cWid; x++) {
-      for (var c = 0; c < 3; c++) {
-        for (var k = 0; k < N; k++) buf[k] = d[(k * cWid + x) * 4 + c];
-        buf.sort(function(a, b){ return a - b; });
-        od[x * 4 + c] = buf[mid];
-      }
-      od[x * 4 + 3] = 255;
+      sd = (horiz ? ctx.getImageData(p0, 0, wid, across) : ctx.getImageData(0, p0, across, wid)).data;
+    } catch (e) {
+      // 픽셀을 못 읽는 그림(다른 곳에서 온 그림) — 예전처럼 가장자리 한 줄을 늘린다.
+      var self = ctx.canvas;
+      if (side === "t")      ctx.drawImage(self, 0, gap, cw, 1, 0, 0, cw, gap + 1);
+      else if (side === "b") ctx.drawImage(self, 0, ch - gap - 1, cw, 1, 0, ch - gap, cw, gap + 1);
+      else if (side === "l") ctx.drawImage(self, gap, 0, 1, ch, 0, 0, gap + 1, ch);
+      else                   ctx.drawImage(self, cw - gap - 1, 0, 1, ch, cw - gap, 0, gap + 1, ch);
+      return;
     }
-    oc.putImageData(im, 0, 0);
-    return out;
+    var out = horiz ? ctx.createImageData(wid, across) : ctx.createImageData(across, wid);
+    var od = out.data;
+    for (var P = 0; P < wid; P++) {
+      var d = near ? (inner - (p0 + P)) : ((p0 + P) - inner);
+      var u = (-band + Math.sqrt(band * band + 4 * gap * d)) / (2 * gap);
+      u = Math.max(0, Math.min(1, u));
+      // 맨 끝 2px은 흐릿하게 번진 자국이라 색을 뽑는 데 쓰지 않는다.
+      var sf = (near ? (inner - u * (band - 2)) : (inner + u * (band - 2))) - p0;
+      var i0 = Math.max(0, Math.min(wid - 1, Math.floor(sf)));
+      var i1 = Math.max(0, Math.min(wid - 1, i0 + 1));
+      var f = sf - i0;
+      for (var J = 0; J < across; J++) {
+        var a = (horiz ? (J * wid + i0) : (i0 * across + J)) * 4;
+        var b = (horiz ? (J * wid + i1) : (i1 * across + J)) * 4;
+        var o = (horiz ? (J * wid + P)  : (P * across + J)) * 4;
+        od[o]     = sd[a]     + (sd[b]     - sd[a])     * f;
+        od[o + 1] = sd[a + 1] + (sd[b + 1] - sd[a + 1]) * f;
+        od[o + 2] = sd[a + 2] + (sd[b + 2] - sd[a + 2]) * f;
+        od[o + 3] = 255;
+      }
+    }
+    if (horiz) ctx.putImageData(out, p0, 0); else ctx.putImageData(out, 0, p0);
   }
 
   /// 칸 하나를 캔버스로 그린다 — 그림 비율이 어떻든 같은 방식으로.
   ///   1) 반쪽을 칸 안에 통째로 넣고(잘리지 않게)
-  ///   2) 남는 자리는 그림 가장자리 **한 줄(1px)** 색을 늘려 메운다.
-  ///      글씨가 가장자리에 바짝 붙은 경우를 대비해, 무늬 없는 줄을 우선 고른다.
+  ///   2) 남는 자리는 안쪽 그림의 '끝부분만 점점 크게' 늘려 메운다.
+  ///      (뷰어의 왼쪽·오른쪽 여백 채우기와 같은 방식 — 이음매가 안 생긴다)
   function drawExtendedCell(cell, img, half, key){
     var W = img.naturalWidth, H = img.naturalHeight;
     if (!W || !H) return false;
@@ -324,27 +350,15 @@
     var offL = (cx - sx) * scale;                          // 왼쪽으로 모자란 만큼
     var offR = (sx + sw - cx2) * scale;                    // 오른쪽으로 모자란 만큼
 
-    // ── 남는 자리 메우기: '대표 한 줄'을 만들어 늘린다 ─────────────
-    //   맨 끝 한 줄을 그대로 늘리면, 그 줄이 주변보다 조금만 어두워도(측정: 245 대 251)
-    //   넓게 퍼져 회색 그림자처럼 보인다. 가장자리 8줄에서 칸마다 중간값을 뽑아 쓰면
-    //   어두운 실선 한 줄에 휘둘리지 않으면서, 가로 방향 색 변화는 그대로 살아 있다.
-    if (dy > 0) {                                          // 위·아래 여백
-      var topRow = medianEdgeRow(img, cx, cWid, H, "t");
-      var botRow = medianEdgeRow(img, cx, cWid, H, "b");
-      if (topRow) ctx.drawImage(topRow, 0, 0, cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
-      else        ctx.drawImage(img, cx, 0, cWid, 1, dx + offL, 0, dw - offL - offR, dy + 1);
-      if (botRow) ctx.drawImage(botRow, 0, 0, cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
-      else        ctx.drawImage(img, cx, H - 1, cWid, 1, dx + offL, dy + dh - 1, dw - offL - offR, ch - (dy + dh) + 1);
-    }
-    if (offL > 0.5) ctx.drawImage(img, cx, 0, 1, H, 0, dy, dx + offL + 1, dh);         // 이음매를 옮겨 생긴 왼쪽
-    if (offR > 0.5) ctx.drawImage(img, cx2 - 1, 0, 1, H, cw - (offR + 1), dy, offR + 1, dh);
-    if (dx > 0) {                                          // 좌·우 여백(세로로 긴 그림)
-      ctx.drawImage(img, cx, 0, 1, H, 0, dy, dx + 1, dh);
-      ctx.drawImage(img, cx2 - 1, 0, 1, H, dx + dw - 1, dy, cw - (dx + dw) + 1, dh);
-    }
+    // ── 그림 본체 먼저
+    var ix = dx + offL, iw = dw - offL - offR;
+    ctx.drawImage(img, cx, 0, cWid, H, ix, dy, iw, dh);
 
-    // ── 그림 본체
-    ctx.drawImage(img, cx, 0, cWid, H, dx + offL, dy, dw - offL - offR, dh);
+    // ── 남는 자리는 '끝부분만 점점 크게' 늘려 메운다(1px 늘리기가 아니다)
+    pushOut(ctx, cw, ch, "t", dy);
+    pushOut(ctx, cw, ch, "b", ch - (dy + dh));
+    pushOut(ctx, cw, ch, "l", ix);
+    pushOut(ctx, cw, ch, "r", cw - (ix + iw));
 
     // ── 인쇄할 때만 드러나는 '거의 흰색' 얼룩 지우기 ───────────────────
     //   어떤 쪽은 흰 바탕에 (254,254,254)짜리 넓은 자국이 남아 있다.
