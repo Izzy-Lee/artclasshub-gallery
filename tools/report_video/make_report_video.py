@@ -581,20 +581,25 @@ def build_slides(args, drive_shots, art_shots, islands):
     for isl in have:
         pool[isl] = (by_island.get(isl, []), art_by.get(isl, []))
 
-    # 한 컷이 2.0~2.45초가 되는 선에서 사진을 최대한 많이 넣는다
     have_n = sum(len(pool[i][0]) + len(pool[i][1]) for i in have)
-    best = None
-    for np_ in range(min(40, have_n), 5, -1):
-        n_slides = len(cards) + np_
-        dp = (TOTAL + XF * (n_slides - 1) - fixed_dur) / np_
-        if 2.0 <= dp <= 2.45:
+    if args.cut:
+        # 한 컷 길이를 정했으면 사진을 하나도 안 버리고 다 넣는다 — 길이는 따라온다
+        n_photo, dp = have_n, float(args.cut)
+    else:
+        # 한 컷이 2.0~2.45초가 되는 선에서 사진을 최대한 많이 넣는다
+        target = float(getattr(args, "seconds", TOTAL) or TOTAL)
+        best = None
+        for np_ in range(min(200, have_n), 5, -1):
+            n_slides = len(cards) + np_
+            dp = (target + XF * (n_slides - 1) - fixed_dur) / np_
+            if 2.0 <= dp <= 2.45:
+                best = (np_, dp)
+                break
+        if best is None:
+            np_ = min(have_n, 20)
+            dp = (target + XF * (len(cards) + np_ - 1) - fixed_dur) / np_
             best = (np_, dp)
-            break
-    if best is None:
-        np_ = 20
-        dp = (TOTAL + XF * (len(cards) + np_ - 1) - fixed_dur) / np_
-        best = (np_, dp)
-    n_photo, dp = best
+        n_photo, dp = best
 
     # 섬마다 반씩, 각 섬 안에서는 '수업 모습' 다수 + '아이들 그림' 일부
     per = [n_photo // len(have)] * len(have)
@@ -618,9 +623,10 @@ def build_slides(args, drive_shots, art_shots, islands):
             slides.append(make_slide(dp, s, seed)); seed += 1
     slides.append(outro)
 
-    # 반올림 오차는 마지막 카드 길이로 정확히 60.0 초에 맞춘다
-    span = sum(s.dur for s in slides) - XF * (len(slides) - 1)
-    slides[-1].dur += TOTAL - span
+    # --cut 이 아니면 반올림 오차를 마지막 카드로 흡수해 정확히 그 길이로 맞춘다
+    if not args.cut:
+        span = sum(s.dur for s in slides) - XF * (len(slides) - 1)
+        slides[-1].dur += float(getattr(args, "seconds", TOTAL) or TOTAL) - span
     return slides
 
 def render(slides, out_path, audio=None, crf=19, quiet=False):
@@ -722,6 +728,11 @@ def main():
     ap.add_argument("--program", default="2026 옹진군 여름방학중 초등돌봄 교실")
     ap.add_argument("--org-name", default="아트에이블")
     ap.add_argument("--footer", default="온라인 갤러리  izzy-lee.github.io/artclasshub")
+    ap.add_argument("--seconds", type=float, default=TOTAL,
+                    help=f"완성본 길이(초). 기본 {TOTAL:.0f}초 — 사진 칸 수를 여기 맞춰 줄입니다.")
+    ap.add_argument("--cut", type=float, default=None,
+                    help="한 컷 길이(초)를 정하고 길이는 사진 수에 맡깁니다. "
+                         "가진 사진을 하나도 안 버리고 다 넣고 싶을 때 씁니다.")
     ap.add_argument("--crf", type=int, default=19, help="화질(낮을수록 좋음, 18~23)")
     ap.add_argument("--workdir", default=".report_video_cache")
     ap.add_argument("--manifest",
