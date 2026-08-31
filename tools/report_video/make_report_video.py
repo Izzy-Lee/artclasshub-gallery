@@ -195,8 +195,8 @@ class Shot:
 
     def caption(self, framed=False):
         if self.kind == "art":
-            top = " · ".join(x for x in [self.island, self.who] if x) or "아이들 그림"
-            return top, self.program or "우리 그림"
+            top = " · ".join(x for x in [self.island, self.org, pretty_date(self.date)] if x)
+            return top, (self.who + " 그림") if self.who else "아이들 그림"
         if framed:
             top = " · ".join(x for x in [self.island, self.org, pretty_date(self.date)] if x)
             return top, self.program or ""
@@ -610,7 +610,10 @@ def build_slides(args, drive_shots, art_shots, islands):
     seed = 0
     for isl, want in zip(have, per):
         photos, arts = pool[isl]
-        n_art = min(len(arts), max(1, round(want * (0.4 if arts else 0))))
+        if getattr(args, "keep_order", False):
+            n_art = 0                      # 목록이 정한 차례 그대로 — 따로 모으지 않는다
+        else:
+            n_art = min(len(arts), max(1, round(want * (0.4 if arts else 0))))
         n_ph = want - n_art
         chosen_ph = spread(photos, n_ph, getattr(args, "keep_order", False))
         n_art += max(0, n_ph - len(chosen_ph))          # 사진이 모자라면 그림으로 채운다
@@ -760,6 +763,8 @@ def main():
             if len(f) < 5:
                 continue
             name, island, org, program, date = f[0], nfc(f[1]), nfc(f[2]), nfc(f[3]), f[4]
+            kind = (f[5].strip() if len(f) > 5 and f[5].strip() else "photo")
+            who = nfc(f[6]) if len(f) > 6 else ""
             path = Path(name)
             if not path.is_file():
                 path = root / name
@@ -768,7 +773,7 @@ def main():
             if not path.is_file():
                 print(f"  · 못 찾음: {name}")
                 continue
-            drive_shots.append(Shot(path, island, org, program, date, "photo"))
+            drive_shots.append(Shot(path, island, org, program, date, kind, who))
             if island not in order:
                 order.append(island)
         if not drive_shots:
