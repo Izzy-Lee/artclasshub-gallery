@@ -193,10 +193,13 @@ class Shot:
         self.path, self.island, self.org = path, island, org
         self.program, self.date, self.kind, self.who = program, date, kind, who
 
-    def caption(self):
+    def caption(self, framed=False):
         if self.kind == "art":
             top = " · ".join(x for x in [self.island, self.who] if x) or "아이들 그림"
             return top, self.program or "우리 그림"
+        if framed:
+            top = " · ".join(x for x in [self.island, self.org, pretty_date(self.date)] if x)
+            return top, self.program or ""
         top = " · ".join(x for x in [self.island, self.org] if x)
         bot = " · ".join(x for x in [self.program, pretty_date(self.date)] if x)
         return top, bot
@@ -224,6 +227,19 @@ def find_base(given=None):
             if nfc(os.path.basename(hit)) == "옹진2026여름" and os.path.isdir(hit):
                 return Path(hit)
     return None
+
+ISLAND_ORDER = ["백령도", "대청도", "연평도", "영흥도", "자월도", "덕적도", "신도", "북도"]
+
+def list_islands(base):
+    """드라이브에 실제로 있는 섬 폴더를 모아 보기 좋은 차례로 돌려준다."""
+    found = set()
+    for date_dir in base.iterdir():
+        if date_dir.is_dir() and re.match(r"^\d{8}$", nfc(date_dir.name)):
+            for d in date_dir.iterdir():
+                if d.is_dir() and not nfc(d.name).startswith(("00_", ".")):
+                    found.add(nfc(d.name))
+    known = [i for i in ISLAND_ORDER if i in found]
+    return known + sorted(found - set(known))
 
 def scan_drive(base, islands):
     """날짜 ▸ 섬 ▸ 기관 ▸ 수업명 ▸ 사진 구조를 훑는다.
@@ -313,10 +329,12 @@ def fetch_artwork(islands, limit, workdir, timeout=25):
             continue
     return shots
 
-def spread(shots, n):
+def spread(shots, n, keep_order=False):
     """같은 수업 사진만 몰리지 않게 (날짜, 기관, 수업) 묶음을 돌아가며 고른다."""
     if n <= 0 or not shots:
         return []
+    if keep_order:
+        return shots[:n]
     if len(shots) <= n:
         return shots
     buckets = {}
@@ -364,9 +382,12 @@ class Card(Slide):
         d.rectangle((0, 0, W, 10), fill=self.accent)
         d.rectangle((0, H - 10, W, H), fill=self.accent)
 
-        big_f = font(104, "bold")
         lines = self.big.split("\n")
-        block = len(lines) * 132 + (54 if self.small else 0) + (64 if self.sub else 0)
+        big_f = font(104, "bold")
+        while max((text_w(d, ln, big_f) for ln in lines), default=0) > W - 200 and big_f.size > 52:
+            big_f = font(big_f.size - 4, "bold")
+        lh = int(big_f.size * 1.27)
+        block = len(lines) * lh + (54 if self.small else 0) + (64 if self.sub else 0)
         y = (H - block) / 2 - 10
 
         if self.small:
@@ -374,7 +395,7 @@ class Card(Slide):
             y += 78
         for ln in lines:
             centered(d, y, ln, big_f, ink)
-            y += 132
+            y += lh
         if self.rule:
             d.rectangle(((W - 96) / 2, y + 6, (W + 96) / 2, y + 11), fill=self.accent)
             y += 46
@@ -397,30 +418,6 @@ class Card(Slide):
             shifted.paste(img, (0, off))
             img = shifted
         return fade_in(img, 0.25 + 0.75 * a)
-
-class Stats(Card):
-    """숫자 요약 — 큰 숫자 네 칸."""
-    def __init__(self, dur, items, accent=SEA):
-        Card.__init__(self, dur, "", accent=accent, bg=INK)
-        self.items = items
-
-    def _draw(self):
-        img = Image.new("RGB", (W, H), INK)
-        d = ImageDraw.Draw(img)
-        d.rectangle((0, 0, W, 10), fill=self.accent)
-        d.rectangle((0, H - 10, W, H), fill=self.accent)
-        centered(d, 286, "한여름 동안", font(36, "regular"), (150, 166, 186), tracking=3)
-        n = max(1, len(self.items))
-        colw = (W - 240) / n
-        for i, (num, label) in enumerate(self.items):
-            cx = 120 + colw * (i + 0.5)
-            nf, lf = font(112, "bold"), font(32, "regular")
-            d.text((cx - text_w(d, num, nf) / 2, 416), num, font=nf, fill=(255, 255, 255))
-            d.text((cx - text_w(d, label, lf) / 2, 564), label, font=lf, fill=(150, 166, 186))
-            if i:
-                d.rectangle((120 + colw * i - 1, 436, 120 + colw * i + 1, 596), fill=(44, 64, 92))
-        centered(d, 736, "아이들의 여름이 그림이 되었습니다", font(46, "bold"), (255, 255, 255))
-        return img
 
 class PhotoSlide(Slide):
     """수업 사진 — 꽉 채워 자른 뒤 천천히 확대(켄번즈) + 아래 자막."""
@@ -457,8 +454,8 @@ class PhotoSlide(Slide):
             img.paste(lay, (0, 0), lay)
         return img
 
-class ArtSlide(Slide):
-    """아이들 그림 — 자르지 않고 액자에 넣어 통째로."""
+class FramedSlide(Slide):
+    """자르면 아까운 사진(아이들 그림·세로 사진) — 액자에 넣어 통째로."""
     def __init__(self, dur, shot, seed=0):
         self.dur, self.shot = dur, shot
         self._base = None
@@ -484,7 +481,7 @@ class ArtSlide(Slide):
         frame.paste(art, (mat, mat))
         bg.paste(frame, (fx0, fy0))
         self._base = bg
-        self._cap = caption_layer(*self.shot.caption(), center=True)
+        self._cap = caption_layer(*self.shot.caption(framed=True), center=True)
 
     def frame(self, t):
         if self._base is None:
@@ -499,6 +496,16 @@ class ArtSlide(Slide):
             lay = self._cap if a >= 1 else fade_alpha(self._cap, a)
             img.paste(lay, (0, 0), lay)
         return img
+
+FRAME_BELOW = 1.25      # 가로세로비가 이보다 작으면(세로·정사각) 액자로 보여준다
+
+def make_slide(dur, shot, seed):
+    """사진 모양을 보고 꽉 채울지(가로) 액자에 넣을지(세로·정사각·그림) 정한다."""
+    if shot.kind == "art":
+        return FramedSlide(dur, shot, seed)
+    im = load_photo(shot.path)
+    ratio = (im.width / im.height) if im else 1.6
+    return (PhotoSlide if ratio >= FRAME_BELOW else FramedSlide)(dur, shot, seed)
 
 def fade_alpha(rgba, a):
     out = rgba.copy()
@@ -545,7 +552,7 @@ def build_slides(args, drive_shots, art_shots, islands):
     if dates:
         period = f"{pretty_date(dates[0])} – {pretty_date(dates[-1])}"
 
-    title = Card(4.6, "섬마을 아이들의 여름",
+    title = Card(4.6, args.title,
                  small=args.program,
                  sub="찾아가는 창의미술 · 창의공예",
                  meta=" · ".join(x for x in [" · ".join(have), period] if x),
@@ -555,25 +562,18 @@ def build_slides(args, drive_shots, art_shots, islands):
     for isl in have:
         orgs = sorted({s.org for s in by_island.get(isl, []) if s.org})
         progs = sorted({s.program for s in by_island.get(isl, []) if s.program})
-        sections[isl] = Card(2.4, isl,
+        sections[isl] = Card(2.1, isl,
                              small="ONGJIN " + str(2026),
                              sub=" · ".join(orgs[:2]) or "찾아가는 미술교실",
                              meta=" · ".join(progs[:3]),
                              accent=MINT if isl != have[0] else SUN, bg=INK)
 
-    stats = Stats(3.8, [
-        (f"{len(dates)}일", "수업 일수"),
-        (f"{len({s.org for s in drive_shots if s.org})}곳", "참여 기관"),
-        (f"{len(drive_shots)}장", "수업 기록 사진"),
-        (f"{len(art_shots)}점", "아이들 그림"),
-    ], accent=SUN)
-
-    outro = Card(3.6, "고맙습니다",
+    outro = Card(3.8, "고맙습니다",
                  small=args.org_name,
                  sub="2026 옹진군 여름방학중 초등돌봄 교실",
                  meta=args.footer, accent=SEA, bg=PAPER)
 
-    cards = [title] + [sections[i] for i in have] + [stats, outro]
+    cards = [title] + [sections[i] for i in have] + [outro]
     fixed_dur = sum(c.dur for c in cards)
 
     # 사진 칸을 몇 개나 넣을지 — 한 컷이 1.9~2.9초가 되도록
@@ -581,11 +581,13 @@ def build_slides(args, drive_shots, art_shots, islands):
     for isl in have:
         pool[isl] = (by_island.get(isl, []), art_by.get(isl, []))
 
+    # 한 컷이 2.0~2.45초가 되는 선에서 사진을 최대한 많이 넣는다
+    have_n = sum(len(pool[i][0]) + len(pool[i][1]) for i in have)
     best = None
-    for np_ in range(6, 41):
+    for np_ in range(min(40, have_n), 5, -1):
         n_slides = len(cards) + np_
         dp = (TOTAL + XF * (n_slides - 1) - fixed_dur) / np_
-        if 1.9 <= dp <= 2.9:
+        if 2.0 <= dp <= 2.45:
             best = (np_, dp)
             break
     if best is None:
@@ -605,18 +607,15 @@ def build_slides(args, drive_shots, art_shots, islands):
         photos, arts = pool[isl]
         n_art = min(len(arts), max(1, round(want * (0.4 if arts else 0))))
         n_ph = want - n_art
-        chosen_ph = spread(photos, n_ph)
+        chosen_ph = spread(photos, n_ph, getattr(args, "keep_order", False))
         n_art += max(0, n_ph - len(chosen_ph))          # 사진이 모자라면 그림으로 채운다
         chosen_art = arts[:n_art]
         if len(chosen_ph) + len(chosen_art) == 0:
             continue
         slides.append(sections[isl])
         # 수업 모습 → 아이들 그림 순으로 보여 준다
-        for s in chosen_ph:
-            slides.append(PhotoSlide(dp, s, seed)); seed += 1
-        for s in chosen_art:
-            slides.append(ArtSlide(dp, s, seed)); seed += 1
-    slides.append(stats)
+        for s in chosen_ph + chosen_art:
+            slides.append(make_slide(dp, s, seed)); seed += 1
     slides.append(outro)
 
     # 반올림 오차는 마지막 카드 길이로 정확히 60.0 초에 맞춘다
@@ -663,7 +662,7 @@ def render(slides, out_path, audio=None, crf=19, quiet=False):
             # 다 지나간 장면은 메모리에서 놓아 준다
             if i > 0 and hasattr(slides[i - 1], "_src"):
                 slides[i - 1]._src = None
-            if i > 0 and hasattr(slides[i - 1], "_base") and isinstance(slides[i - 1], ArtSlide):
+            if i > 0 and hasattr(slides[i - 1], "_base") and isinstance(slides[i - 1], FramedSlide):
                 slides[i - 1]._base = None
     finally:
         try:
@@ -677,11 +676,12 @@ def render(slides, out_path, audio=None, crf=19, quiet=False):
 
 # ---------------------------------------------------------------- 자리표시(구성 확인용)
 
-def demo_shots(islands, n=30):
+def demo_shots(islands, n=48):
     """사진 없이도 구성을 볼 수 있게 색 카드를 만들어 쓴다."""
     tmp = Path(".demo_shots")
     tmp.mkdir(exist_ok=True)
-    orgs = {"백령도": "백령종합사회복지관", "영흥도": "영흥지역아동센터"}
+    orgs = {"백령도": "백령종합사회복지관", "영흥도": "영흥지역아동센터",
+            "자월도": "자월도서관", "신도": "신도복지회관"}
     progs = ["창의공예", "창의미술", "놀이"]
     out = []
     for i in range(n):
@@ -712,7 +712,9 @@ def demo_shots(islands, n=30):
 def main():
     ap = argparse.ArgumentParser(description="옹진2026여름 1분 보고용 영상 만들기")
     ap.add_argument("--base", help="'옹진2026여름' 폴더 경로(생략하면 알아서 찾음)")
-    ap.add_argument("--islands", nargs="+", default=["백령도", "영흥도"], help="넣을 섬")
+    ap.add_argument("--islands", nargs="+", default=None,
+                    help="넣을 섬 (안 적으면 폴더에 있는 섬을 모두 넣습니다)")
+    ap.add_argument("--title", default="옹진군 아이들의 여름방학", help="영상 큰 제목")
     ap.add_argument("--out", default="옹진2026여름_보고영상_60초.mp4")
     ap.add_argument("--audio", help="배경음악 파일(선택)")
     ap.add_argument("--no-firebase", action="store_true", help="아이들 그림(Firebase) 안 받기")
@@ -722,6 +724,10 @@ def main():
     ap.add_argument("--footer", default="온라인 갤러리  izzy-lee.github.io/artclasshub")
     ap.add_argument("--crf", type=int, default=19, help="화질(낮을수록 좋음, 18~23)")
     ap.add_argument("--workdir", default=".report_video_cache")
+    ap.add_argument("--manifest",
+                    help="쓸 사진을 직접 정한 목록 파일(TSV): 파일이름 ⇥ 섬 ⇥ 기관 ⇥ 수업명 ⇥ 날짜. "
+                         "이걸 주면 드라이브를 훑지 않고 이 차례 그대로 씁니다.")
+    ap.add_argument("--photo-dir", help="--manifest 의 파일이 들어 있는 폴더")
     ap.add_argument("--demo", action="store_true", help="사진 없이 자리표시 영상만 만들기")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -734,7 +740,34 @@ def main():
     work = Path(args.workdir)
     work.mkdir(exist_ok=True)
 
-    if args.demo:
+    if args.manifest:
+        # 사람이 고른 목록 그대로 — 차례도 바꾸지 않는다
+        root = Path(args.photo_dir or Path(args.manifest).parent)
+        drive_shots, order = [], []
+        for ln in open(args.manifest, encoding="utf-8"):
+            f = ln.rstrip("\n").split("\t")
+            if len(f) < 5:
+                continue
+            name, island, org, program, date = f[0], nfc(f[1]), nfc(f[2]), nfc(f[3]), f[4]
+            path = Path(name)
+            if not path.is_file():
+                path = root / name
+                if not path.is_file():
+                    path = root / (name + ".jpg")
+            if not path.is_file():
+                print(f"  · 못 찾음: {name}")
+                continue
+            drive_shots.append(Shot(path, island, org, program, date, "photo"))
+            if island not in order:
+                order.append(island)
+        if not drive_shots:
+            sys.exit("목록에서 쓸 사진을 하나도 못 찾았습니다.")
+        args.islands = args.islands or order
+        args.keep_order = True
+        art_shots = []
+        print(f"목록에서 사진 {len(drive_shots)}장 · 섬 {' · '.join(args.islands)}")
+    elif args.demo:
+        args.islands = args.islands or ["백령도", "영흥도", "자월도", "신도"]
         shots = demo_shots(args.islands)
         drive_shots = [s for s in shots if s.kind == "photo"]
         art_shots = [s for s in shots if s.kind == "art"]
@@ -746,6 +779,10 @@ def main():
                      "구글 드라이브가 켜진 맥에서 --base 로 경로를 알려주세요.\n"
                      "구성만 먼저 보려면 --demo 를 붙여 실행하세요.")
         print(f"드라이브: {base}")
+        args.islands = args.islands or list_islands(base)
+        if not args.islands:
+            sys.exit("섬 폴더를 찾지 못했습니다.")
+        print(f"섬: {' · '.join(args.islands)}")
         drive_shots = scan_drive(base, args.islands)
         print(f"수업 사진 {len(drive_shots)}장")
         if not drive_shots:
@@ -754,7 +791,7 @@ def main():
         print(f"아이들 그림 {len(art_shots)}점")
 
     slides = build_slides(args, drive_shots, art_shots, args.islands)
-    n_photo = sum(1 for s in slides if isinstance(s, (PhotoSlide, ArtSlide)))
+    n_photo = sum(1 for s in slides if isinstance(s, (PhotoSlide, FramedSlide)))
     print(f"장면 {len(slides)}개 (사진칸 {n_photo}) — 그리는 중…")
 
     total = render(slides, args.out, args.audio, args.crf, args.quiet)
