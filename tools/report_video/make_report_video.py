@@ -601,10 +601,24 @@ def build_slides(args, drive_shots, art_shots, islands):
             best = (np_, dp)
         n_photo, dp = best
 
-    # 섬마다 반씩, 각 섬 안에서는 '수업 모습' 다수 + '아이들 그림' 일부
-    per = [n_photo // len(have)] * len(have)
-    for k in range(n_photo - sum(per)):
-        per[k] += 1
+    # 섬마다 몇 칸씩 줄지. 한 바퀴씩 돌아가며 한 장씩 나눠 주므로
+    # 고르게 퍼지면서도, 가진 사진보다 많이 주지 않는다.
+    # (예전에는 n//섬수 로 똑같이 갈라 사진이 많은 섬이 잘리고
+    #  적은 섬 몫은 남아 버려졌다 — 155장 중 90장만 들어가던 문제)
+    avail = [len(pool[i][0]) + len(pool[i][1]) for i in have]
+    per = [0] * len(have)
+    left = min(n_photo, sum(avail))
+    while left > 0:
+        moved = False
+        for k in range(len(have)):
+            if left <= 0:
+                break
+            if per[k] < avail[k]:
+                per[k] += 1
+                left -= 1
+                moved = True
+        if not moved:
+            break
 
     slides = [title]
     seed = 0
