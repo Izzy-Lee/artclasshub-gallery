@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사</title>
+<style>
+/* =========================================================
+   색·서체는 여기 한 곳에서만 바꾸면 문서 전체에 적용된다.
+   ========================================================= */
+:root{
+  --c-main:#2F5D50;          /* 메인 */
+  --c-sub:#E8B04B;           /* 보조 */
+  --c-text:#1A1A1A;          /* 본문 */
+  --c-block:#F5F5F3;         /* 블록 배경 */
+  --c-main-10:#EAEFED;       /* 메인 10% 톤 — 표 머리 */
+  --c-main-soft:#7FA79B;     /* 메인 연한 톤 — '만족' 계열 */
+  --c-flat:#C9C9C2;          /* 값 없음·불만족 */
+  --c-line:#DCDCD6;
+  --c-muted:#6B6B66;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background:#E9E9E5;
+  color:var(--c-text);
+  font-family:"Pretendard Variable","Pretendard",system-ui,-apple-system,"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  font-size:9pt; line-height:1.5;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+
+/* ---------- A4 한 장 ---------- */
+.page{
+  width:210mm; min-height:297mm; padding:14mm;
+  background:#fff; margin:0 auto 8mm;
+  display:flex; flex-direction:column;
+  box-shadow:0 1mm 4mm rgba(0,0,0,.10);
+}
+.page-body{ flex:1 1 auto; }
+.pfoot{
+  margin-top:auto; padding-top:4mm; border-top:.6pt solid var(--c-line);
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:7.5pt; color:var(--c-muted); letter-spacing:-.01em;
+}
+.pfoot .pno{ font-weight:700; color:var(--c-main); }
+
+/* ---------- 공통 조판 ---------- */
+section{ page-break-inside:avoid; break-inside:avoid; margin-bottom:5mm; }
+section:last-child{ margin-bottom:0; }
+table,.card,.quote,.barbox{ page-break-inside:avoid; break-inside:avoid; }
+
+h2{
+  font-size:12pt; margin:0 0 2.4mm; letter-spacing:-.02em; color:var(--c-main);
+  padding-bottom:1.6mm; border-bottom:1.2pt solid var(--c-main);
+}
+h2 .num{ font-size:10pt; font-weight:800; opacity:.55; margin-right:1.5mm; }
+h3{ font-size:10pt; margin:0 0 1.8mm; letter-spacing:-.02em; color:var(--c-main); }
+h3.sub{ color:var(--c-text); font-size:10pt; }
+p{ margin:0 0 2mm; }
+.lead{ font-size:8.5pt; color:var(--c-muted); margin-bottom:2.2mm; }
+.small{ font-size:8pt; color:var(--c-muted); line-height:1.6; }
+
+/* ---------- 표지 ---------- */
+.cover{
+  background:var(--c-main); color:#fff; padding:11mm 10mm; margin-bottom:6mm;
+}
+.cover .kicker{ font-size:9pt; letter-spacing:.06em; opacity:.75; margin-bottom:3mm; }
+.cover h1{
+  font-size:21pt; line-height:1.35; margin:0 0 4mm; letter-spacing:-.03em; font-weight:800;
+  word-break:keep-all;
+}
+.cover .scope{ font-size:10pt; opacity:.9; border-top:.6pt solid rgba(255,255,255,.35); padding-top:3.5mm; }
+.cover .org{ margin-top:2mm; font-size:9pt; opacity:.75; }
+
+/* 핵심지표 4칸 */
+.kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:3mm; margin-bottom:6mm; }
+.kpi{ background:var(--c-block); padding:5mm 4mm; border-top:2.2pt solid var(--c-main); }
+.kpi .k{ font-size:8pt; color:var(--c-muted); letter-spacing:-.01em; margin-bottom:1.5mm; }
+.kpi .v{ font-size:19pt; font-weight:800; line-height:1.1; letter-spacing:-.04em; color:var(--c-main); }
+.kpi .v small{ font-size:10pt; font-weight:700; margin-left:.6mm; }
+.kpi .n{ font-size:7.5pt; color:var(--c-muted); margin-top:1.2mm; }
+.kpi.accent{ border-top-color:var(--c-sub); }
+.kpi.accent .v{ color:#8A6314; }
+
+/* ---------- 표 ---------- */
+table{ width:100%; border-collapse:collapse; font-size:8pt; }
+th,td{ padding:1.5mm 2mm; border-bottom:.6pt solid var(--c-line); text-align:right; vertical-align:top; }
+th{ background:var(--c-main-10); color:var(--c-main); font-weight:700; font-size:7.5pt;
+    border-bottom:1pt solid var(--c-main); text-align:right; }
+th:first-child,td:first-child{ text-align:left; }
+td.t,th.t{ text-align:left; }
+tbody tr:last-child td{ border-bottom:.6pt solid var(--c-line); }
+tr.total td{ background:var(--c-block); font-weight:700; border-bottom:1pt solid var(--c-main); }
+td .nm{ font-weight:700; }
+.num{ font-variant-numeric:tabular-nums; }
+td.dim{ color:var(--c-flat); }
+
+/* ---------- 막대 ---------- */
+.barbox{ background:var(--c-block); padding:4mm; }
+.legend{ display:flex; gap:4mm; flex-wrap:wrap; font-size:7.5pt; color:var(--c-muted); margin-bottom:2.5mm; }
+.legend i{ display:inline-block; width:3mm; height:3mm; margin-right:1.2mm; vertical-align:-.3mm; }
+
+.stack{ display:flex; height:11mm; overflow:hidden; }
+.stack span{ display:flex; align-items:center; justify-content:center;
+             color:#fff; font-size:9pt; font-weight:800; letter-spacing:-.02em; }
+.stack .s0,.sbar .s0{ background:var(--c-main); }
+.stack .s1,.sbar .s1{ background:var(--c-main-soft); }
+.stack .s2,.sbar .s2{ background:var(--c-sub); color:#5A4207; }
+
+/* 지역별 한 줄 누적 막대 — 여러 지역을 같은 축에서 견주기 */
+.srow{ display:grid; grid-template-columns:30mm 1fr 15mm; align-items:center; gap:2.5mm; margin-bottom:1.8mm; }
+.srow:last-of-type{ margin-bottom:0; }
+.slab{ font-size:8.5pt; font-weight:700; letter-spacing:-.02em; }
+.slab em{ display:block; font-style:normal; font-weight:400; font-size:7pt; color:var(--c-muted); }
+.sbar{ display:flex; height:7mm; background:#fff; border:.4pt solid var(--c-line); }
+.sbar span{ display:flex; align-items:center; justify-content:center;
+            font-size:7.5pt; font-weight:800; color:#fff; letter-spacing:-.02em; overflow:hidden; }
+.stot{ font-size:9pt; font-weight:800; text-align:right; color:var(--c-main); font-variant-numeric:tabular-nums; }
+/* 낮은 값은 경고색이 아니라 보조색으로 차분하게 */
+.srow.mark .slab, .srow.mark .stot{ color:#8A6314; }
+.srow.mark .sbar{ border-color:var(--c-sub); border-width:.9pt; }
+.stack-ax{ display:flex; justify-content:space-between; font-size:7.5pt; color:var(--c-muted); margin-top:1.5mm; }
+
+.grp{ margin-bottom:3mm; }
+.grp:last-child{ margin-bottom:0; }
+.grp-hd{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1.2mm; }
+.grp-hd .g{ font-size:9.5pt; font-weight:700; }
+.grp-hd .g em{ font-style:normal; font-weight:400; font-size:8pt; color:var(--c-muted); margin-left:1.5mm; }
+.grp-hd .tot{ font-size:9pt; font-weight:800; color:var(--c-main); }
+
+.row{ display:grid; grid-template-columns:24mm 1fr 12mm; align-items:center; gap:2mm; margin-bottom:.9mm; }
+.row:last-child{ margin-bottom:0; }
+.row .lab{ font-size:8pt; color:var(--c-muted); }
+.row .track{ display:block; background:#fff; height:3.8mm; border:.4pt solid var(--c-line); }
+/* 인라인 요소에는 높이·너비가 먹지 않는다 — 반드시 블록으로 */
+.row .fill{ display:block; height:100%; background:var(--c-main); }
+.row .fill.f1{ background:var(--c-main-soft); }
+.row .fill.f2{ background:var(--c-sub); }
+.row .fill.f3{ background:var(--c-flat); }
+.row .val{ font-size:8.5pt; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }
+
+/* 강조가 필요한 낮은 값 — 경고색이 아니라 보조색으로 차분하게 */
+.grp.mark{ background:#FCF6E9; padding:3mm; margin:-3mm -3mm 1mm; border-left:1.6pt solid var(--c-sub); }
+.grp.mark .grp-hd .tot{ color:#8A6314; }
+
+/* ---------- 카드 ---------- */
+.cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:3mm; }
+.cards.c4{ grid-template-columns:repeat(4,1fr); }
+.card{ background:var(--c-block); padding:3mm 3.5mm; border-left:1.6pt solid var(--c-main); }
+.card .k{ font-size:8pt; color:var(--c-muted); margin-bottom:1.2mm; }
+.card .v{ font-size:13pt; font-weight:800; color:var(--c-main); letter-spacing:-.03em; line-height:1.1; }
+.card .n{ font-size:7.5pt; color:var(--c-muted); margin-top:1mm; }
+
+/* ---------- 인용 ---------- */
+.quote{ background:var(--c-block); border-left:1.6pt solid var(--c-sub); padding:2.6mm 3mm; margin-bottom:1.8mm; }
+.quote:last-child{ margin-bottom:0; }
+.quote .who{ font-size:7.5pt; font-weight:700; color:var(--c-main); letter-spacing:.01em; margin-bottom:1.2mm; }
+.quote .q{ font-size:8pt; line-height:1.5; word-break:keep-all; }
+.quotes2{ display:grid; grid-template-columns:1fr 1fr; gap:2.5mm; }
+.quotes2 .quote{ margin-bottom:0; }
+
+/* ---------- 도넛 ---------- */
+.donut-wrap{ display:grid; grid-template-columns:52mm 1fr; gap:6mm; align-items:center; }
+.donut{ position:relative; width:52mm; }
+.donut svg{ width:100%; height:auto; display:block; }
+.donut .mid{ position:absolute; inset:0; display:flex; flex-direction:column;
+             align-items:center; justify-content:center; text-align:center; }
+.donut .mid .v{ font-size:17pt; font-weight:800; color:var(--c-main); letter-spacing:-.04em; line-height:1; }
+.donut .mid .k{ font-size:7.5pt; color:var(--c-muted); margin-top:1mm; }
+
+/* ---------- 2단 ---------- */
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
+.bullets{ margin:0; padding-left:4mm; font-size:8.5pt; line-height:1.55; }
+.bullets li{ margin-bottom:.8mm; word-break:keep-all; }
+.tagline{ font-size:8pt; color:var(--c-muted); line-height:1.6; word-break:keep-all; }
+
+/* ---------- 종합 매트릭스 ---------- */
+.mx th.axis{ width:26mm; }
+.mx td.axis{ background:var(--c-main-10); color:var(--c-main); font-weight:700; font-size:8.5pt; }
+
+/* ---------- 각주 ---------- */
+.notes{ background:var(--c-block); padding:3.5mm 4.5mm; }
+.notes ol{ margin:0; padding-left:4.5mm; font-size:7.5pt; color:var(--c-muted); line-height:1.6; }
+.notes li{ margin-bottom:1mm; word-break:keep-all; }
+.notes li:last-child{ margin-bottom:0; }
+
+/* ---------- 인쇄 ---------- */
+@page{ size:A4 portrait; margin:14mm; }
+@media print{
+  body{ background:#fff; }
+  /* 여백은 @page 가 만든다 — 페이지 상자는 인쇄 영역을 그대로 채운다 */
+  .page{ width:auto; min-height:267mm; padding:0; margin:0; box-shadow:none;
+         break-after:page; page-break-after:always; }
+  .page:last-child{ break-after:auto; page-break-after:auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= p.1 표지 ================= -->
+<div class="page">
+ <div class="page-body">
+
+  <div class="cover">
+    <div class="kicker">만족도 조사 결과 보고</div>
+    <h1>2026 옹진군 여름방학<br>초등돌봄·교육운영 만족도 조사</h1>
+    <div class="scope">백령지역 · 영흥지역(3개 기관) · 학교연계(4개 지역) — 8개 지역·기관</div>
+    <div class="org">㈜놀이동무토왕성 &nbsp;|&nbsp; 작성일 2026.08.31</div>
+  </div>
+
+  <section>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="k">총 참가 인원</div>
+        <div class="v">115<small>명</small></div>
+        <div class="n">8개 지역·기관 합계</div>
+      </div>
+      <div class="kpi">
+        <div class="k">환산 응답</div>
+        <div class="v">105<small>건</small></div>
+        <div class="n">설문 제출 88건 기준</div>
+      </div>
+      <div class="kpi">
+        <div class="k">만족 이상</div>
+        <div class="v">96.2<small>%</small></div>
+        <div class="n">101건 / 105건</div>
+      </div>
+      <div class="kpi accent">
+        <div class="k">겨울방학 재참여 의향</div>
+        <div class="v">87.0~97.6<small>%</small></div>
+        <div class="n">분류별 범위 (각주 4)</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">1</span>조사 개요</h2>
+    <table>
+      <tbody>
+        <tr><td class="t" style="width:34mm"><span class="nm">조사 분류</span></td>
+            <td class="t">백령지역 / 영흥지역(3개 기관) / 학교연계(4개 지역)</td></tr>
+        <tr><td class="t"><span class="nm">총 참가 인원</span></td>
+            <td class="t">115명 (확정 참가인원 기준)</td></tr>
+        <tr><td class="t"><span class="nm">설문 제출</span></td>
+            <td class="t">88건 (백령 24 / 영흥 34 / 학교연계 30)</td></tr>
+        <tr><td class="t"><span class="nm">환산 응답</span></td>
+            <td class="t">105건 (복수 학년 가정을 아동 기준으로 환산)</td></tr>
+        <tr><td class="t"><span class="nm">작성일 · 운영</span></td>
+            <td class="t">2026.08.31 · ㈜놀이동무토왕성</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>요약</h2>
+    <ul class="bullets">
+      <li>환산 105건 중 <b>101건(96.2%)</b>이 만족 이상으로 응답했고, 불만족·매우 불만족은 <b>0건</b>이었다.</li>
+      <li><b>운영시간</b>은 세 분류 모두 만족도 100.0%로, 이번 조사에서 가장 안정적인 항목이다.</li>
+      <li><b>운영장소</b>는 영흥지역이 90.9%로 상대적으로 낮으며, 영흥 지역아동센터의 공간·냉방·위생 의견이 원인으로 확인된다.</li>
+      <li>분류별로는 <b>학교연계 91.9%</b>가 가장 낮고, 그 안에서 <b>대청도 66.7%</b>가 유일하게 90% 미만이다.
+          운영시간·기간 확대와 사전 안내 요구가 함께 나타난다.</li>
+      <li>희망 프로그램은 <b>미술·공예·만들기</b>와 <b>음악·악기·댄스</b>가 8개 지역·기관 전부에서 언급되었다.</li>
+    </ul>
+  </section>
+
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.1</span>
+ </div>
+</div>
+
+<!-- ================= p.2 전체 결과 ================= -->
+<div class="page">
+ <div class="page-body">
+  <section>
+    <h2><span class="num">3</span>전체 결과</h2>
+    <p class="lead">환산 105건 기준. 반올림으로 각 항목의 합이 100%가 되지 않을 수 있다.</p>
+
+    <div class="barbox">
+      <div class="legend">
+        <span><i style="background:var(--c-main)"></i>매우 만족</span>
+        <span><i style="background:var(--c-main-soft)"></i>만족</span>
+        <span><i style="background:var(--c-sub)"></i>보통</span>
+        <span><i style="background:var(--c-flat)"></i>불만족·매우 불만족</span>
+      </div>
+      <div class="stack">
+        <span class="s0" style="width:78.1%">78.1%</span>
+        <span class="s1" style="width:18.1%">18.1%</span>
+        <span class="s2" style="width:3.8%"></span>
+      </div>
+      <div class="stack-ax">
+        <span>매우 만족 82건</span>
+        <span>만족 19건 · 보통 4건(3.8%) · 불만족 0건</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>분류별 응답 분포</h3>
+    <div class="barbox">
+      <div class="legend">
+        <span><i style="background:var(--c-main)"></i>매우 만족</span>
+        <span><i style="background:var(--c-main-soft)"></i>만족</span>
+        <span><i style="background:var(--c-sub)"></i>보통</span>
+      </div>
+
+      <div class="grp">
+        <div class="grp-hd"><div class="g">백령지역 <em>참가 25명 · 환산 24건</em></div>
+                            <div class="tot">만족 이상 95.8%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:91.6%"></span></span><span class="val">91.6%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:4.2%"></span></span><span class="val">4.2%</span></div>
+        <div class="row"><span class="lab">보통</span><span class="track"><span class="fill f2" style="width:4.2%"></span></span><span class="val">4.2%</span></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-hd"><div class="g">영흥지역 <em>참가 49명 · 환산 44건</em></div>
+                            <div class="tot">만족 이상 100.0%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:77.3%"></span></span><span class="val">77.3%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:22.7%"></span></span><span class="val">22.7%</span></div>
+        <div class="row"><span class="lab">보통</span><span class="track"><span class="fill f2" style="width:0%"></span></span><span class="val">–</span></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-hd"><div class="g">학교연계 <em>참가 41명 · 환산 37건</em></div>
+                            <div class="tot">만족 이상 91.9%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:70.3%"></span></span><span class="val">70.3%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:21.6%"></span></span><span class="val">21.6%</span></div>
+        <div class="row"><span class="lab">보통</span><span class="track"><span class="fill f2" style="width:8.1%"></span></span><span class="val">8.1%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>분류별 요약표</h3>
+    <table>
+      <thead>
+        <tr><th class="t">분류</th><th>참가</th><th>환산</th><th>매우 만족</th><th>만족</th><th>보통</th><th>만족 이상</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="t"><span class="nm">백령지역</span></td><td class="num">25명</td><td class="num">24건</td><td class="num">91.6%</td><td class="num">4.2%</td><td class="num">4.2%</td><td class="num">95.8%</td></tr>
+        <tr><td class="t"><span class="nm">영흥지역</span></td><td class="num">49명</td><td class="num">44건</td><td class="num">77.3%</td><td class="num">22.7%</td><td class="num dim">–</td><td class="num">100.0%</td></tr>
+        <tr><td class="t"><span class="nm">학교연계</span></td><td class="num">41명</td><td class="num">37건</td><td class="num">70.3%</td><td class="num">21.6%</td><td class="num">8.1%</td><td class="num">91.9%</td></tr>
+        <tr class="total"><td class="t">전체</td><td class="num">115명</td><td class="num">105건</td><td class="num">78.1%</td><td class="num">18.1%</td><td class="num">3.8%</td><td class="num">96.2%</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3>운영 항목별</h3>
+    <table>
+      <thead>
+        <tr><th class="t">분류</th><th>참가 / 환산</th><th>프로그램 만족 이상</th><th>운영시간 만족</th><th>운영장소 만족</th><th>겨울방학 참가 ‘예’</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="t"><span class="nm">백령지역</span></td><td class="num">25명 / 24건</td><td class="num">95.8%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">87.0%</td></tr>
+        <tr><td class="t"><span class="nm">영흥지역</span></td><td class="num">49명 / 44건</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">90.9%</td><td class="num">97.6%</td></tr>
+        <tr><td class="t"><span class="nm">학교연계</span></td><td class="num">41명 / 37건</td><td class="num">91.9%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">90.9%</td></tr>
+      </tbody>
+    </table>
+  </section>
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.2</span>
+ </div>
+</div>
+
+<!-- ================= p.3 백령지역 ================= -->
+<div class="page">
+ <div class="page-body">
+  <section>
+    <h2><span class="num">4</span>백령지역</h2>
+    <p class="lead">백령도 · 참가 25명 · 설문 제출 24건 · 아동 기준 환산 24건</p>
+
+    <div class="donut-wrap">
+      <div class="donut">
+        <svg viewBox="0 0 140 140" role="img" aria-label="백령지역 응답 분포">
+          <circle cx="70" cy="70" r="54" fill="none" stroke="#EFEFEC" stroke-width="20"></circle>
+          <g transform="rotate(-90 70 70)" fill="none" stroke-width="20">
+            <circle cx="70" cy="70" r="54" stroke="#2F5D50" stroke-dasharray="310.79 28.50" stroke-dashoffset="0"></circle>
+            <circle cx="70" cy="70" r="54" stroke="#7FA79B" stroke-dasharray="14.25 325.04" stroke-dashoffset="-310.79"></circle>
+            <circle cx="70" cy="70" r="54" stroke="#E8B04B" stroke-dasharray="14.25 325.04" stroke-dashoffset="-325.04"></circle>
+          </g>
+        </svg>
+        <div class="mid"><div class="v">95.8%</div><div class="k">만족 이상</div></div>
+      </div>
+
+      <table>
+        <thead><tr><th class="t">구분</th><th>환산 건수</th><th>비율</th></tr></thead>
+        <tbody>
+          <tr><td class="t"><span class="nm">매우 만족</span></td><td class="num">22건</td><td class="num">91.6%</td></tr>
+          <tr><td class="t">만족</td><td class="num">1건</td><td class="num">4.2%</td></tr>
+          <tr><td class="t">보통</td><td class="num">1건</td><td class="num">4.2%</td></tr>
+          <tr><td class="t">불만족 · 매우 불만족</td><td class="num">0건</td><td class="num">0.0%</td></tr>
+          <tr class="total"><td class="t">만족 이상</td><td class="num">23건</td><td class="num">95.8%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="cards">
+      <div class="card"><div class="k">운영시간 만족</div><div class="v">100.0%</div><div class="n">불만족 응답 없음</div></div>
+      <div class="card"><div class="k">운영장소 만족</div><div class="v">100.0%</div><div class="n">개선 의견 1건 별도 접수</div></div>
+      <div class="card"><div class="k">겨울방학 참가 ‘예’</div><div class="v">87.0%</div><div class="n">세 분류 중 가장 낮음</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="two">
+      <div>
+        <h3 class="sub">개선·보완 의견</h3>
+        <ul class="bullets">
+          <li>학원 시간과 프로그램 시간이 겹쳐 전체 참여가 어려웠다는 의견</li>
+          <li>돌봄 차량 운행 희망</li>
+          <li>장소가 집에서 멀고 공간이 좁아 백령체육문화센터를 추천한다는 의견 1건</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub">긍정적으로 평가된 점</h3>
+        <ul class="bullets">
+          <li>맞벌이 가정의 방학 돌봄 공백 해소에 도움</li>
+          <li>프로그램의 다양성·재미에 대한 긍정 평가</li>
+          <li>운영시간은 전원 만족</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="sub">희망 프로그램</h3>
+    <p class="tagline">미술·그림·디지털드로잉 / 체육·줄넘기·야구·축구 / 방송댄스·사물놀이·악기 /
+      코딩·엔트리·미디어 / 뜨개질·만들기 / 쿠킹·요리 / 승마 / 수화 / 댄스</p>
+  </section>
+
+  <section>
+    <h3 class="sub">대표 원문 의견</h3>
+    <div class="quote">
+      <div class="who">백령지역</div>
+      <div class="q">“충분한 돌봄이 되었습니다. 덕분에 업무에 집중할 수 있어서 감사하게 생각합니다.”</div>
+    </div>
+    <div class="quote">
+      <div class="who">백령지역</div>
+      <div class="q">“늦게나마 참여하게 되어 다행이었고, 맞벌이 부부에게 큰 도움이 되는 시간이었습니다.”</div>
+    </div>
+  </section>
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.3</span>
+ </div>
+</div>
+
+<!-- ================= p.4 영흥지역 ================= -->
+<div class="page">
+ <div class="page-body">
+  <section>
+    <h2><span class="num">5</span>영흥지역</h2>
+    <p class="lead">지역아동센터 · 다함께돌봄센터 · 옹진군가족센터 ·
+      참가 49명 · 설문 제출 34건(지역아동 11 / 다함께 14 / 가족센터 9) · 환산 44건</p>
+
+    <div class="cards">
+      <div class="card"><div class="k">만족 이상</div><div class="v">100.0%</div><div class="n">44건 / 44건</div></div>
+      <div class="card"><div class="k">운영시간 만족</div><div class="v">100.0%</div><div class="n">3개 기관 전부</div></div>
+      <div class="card"><div class="k">운영장소 만족</div><div class="v">90.9%</div><div class="n">세 분류 중 유일한 90%대</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>기관별 응답 분포</h3>
+    <div class="barbox">
+      <div class="legend">
+        <span><i style="background:var(--c-main)"></i>매우 만족</span>
+        <span><i style="background:var(--c-main-soft)"></i>만족</span>
+      </div>
+      <div class="grp">
+        <div class="grp-hd"><div class="g">지역아동센터 <em>참가 18명 · 환산 14건</em></div><div class="tot">만족 이상 100.0%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:71.4%"></span></span><span class="val">71.4%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:28.6%"></span></span><span class="val">28.6%</span></div>
+      </div>
+      <div class="grp">
+        <div class="grp-hd"><div class="g">다함께돌봄센터 <em>참가 21명 · 환산 18건</em></div><div class="tot">만족 이상 100.0%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:77.8%"></span></span><span class="val">77.8%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:22.2%"></span></span><span class="val">22.2%</span></div>
+      </div>
+      <div class="grp">
+        <div class="grp-hd"><div class="g">옹진군가족센터 <em>참가 10명 · 환산 12건</em></div><div class="tot">만족 이상 100.0%</div></div>
+        <div class="row"><span class="lab">매우 만족</span><span class="track"><span class="fill" style="width:83.3%"></span></span><span class="val">83.3%</span></div>
+        <div class="row"><span class="lab">만족</span><span class="track"><span class="fill f1" style="width:16.7%"></span></span><span class="val">16.7%</span></div>
+      </div>
+      <p class="small" style="margin:3mm 0 0">세 기관 모두 보통·불만족 응답이 없어 해당 항목은 표기하지 않았다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h3>기관별 주요 의견</h3>
+    <table>
+      <thead><tr><th class="t" style="width:26mm">기관</th><th class="t">개선·보완 의견</th><th class="t">희망 프로그램</th><th class="t">긍정적으로 평가된 점</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="t"><span class="nm">지역아동센터</span></td>
+          <td class="t">장소 협소·더위·위생 개선 / 가족센터처럼 넓고 쾌적한 공간 희망 / 조금 더 이른 시작시간 희망</td>
+          <td class="t">제과제빵·쿠킹·요리 / 꽃꽂이·만들기 / 진로·몸놀이 / 악기·댄스·음악체험 / 전래놀이</td>
+          <td class="t">다양한 프로그램 / 친절한 운영 / 맞벌이 가정 돌봄에 실질적 도움 / 픽업·통학 지원 만족</td>
+        </tr>
+        <tr>
+          <td class="t"><span class="nm">다함께돌봄센터</span></td>
+          <td class="t">여러 종류의 경험뿐 아니라 동일·유사 경험의 횟수 확대 제안</td>
+          <td class="t">생활기술 / 미술·드로잉 / 체육·몸놀이 / 악기·음악체험 / 코딩·드론 / 전통놀이·그림책</td>
+          <td class="t">다양하고 교육적인 프로그램 / 아이들이 지루해하지 않고 즐겁게 참여 / 맞벌이 가정 돌봄에 도움</td>
+        </tr>
+        <tr>
+          <td class="t"><span class="nm">옹진군가족센터</span></td>
+          <td class="t">운영시간 확대 / 프로그램 일정표 사전 공유 / 선호 프로그램 사전 수요조사 / 차량지원 부재</td>
+          <td class="t">요리·간식 만들기 / 댄스·음악 / 줄넘기 / 과학활동 / 악기 / 보드게임 / 큐브·코딩 / 독서토론·공예 / 실내스포츠</td>
+          <td class="t">프로그램 다양성과 즐거움에 만족 / 운영시간·운영장소 모두 만족 / 겨울방학 참여의사 모두 ‘예’</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3 class="sub">대표 원문 의견</h3>
+    <div class="quote">
+      <div class="who">지역아동센터</div>
+      <div class="q">“맞벌이 가정이라 방학 동안 정말 든든했습니다. 우선은 통학이 되어서 너무 좋아요.”</div>
+    </div>
+    <div class="quote">
+      <div class="who">다함께돌봄센터</div>
+      <div class="q">“여러 가지를 경험하는 것도 좋지만 경험 횟수를 늘리는 것도 추천한다.”</div>
+    </div>
+    <div class="quote">
+      <div class="who">옹진군가족센터</div>
+      <div class="q">“운영시간이 확대되었으면 좋겠습니다. 프로그램 일정표가 공유되면 좋겠다는 생각을 하고 …
+        선호 프로그램 수요조사를 한다면 …”</div>
+    </div>
+  </section>
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.4</span>
+ </div>
+</div>
+
+<!-- ================= p.5 학교연계 ================= -->
+<div class="page">
+ <div class="page-body">
+  <section>
+    <h2><span class="num">6</span>학교연계</h2>
+    <p class="lead">자월도 · 대청도 · 연평도 · 신도 ·
+      참가 41명 · 설문 제출 30건(자월 5 / 대청 7 / 연평 11 / 신도 7) · 환산 37건</p>
+
+    <div class="cards">
+      <div class="card"><div class="k">만족 이상</div><div class="v">91.9%</div><div class="n">34건 / 37건 · 세 분류 중 최저</div></div>
+      <div class="card"><div class="k">운영시간 만족</div><div class="v">100.0%</div><div class="n">4개 지역 전부</div></div>
+      <div class="card"><div class="k">겨울방학 참가 ‘예’</div><div class="v">90.9%</div><div class="n">재참여 의향 유지</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>지역별 응답 분포</h3>
+    <div class="barbox">
+      <div class="legend">
+        <span><i style="background:var(--c-main)"></i>매우 만족</span>
+        <span><i style="background:var(--c-main-soft)"></i>만족</span>
+        <span><i style="background:var(--c-sub)"></i>보통</span>
+      </div>
+
+      <div class="srow">
+        <div class="slab">자월도<em>참가 4명 · 환산 8건</em></div>
+        <div class="sbar"><span class="s0" style="width:100%">매우 만족 100.0%</span></div>
+        <div class="stot">100.0%</div>
+      </div>
+      <div class="srow mark">
+        <div class="slab">대청도<em>참가 13명 · 환산 9건</em></div>
+        <div class="sbar">
+          <span class="s0" style="width:44.4%">44.4%</span>
+          <span class="s1" style="width:22.2%">22.2%</span>
+          <span class="s2" style="width:33.3%">33.3%</span>
+        </div>
+        <div class="stot">66.7%</div>
+      </div>
+      <div class="srow">
+        <div class="slab">연평도<em>참가 15명 · 환산 13건</em></div>
+        <div class="sbar">
+          <span class="s0" style="width:69.2%">69.2%</span>
+          <span class="s1" style="width:30.8%">30.8%</span>
+        </div>
+        <div class="stot">100.0%</div>
+      </div>
+      <div class="srow">
+        <div class="slab">신도<em>참가 9명 · 환산 7건</em></div>
+        <div class="sbar">
+          <span class="s0" style="width:71.4%">71.4%</span>
+          <span class="s1" style="width:28.6%">28.6%</span>
+        </div>
+        <div class="stot">100.0%</div>
+      </div>
+
+      <p class="small" style="margin:2.5mm 0 0">오른쪽 값은 만족 이상 비율이다. 대청도는 보통 응답 33.3%로 4개 지역 중 유일하게 만족 이상이 90%에 미치지 않는다.
+        운영시간·기간 확대와 사전 안내 요구가 함께 접수되었다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h3>지역별 주요 의견</h3>
+    <table>
+      <thead><tr><th class="t" style="width:20mm">지역</th><th class="t">개선·보완 의견</th><th class="t">희망 프로그램</th><th class="t">긍정적으로 평가된 점</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="t"><span class="nm">자월도</span></td>
+          <td class="t">개선 의견 없음</td>
+          <td class="t">창의·손만들기 / 드럼·바이올린 등 악기 / 요리 / 영어·컴퓨터·주산</td>
+          <td class="t">아이의 만족도·참여 태도에 대한 긍정 / 다양한 활동 경험 만족 / 운영시간·기간 적절, 더 길게 운영 희망</td>
+        </tr>
+        <tr>
+          <td class="t"><span class="nm">대청도</span></td>
+          <td class="t">9시~오후 3시까지 확대 / 5일보다 기간·운영일수 확대 / 희망 프로그램·간식 일정 사전 안내 희망</td>
+          <td class="t">보드게임·과학놀이·과학코딩 / 미술·만들기·꾸미기 / 운동 / 악기 / 베이킹 / 일본어·중국어</td>
+          <td class="t">돌봄 없는 고학년에게 유익(1·2학년 돌봄 운영) / 도서지역 방문 운영에 감사</td>
+        </tr>
+        <tr>
+          <td class="t"><span class="nm">연평도</span></td>
+          <td class="t">도시락 제공 지속 요청 / 운영기간 약 2주 확대 희망</td>
+          <td class="t">노래·악기 / 팽이치기 / 드론·코딩 / 독서·글쓰기 / 문해력·한자 / 운동·축구 / 도자기</td>
+          <td class="t">프로그램과 점심 제공 만족 / 도서지역 학생 대상 다양한 프로그램에 감사 / 겨울방학 재참여 의사 높음</td>
+        </tr>
+        <tr>
+          <td class="t"><span class="nm">신도</span></td>
+          <td class="t">개선 의견 없음</td>
+          <td class="t">냅킨아트·코바느질 / 만들기 / 화장품 만들기 / 베이킹 / 미술·악기체험 / 연극·춤·노래</td>
+          <td class="t">경험하기 어려운 수준 높은 수업에 감사</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3 class="sub">대표 원문 의견</h3>
+    <div class="quotes2">
+      <div class="quote"><div class="who">자월도</div>
+        <div class="q">“늘 재밌었다 하면서 … 마음 놓고 보낼 수 있었습니다.”</div></div>
+      <div class="quote"><div class="who">대청도</div>
+        <div class="q">“기간이 짧은 만큼 오후 시간대까지 활용할 수 있었으면 … 오전 9시~오후 3시.”</div></div>
+      <div class="quote"><div class="who">연평도</div>
+        <div class="q">“도시락 제공이 되는 점이 가장 만족스럽습니다. 2주 정도 해도 좋을 것 같아요.”</div></div>
+      <div class="quote"><div class="who">신도</div>
+        <div class="q">“방학 중 아이들에게 성취감을 갖게 해주셔서 감사했습니다.”</div></div>
+    </div>
+  </section>
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.5</span>
+ </div>
+</div>
+
+<!-- ================= p.6 종합 ================= -->
+<div class="page">
+ <div class="page-body">
+  <section>
+    <h2><span class="num">7</span>개선 요구와 반영 방향</h2>
+    <table class="mx">
+      <thead><tr><th class="t axis">구분</th><th class="t">확인된 수요·이슈</th><th class="t">차기 운영 반영 방향</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="t axis">프로그램 구성</td>
+          <td class="t">요리·베이킹, 음악·악기·댄스, 미술·공예, 체육, 코딩 수요가 지역을 가리지 않고 반복됨</td>
+          <td class="t">공통 인기영역을 기본축으로 두고, 지역별 특화 희망(드론·독서문해·생활수선·외국어 등)을 1~2개 추가</td>
+        </tr>
+        <tr>
+          <td class="t axis">운영시간 · 기간</td>
+          <td class="t">대청도 9시~15시 확대 및 운영일수 확대 / 연평도 2주 희망 /
+            영흥 가족센터 시간 확대 / 영흥 지역아동센터 이른 시작 희망</td>
+          <td class="t">지역별 학교·학원·통학 여건을 사전 조사해 시작·종료 시간과 운영일수를 차등 검토</td>
+        </tr>
+        <tr>
+          <td class="t axis">식사 · 통학</td>
+          <td class="t">연평도 도시락 지속 요청 / 영흥 가족센터 차량지원 부재 /
+            영흥 지역아동센터 픽업·통학은 만족</td>
+          <td class="t">도서지역 돌봄의 실효성에 직접 영향을 주는 지원항목으로 별도 검토</td>
+        </tr>
+        <tr>
+          <td class="t axis">운영환경 · 장소</td>
+          <td class="t">영흥 지역아동센터의 공간 협소·더위·위생 개선 요구 /
+            백령 장소 접근성(백령체육문화센터 추천 1건)</td>
+          <td class="t">참여 인원 대비 면적·냉방·위생환경 점검 및 대체공간 가능성 검토</td>
+        </tr>
+        <tr>
+          <td class="t axis">사전 소통</td>
+          <td class="t">대청도 프로그램·간식 일정 사전 안내 /
+            영흥 가족센터 일정표 공유 및 사전 선호 프로그램 수요조사 제안</td>
+          <td class="t">신청 단계에서 일정표를 제공하고, 간단한 사전 수요조사를 운영계획에 반영</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">8</span>희망 프로그램 카테고리</h2>
+    <p class="lead">8개 지역·기관의 희망 프로그램 자유응답을 카테고리로 묶어, 해당 항목을 언급한 지역·기관 수를 센 값이다(각주 5).</p>
+    <div class="barbox">
+      <div class="row"><span class="lab">미술·공예·만들기</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">8곳</span></div>
+      <div class="row"><span class="lab">음악·악기·댄스</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">8곳</span></div>
+      <div class="row"><span class="lab">요리·베이킹</span><span class="track"><span class="fill" style="width:75%"></span></span><span class="val">6곳</span></div>
+      <div class="row"><span class="lab">체육·몸놀이</span><span class="track"><span class="fill" style="width:75%"></span></span><span class="val">6곳</span></div>
+      <div class="row"><span class="lab">코딩·드론·과학</span><span class="track"><span class="fill" style="width:75%"></span></span><span class="val">6곳</span></div>
+      <div class="row"><span class="lab">독서·문해·외국어</span><span class="track"><span class="fill" style="width:62.5%"></span></span><span class="val">5곳</span></div>
+      <div class="row"><span class="lab">생활기술·수선</span><span class="track"><span class="fill f1" style="width:37.5%"></span></span><span class="val">3곳</span></div>
+      <p class="small" style="margin:3mm 0 0">막대 전체 길이는 8개 지역·기관을 뜻한다.
+        응답자 수가 아니라 ‘언급한 지역·기관 수’이므로 선호 강도가 아닌 확산 정도를 나타낸다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">9</span>응답 해석 유의사항</h2>
+    <div class="notes">
+      <ol>
+        <li>환산 건수는 한 가정이 여러 학년의 자녀를 보낸 경우를 아동 기준으로 나누어 계산한 값이다.
+          설문 제출은 88건, 환산 응답은 105건이다.</li>
+        <li>모든 비율은 각 분류의 환산 건수를 모수로 계산했다. 반올림으로 항목의 합이 100%가 되지 않을 수 있다.</li>
+        <li>해당 응답이 없는 항목은 ‘–’로 표기했으며, 0%와 구분해 읽어야 한다.</li>
+        <li>겨울방학 재참여 의향은 분류별로만 집계되어 전체 단일 수치는 산출하지 않았다.
+          표지의 87.0~97.6%는 세 분류 값의 범위다.</li>
+        <li>희망 프로그램 카테고리 빈도는 자유응답을 카테고리로 묶어 지역·기관 단위로 센 값으로,
+          원 설문에 카테고리 문항이 있었던 것은 아니다.</li>
+        <li>자유응답은 원문 그대로 인용하되 맞춤법과 띄어쓰기만 정리했다.
+          말줄임(…)은 원문에서 생략된 부분이다.</li>
+        <li>일부 지역은 참가 인원보다 환산 건수가 많다(예: 자월도 참가 4명·환산 8건).
+          복수 학년 환산 과정에서 생기는 차이다.</li>
+      </ol>
+    </div>
+  </section>
+ </div>
+ <div class="pfoot">
+   <span>2026 옹진군 여름방학 초등돌봄·교육운영 만족도 조사 | ㈜놀이동무토왕성</span>
+   <span class="pno">p.6</span>
+ </div>
+</div>
+
+</body>
+</html>

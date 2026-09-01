@@ -38,6 +38,9 @@
                  box-shadow:0 2px 8px rgba(43,191,164,.28); transition:transform .12s ease; }
   .gal-links a b  { font-size:15px; font-weight:800; letter-spacing:-.01em; }
   .gal-links a em { font-size:12px; font-weight:600; font-style:normal; opacity:.85; }
+  .gal-div { width:1px; height:20px; background:#d5d0d3; flex:0 0 auto; margin:0 3px; }
+  /* 만족도 조사 리포트 — 갤러리 버튼과 구분되게 리포트 본문 색을 쓴다 */
+  .gal-links a.survey { background:#2F5D50; box-shadow:0 2px 8px rgba(47,93,80,.28); }
   .gal-links a:hover  { transform:translateY(-1px); }
   .gal-links a:active { transform:scale(.96); }
   /* 좁은 화면: 옆으로 넘겨 보고, 기관 이름은 접어 지역 이름만 남긴다 */
@@ -182,6 +185,8 @@
         <a href="index.html?school=백령종합사회복지관"><b>백령</b><em>종합사회복지관</em></a>
         <a href="index.html?school=옹진가족센터"><b>옹진</b><em>가족센터</em></a>
         <a href="index.html?school=영흥지역아동센터"><b>영흥</b><em>지역아동센터</em></a>
+        <span class="gal-div" aria-hidden="true"></span>
+        <a class="survey" href="report-satisfaction.html"><b>만족도조사</b><em>바로가기</em></a>
       </nav>
     </div>
     <div class="tabs" id="tabs"></div>
