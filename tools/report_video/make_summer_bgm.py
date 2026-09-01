@@ -92,68 +92,71 @@ OUTRO_MEL = [
 def chord_tones(deg, seventh=True):
     return [deg, deg + 2, deg + 4] + ([deg + 6] if seventh else [])
 
-def compose(seed=3):
+def voicing(chord, bass_midi):
+    """화음 음들을 왼손 자리(베이스 위 한 옥타브 안)에 앉힌다."""
+    mids = []
+    for t in chord_tones(chord, seventh=False):
+        m = deg_to_midi(KEY, t)
+        while m <= bass_midi + 4:
+            m += 12
+        while m > bass_midi + 16:
+            m -= 12
+        mids.append(m)
+    return sorted(mids)
+
+def compose(seed=3, ensemble=False):
+    """기본은 피아노 한 대. ensemble=True 면 현·글로켄·베이스를 더한다."""
     rng = np.random.default_rng(seed)
     notes, bar = [], 0
 
-    def add(b, d, m, v, voice):
+    def add(b, d, m, v, voice="piano"):
         notes.append(N(b, d, m, v, voice))
 
-    def lay_bar(i, chord, bass, mel, level, bells, octave_up, comp):
-        """마디 하나 — 가락·패드·베이스·반주·글로켄"""
-        b0 = (bar + i) * 4
-        tones = chord_tones(chord)
-        # 현 패드: 화음을 길게 깐다
-        for k, t in enumerate(tones):
-            add(b0, 4, deg_to_midi(KEY, t) - (12 if k == 0 else 0), level * 0.30, "pad")
-        # 뜯는 베이스: 걸어 내려가는 저음
-        root = deg_to_midi(KEY, bass) - 24
-        add(b0, 2, root, level * 0.75, "bass")
-        add(b0 + 2, 2, root + 12, level * 0.42, "bass")
-        add(b0, 2, root - 12, level * 0.30, "bass")     # 아래 옥타브를 살짝 깔아 두께를 준다
-        # 피아노 반주: 여린박에 화음을 톡톡
-        if comp:
-            for k, off in enumerate((1, 1.5, 2.5, 3, 3.5)):
-                t = tones[(k + 1) % len(tones)]
-                add(b0 + off, 0.5, deg_to_midi(KEY, t) - 12, level * 0.30, "piano")
-        # 가락
-        for (bt, dur, deg) in mel:
-            m = deg_to_midi(KEY, deg)
-            v = level * (0.92 if bt == 0 else 0.82) + float(rng.normal(0, 0.015))
-            add(b0 + bt, dur, m, min(1.0, max(0.25, v)), "piano")
-            if octave_up:
-                add(b0 + bt, dur, m + 12, v * 0.34, "piano")
-        # 글로켄슈필: 첫 박에만 반짝
-        if bells and mel:
-            add(b0, 2, deg_to_midi(KEY, mel[0][2]) + 12, level * 0.30, "bell")
+    def left_hand(b0, chord, bass_midi, level):
+        """왼손 — 낮은 음 하나 짚고 화음을 또르르 굴린다."""
+        m0, m1, m2 = voicing(chord, bass_midi)
+        seq = [bass_midi, m0, m1, m2, bass_midi + 12, m0, m1, m2]
+        for k, m in enumerate(seq):
+            v = level * (0.62 if k in (0, 4) else 0.40)
+            add(b0 + k * 0.5, 0.5, m, v)
 
-    # ① 들어가기 — 패드가 차오르고 아르페지오만
-    for i, (chord, bass) in enumerate([(0, 0), (5, 5), (3, 3), (4, 4), (0, 0), (4, 4)]):
+    def lay_bar(i, chord, bass, mel, level, bells, octave_up):
         b0 = (bar + i) * 4
-        tones = chord_tones(chord)
-        for k, t in enumerate(tones):
-            add(b0, 4, deg_to_midi(KEY, t) - (12 if k == 0 else 0), 0.22 + 0.03 * i, "pad")
-        add(b0, 2, deg_to_midi(KEY, bass) - 24, 0.42, "bass")
-        for k in range(8):
-            t = tones[k % len(tones)] + (7 if k >= 4 else 0)
-            add(b0 + k * 0.5, 0.5, deg_to_midi(KEY, t), 0.30, "piano")
+        bass_midi = deg_to_midi(KEY, bass) - 24
+        left_hand(b0, chord, bass_midi, level)
+        for (bt, dur, deg) in mel:                       # 오른손 가락
+            m = deg_to_midi(KEY, deg)
+            v = level * (0.98 if bt == 0 else 0.90) + float(rng.normal(0, 0.012))
+            add(b0 + bt, dur, m, min(1.0, max(0.3, v)))
+        if ensemble:
+            for k, t in enumerate(chord_tones(chord)):
+                add(b0, 4, deg_to_midi(KEY, t) - (12 if k == 0 else 0), level * 0.30, "pad")
+            if bells and mel:
+                add(b0, 2, deg_to_midi(KEY, mel[0][2]) + 12, level * 0.30, "bell")
+            if octave_up:
+                for (bt, dur, deg) in mel:
+                    add(b0 + bt, dur, deg_to_midi(KEY, deg) + 12, level * 0.30)
+
+    # ① 들어가기 — 왼손 아르페지오만 조용히
+    for i, (chord, bass) in enumerate([(0, 7), (5, 5), (3, 3), (4, 4), (0, 7), (4, 4)]):
+        b0 = (bar + i) * 4
+        left_hand(b0, chord, deg_to_midi(KEY, bass) - 24, 0.46 + 0.03 * i)
     bar += 6
 
-    # ② 주제 A / ③ 주제 A′ / ④ 다리 / ⑤ 주제 A″ / ⑥ 마무리
     plan = [
-        (CANON, THEME_A, 0.72, False, False, True),
-        (CANON, THEME_B, 0.76, False, False, True),
-        (CANON, THEME_A, 0.80, True, False, True),
-        (CANON, THEME_B, 0.84, True, True, True),
-        (BRIDGE, BRIDGE_MEL[:8], 0.70, False, False, False),
-        (BRIDGE, BRIDGE_MEL[:8], 0.74, True, False, True),
-        (CANON, THEME_A, 0.88, True, True, True),
-        (CANON, THEME_B, 0.90, True, True, True),
-        (OUTRO, OUTRO_MEL, 0.62, True, False, False),
+        (CANON, THEME_A, 0.70, False, False),
+        (CANON, THEME_B, 0.74, False, False),
+        (CANON, THEME_A, 0.78, True, False),
+        (CANON, THEME_B, 0.82, True, True),
+        (BRIDGE, BRIDGE_MEL, 0.68, False, False),
+        (BRIDGE, BRIDGE_MEL, 0.72, True, False),
+        (CANON, THEME_A, 0.86, True, True),
+        (CANON, THEME_B, 0.88, True, True),
+        (OUTRO, OUTRO_MEL, 0.60, False, False),
     ]
-    for prog, mel, level, bells, oct_up, comp in plan:
+    for prog, mel, level, bells, oct_up in plan:
         for i in range(8):
-            lay_bar(i, prog[i][0], prog[i][1], mel[i], level, bells, oct_up, comp)
+            lay_bar(i, prog[i][0], prog[i][1], mel[i], level, bells, oct_up)
         bar += 8
     return notes, bar * 4
 
@@ -276,14 +279,14 @@ def render(notes, total_beats, seconds, wav_path):
     tt = np.arange(ir_len) / SR
     def ir(seed):
         r = np.random.default_rng(seed)
-        h = r.normal(0, 1, ir_len) * np.exp(-tt * 2.7)
+        h = r.normal(0, 1, ir_len) * np.exp(-tt * 3.4)
         h[: int(SR * 0.014)] *= 0.22
         for d, g in ((0.021, 0.46), (0.034, 0.34), (0.051, 0.26)):
             h[int(SR * d)] += g
         return h / np.sqrt(np.sum(h * h))
-    mix = 0.30
-    L = L * (1 - mix) + fftconvolve(L, ir(11))[:n] * mix * 2.7
-    R = R * (1 - mix) + fftconvolve(R, ir(12))[:n] * mix * 2.7
+    mix = 0.17
+    L = L * (1 - mix) + fftconvolve(L, ir(11))[:n] * mix * 2.2
+    R = R * (1 - mix) + fftconvolve(R, ir(12))[:n] * mix * 2.2
 
     st = np.stack([L, R])
     st -= np.mean(st, axis=1, keepdims=True)
@@ -305,10 +308,12 @@ def main():
     ap.add_argument("--seconds", type=float, required=True, help="영상 길이(초)")
     ap.add_argument("--out", default="여름날.mp3")
     ap.add_argument("--seed", type=int, default=3)
+    ap.add_argument("--ensemble", action="store_true",
+                    help="현·글로켄슈필을 더한다(기본은 피아노 한 대)")
     ap.add_argument("--bitrate", default="256k")
     args = ap.parse_args()
 
-    notes, total_beats = compose(args.seed)
+    notes, total_beats = compose(args.seed, args.ensemble)
     print(f"마디 {total_beats // 4}개 · 소리 {len(notes)}개 · "
           f"{args.seconds:.1f}초 (♩≈{total_beats / args.seconds * 60:.0f})")
     wav = os.path.splitext(args.out)[0] + ".wav"
