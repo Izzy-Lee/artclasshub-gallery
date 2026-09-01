@@ -79,34 +79,68 @@
   .foot { max-width:1240px; margin:0 auto; padding:6px 16px 30px;
           font-size:13px; color:var(--sub); text-align:center; }
 
-  .tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; scrollbar-width:none; }
+  /* ---------- 지역 · 기간 고르는 줄 ---------- */
+  .pickrow { display:flex; align-items:center; gap:10px; padding-bottom:10px; }
+  .pick-lab { flex:0 0 auto; font-size:12px; font-weight:800; color:var(--sub); letter-spacing:.01em; }
+  .tabs { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; }
   .tabs::-webkit-scrollbar { display:none; }
-  .tab { flex:0 0 auto; border:0; cursor:pointer; font:inherit; font-weight:800; font-size:14px;
-         padding:8px 16px; border-radius:999px; background:#efe9ec; color:#6b6b6b; }
-  .tab.on { background:var(--pink); color:#fff; }
+  .tab { flex:0 0 auto; border:1px solid var(--line); cursor:pointer; font:inherit; font-weight:700; font-size:13.5px;
+         padding:8px 15px; border-radius:999px; background:#fff; color:#6b6b6b; transition:.12s ease; }
+  .tab:hover { border-color:#d8d2d5; color:#3a3a3a; }
+  .tab.on { background:var(--pink); border-color:var(--pink); color:#fff; font-weight:800; }
 
-  /* 날짜 카드 — 오른쪽으로 계속 늘어나고 화살표로 넘긴다 */
-  .daybar { display:flex; align-items:center; gap:6px; padding-bottom:10px; }
-  .daystrip { display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x proximity;
-              flex:1; scrollbar-width:none; padding:2px; }
+  /* ---------- 날짜 줄 ----------
+     왼쪽에 지금 보고 있는 날짜 요약, 오른쪽에 점으로 잇는 타임라인. */
+  .daybar { display:flex; align-items:stretch; gap:12px; padding-bottom:12px; }
+  .daynow { flex:0 0 auto; width:190px; background:#fff; border:1px solid var(--line);
+            border-radius:14px; padding:10px 13px; }
+  .dn-date { font-size:15px; font-weight:800; color:var(--pink); letter-spacing:-.02em; }
+  .dn-date span { font-size:12px; font-weight:700; }
+  .dn-sub { font-size:11.5px; color:#6b6b6b; margin-top:3px; line-height:1.45;
+            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .dn-cnt { font-size:11px; color:var(--sub); margin-top:4px; }
+
+  .daystrip { display:flex; align-items:flex-start; flex:1 1 auto; min-width:0;
+              overflow-x:auto; scroll-snap-type:x proximity; scrollbar-width:none; padding-top:6px; }
   .daystrip::-webkit-scrollbar { display:none; }
-  .daycard { flex:0 0 auto; scroll-snap-align:start; cursor:pointer; border:1px solid var(--line);
-             background:#fff; border-radius:13px; padding:8px 14px; min-width:78px; text-align:center;
-             transition:transform .12s ease; }
-  .daycard:active { transform:scale(.96); }
-  .daycard .d { font-size:17px; font-weight:800; line-height:1.15; }
-  .daycard .y { font-size:10px; color:var(--sub); }
-  .daycard .n { font-size:10px; color:var(--sub); margin-top:2px; }
-  .daycard.on { background:var(--pink); border-color:var(--pink); }
-  .daycard.on .d, .daycard.on .y, .daycard.on .n { color:#fff; }
-  .arrow { flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
-           background:#fff; color:#666; font-size:15px; cursor:pointer; display:flex;
-           align-items:center; justify-content:center; }
+  .daydot { position:relative; flex:0 0 auto; width:62px; scroll-snap-align:center;
+            border:0; background:none; cursor:pointer; font:inherit; padding:0 0 2px;
+            text-align:center; color:#9a9a9a; }
+  /* 점끼리 잇는 선 — 칸마다 한 토막씩 그려 이어 붙인다(양 끝은 반만) */
+  .daydot::before { content:""; position:absolute; left:0; right:0; top:5px; height:2px; background:#ece7e9; }
+  .daydot:first-child::before { left:50%; }
+  .daydot:last-child::before { right:50%; }
+  .daydot .dot { position:relative; display:block; width:12px; height:12px; margin:0 auto 8px;
+                 border-radius:50%; background:#fff; border:2px solid #ddd6d9; transition:.12s ease; }
+  .daydot .d { display:block; font-size:13px; font-weight:800; letter-spacing:-.02em; line-height:1.2; }
+  .daydot .w { display:block; font-size:10.5px; margin-top:1px; }
+  .daydot:hover .dot { border-color:#f0a9c9; }
+  .daydot:hover { color:#5a5a5a; }
+  .daydot.on { color:var(--pink); }
+  .daydot.on .dot { background:var(--pink); border-color:var(--pink);
+                    box-shadow:0 0 0 4px rgba(243,90,160,.16); }
+  .daydot.all .d { font-size:12.5px; }
+
+  .arrow { flex:0 0 auto; align-self:center; width:30px; height:30px; border-radius:50%;
+           border:1px solid var(--line); background:#fff; color:#666; font-size:15px; cursor:pointer;
+           display:flex; align-items:center; justify-content:center; }
   .arrow[disabled] { opacity:.3; cursor:default; }
   /* 드라이브에 새 폴더를 넣고 바로 확인하고 싶을 때 — 캐시를 무시하고 다시 읽는다 */
   .arrow.refresh { margin-left:6px; font-size:17px; }
   .arrow.refresh.busy { animation:spin 1s linear infinite; opacity:.5; }
   @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* '전체'로 볼 때 날짜마다 붙는 머리말 */
+  .dayhead { display:flex; align-items:baseline; gap:9px; margin:22px 0 10px; }
+  .dayhead:first-child { margin-top:4px; }
+  .dayhead .dh-d { font-size:15px; font-weight:800; letter-spacing:-.02em; }
+  .dayhead .dh-n { font-size:11.5px; color:var(--sub); }
+  .dayhead .dh-line { flex:1 1 auto; height:1px; background:var(--line); }
+
+  @media (max-width:640px) {
+    .daybar { flex-wrap:wrap; }
+    .daynow { width:100%; }
+  }
 
   main { max-width:1240px; margin:0 auto; padding:18px 16px 40px; }
   .org { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
@@ -213,8 +247,12 @@
       </div>
       <a class="menu-survey" href="report-satisfaction.html" target="_blank" rel="noopener"><b>만족도조사</b><span>바로가기</span></a>
     </nav>
-    <div class="tabs" id="tabs"></div>
+    <div class="pickrow">
+      <span class="pick-lab">지역</span>
+      <div class="tabs" id="tabs"></div>
+    </div>
     <div class="daybar">
+      <div class="daynow" id="daynow"></div>
       <div class="daystrip" id="days"></div>
       <button class="arrow" id="dprev" aria-label="이전 날짜">&#8249;</button>
       <button class="arrow" id="dnext" aria-label="다음 날짜">&#8250;</button>
@@ -370,6 +408,43 @@
       });
   }
 
+  var ALL_DAYS = "__all__";                       // 날짜 '전체'
+  var WD = ["일", "월", "화", "수", "목", "금", "토"];
+
+  /// 20260821 → Date. 8자리가 아니면 null.
+  function dateOf(folder) {
+    var g = String(folder).replace(/[^0-9]/g, "");
+    if (g.length !== 8) return null;
+    return new Date(+g.substr(0, 4), +g.substr(4, 2) - 1, +g.substr(6, 2));
+  }
+  /// 20260821 → "8월 21일 (목)"
+  function dateLabel(folder) {
+    var d = dateOf(folder);
+    if (!d) return String(folder);
+    return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + WD[d.getDay()] + ")";
+  }
+  function wdOf(folder) { var d = dateOf(folder); return d ? WD[d.getDay()] : ""; }
+
+  /// 지금 지역에 해당하는 기관만
+  function inRegion(o) { return REGION === "전체" || o.region === REGION; }
+  function isVid(x) { return x.kind === "video"; }
+
+  /// 날짜 묶음의 사진·영상·기관 수를 센다.
+  function tally(days) {
+    var photos = 0, vids = 0, orgs = {}, progs = 0;
+    days.forEach(function (day) {
+      day.orgs.filter(inRegion).forEach(function (o) {
+        orgs[o.org] = true;
+        o.programs.forEach(function (pr) {
+          progs += 1;
+          photos += pr.photos.length;
+          vids += pr.photos.filter(isVid).length;
+        });
+      });
+    });
+    return { photos: photos - vids, vids: vids, orgs: Object.keys(orgs), progs: progs };
+  }
+
   /// 20260721 → {m:"7/21", y:"2026"}
   function dparts(folder) {
     var g = String(folder).replace(/[^0-9]/g, "");
@@ -399,7 +474,11 @@
       var b = document.createElement("button");
       b.className = "tab" + (r === REGION ? " on" : "");
       b.textContent = r;
-      b.addEventListener("click", function () { REGION = r; DAY = null; render(); });
+      b.addEventListener("click", function () {
+        REGION = r;
+        if (DAY !== ALL_DAYS) DAY = null;      // '전체 기간'으로 보던 중이면 그대로 둔다
+        render();
+      });
       tabs.appendChild(b);
     });
 
@@ -410,31 +489,109 @@
         + '드라이브에 <b>날짜 ▸ 학교·기관명 ▸ 01프로그램명</b> 순서로 넣으면 여기에 나옵니다.</div>';
       return;
     }
-    // 지역을 바꾸면 그 지역의 가장 최근 날짜로 맞춘다.
-    if (!DAY || !days.some(function (d) { return d.folder === DAY; })) DAY = days[0].folder;
+    // 지역을 바꾸면 그 지역의 가장 최근 날짜로 맞춘다. ('전체 기간'은 그대로 둔다)
+    if (DAY !== ALL_DAYS && (!DAY || !days.some(function (d) { return d.folder === DAY; }))) {
+      DAY = days[0].folder;
+    }
 
     var strip = el("days"); strip.innerHTML = "";
+
+    // 맨 앞의 '전체' — 지역 줄의 '전체'와 같은 자리를 한다.
+    var all = document.createElement("button");
+    all.type = "button";
+    all.className = "daydot all" + (DAY === ALL_DAYS ? " on" : "");
+    all.innerHTML = '<span class="dot"></span><span class="d">전체</span>'
+      + '<span class="w">' + days.length + '일</span>';
+    all.addEventListener("click", function () { DAY = ALL_DAYS; render(); });
+    strip.appendChild(all);
+
     days.forEach(function (day) {
       var p = dparts(day.folder);
-      var n = 0;
-      day.orgs.forEach(function (o) {
-        if (REGION !== "전체" && o.region !== REGION) return;
-        o.programs.forEach(function (pr) { n += pr.photos.length; });
-      });
-      var c = document.createElement("div");
-      c.className = "daycard" + (day.folder === DAY ? " on" : "");
-      c.innerHTML = '<div class="y">' + p.y + '</div><div class="d">' + p.m + '</div>'
-        + '<div class="n">' + n + '개</div>';
+      var c = document.createElement("button");
+      c.type = "button";
+      c.className = "daydot" + (day.folder === DAY ? " on" : "");
+      c.innerHTML = '<span class="dot"></span><span class="d">' + p.m + '</span>'
+        + '<span class="w">(' + wdOf(day.folder) + ')</span>';
       c.addEventListener("click", function () { DAY = day.folder; render(); });
       strip.appendChild(c);
     });
     setTimeout(function () {
-      var on = strip.querySelector(".daycard.on");
+      var on = strip.querySelector(".daydot.on");
       if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
       updateArrows();
     }, 0);
 
-    renderDay(days.filter(function (d) { return d.folder === DAY; })[0]);
+    if (DAY === ALL_DAYS) { renderNow(days, true); renderAll(days); }
+    else {
+      var one = days.filter(function (d) { return d.folder === DAY; })[0];
+      renderNow([one], false);
+      renderDay(one);
+    }
+  }
+
+  /// 날짜 줄 왼쪽의 요약 카드 — 지금 무엇을 보고 있는지 한 줄로.
+  function renderNow(days, isAll) {
+    var t = tally(days);
+    var sub;
+    if (isAll) {
+      var last = dparts(days[0].folder).m, first = dparts(days[days.length - 1].folder).m;
+      sub = days.length > 1 ? (first + " ~ " + last) : last;
+    } else {
+      var orgs = days[0].orgs.filter(inRegion);
+      sub = (orgs.length === 1 && orgs[0].programs.length === 1)
+        ? orgs[0].org + " · " + orgs[0].programs[0].title
+        : t.orgs.length + "개 기관 · " + t.progs + "개 프로그램";
+    }
+    el("daynow").innerHTML =
+      '<div class="dn-date">' + (isAll
+        ? '전체 기간 <span>(' + days.length + '일)</span>'
+        : esc(dateLabel(days[0].folder))) + '</div>'
+      + '<div class="dn-sub">' + esc(sub) + '</div>'
+      + '<div class="dn-cnt">' + (isAll ? t.orgs.length + '개 기관 · ' : '')
+      + '사진 ' + t.photos + '장' + (t.vids ? ' · 영상 ' + t.vids + '개' : '') + '</div>';
+  }
+
+  /// 날짜 '전체' — 날짜마다 머리말을 달아 위에서 아래로 이어 붙인다.
+  function renderAll(days) {
+    var t = tally(days);
+    var last = dparts(days[0].folder), first = dparts(days[days.length - 1].folder);
+    el("summary").textContent = first.y + "." + first.m.replace("/", ".")
+      + " ~ " + last.y + "." + last.m.replace("/", ".")
+      + " · " + days.length + "일 · " + t.orgs.length + "개 기관 · 사진 " + t.photos + "장"
+      + (t.vids ? " · 영상 " + t.vids + "개" : "");
+
+    var main = el("main"); main.innerHTML = "";
+
+    // 자동재생은 기간 전체의 사진을 모아 한 번만 돌린다.
+    heroStop();
+    var imgs = [], caps = [];
+    days.forEach(function (day) {
+      var b = buildHero(day, day.orgs.filter(inRegion));
+      imgs = imgs.concat(b.imgs); caps = caps.concat(b.caps);
+    });
+    if (imgs.length >= 2) main.appendChild(heroStart({ imgs: imgs, caps: caps }));
+
+    days.forEach(function (day) {
+      var orgs = day.orgs.filter(inRegion);
+      if (!orgs.length) return;
+      var d = tally([day]);
+      var h = document.createElement("div"); h.className = "dayhead";
+      h.innerHTML = '<span class="dh-d">' + esc(dateLabel(day.folder)) + '</span>'
+        + '<span class="dh-n">' + d.orgs.length + '개 기관 · 사진 ' + d.photos + '장'
+        + (d.vids ? ' · 영상 ' + d.vids + '개' : '') + '</span>'
+        + '<span class="dh-line"></span>';
+      main.appendChild(h);
+      orgs.forEach(function (o) { main.appendChild(orgCard(day, o)); });
+    });
+  }
+
+  /// 기관 하나 = 카드 한 장. 날짜별 보기와 전체 보기가 같이 쓴다.
+  function orgCard(day, o) {
+    var card = document.createElement("div"); card.className = "org";
+    card.innerHTML = '<div class="orghead"><h3>' + esc(o.org) + '</h3>'
+      + '<span class="badge">' + esc(o.region) + '</span></div>';
+    o.programs.forEach(function (pr) { card.appendChild(programSlider(day, o, pr)); });
+    return card;
   }
 
   // ── 상단 자동재생 슬라이드쇼 ──────────────────────────────────
@@ -559,13 +716,7 @@
     var built = buildHero(day, orgs);
     if (built.imgs.length >= 2) main.appendChild(heroStart(built));
 
-    orgs.forEach(function (o) {
-      var card = document.createElement("div"); card.className = "org";
-      card.innerHTML = '<div class="orghead"><h3>' + esc(o.org) + '</h3>'
-        + '<span class="badge">' + esc(o.region) + '</span></div>';
-      o.programs.forEach(function (pr) { card.appendChild(programSlider(day, o, pr)); });
-      main.appendChild(card);
-    });
+    orgs.forEach(function (o) { main.appendChild(orgCard(day, o)); });
   }
 
   /// 프로그램 하나 = 가로 슬라이드 한 줄. 화면 크기에 따라 1·2·3·4개씩 보인다.
