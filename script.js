@@ -106,7 +106,7 @@
       return;
     }
     const pw = schoolPasswords[school];
-    if (pw && !isAdmin && !unlockedSchools.has(school)) {
+    if (pw && !isAdmin && !isOpenKey(school) && !unlockedSchools.has(school)) {
       const entered = prompt(`🔒 ${school} 갤러리\n\n비밀번호를 입력하세요`);
       if (entered === null) return;                 // 취소
       if (entered !== pw) { alert("비밀번호가 올바르지 않아요."); return; }
@@ -207,6 +207,23 @@
     return classByCode[k] || classByName[k] || null;
   }
 
+  // ---------- 🔓 공개 반(비밀번호 없음) ----------
+  // config.js 의 openClasses 에 적어 둔 반은 시트에 비번이 남아 있어도 그냥 열어 준다.
+  // 이름/코드/사진폴더명 중 하나만 맞으면 된다.
+  const OPEN_KEYS = new Set(
+    (CFG.openClasses || []).map((v) => String(v || "").trim().toLowerCase()).filter(Boolean)
+  );
+  function isOpenKey(key) {
+    const k = String(key || "").trim().toLowerCase();
+    return !!k && OPEN_KEYS.has(k);
+  }
+  // 등록부 한 줄(반)이 공개 반인지 — 반 이름·코드·사진폴더명을 모두 대본다.
+  function isOpenReg(reg) {
+    if (!reg) return false;
+    if (isOpenKey(reg.name) || isOpenKey(reg.code) || isOpenKey(reg.org)) return true;
+    return (reg.orgs || []).some(isOpenKey);
+  }
+
   // 화면에 묶인 이름(학교/반 이름)으로 찾기 — 이름이 안 맞으면 그 그룹 작품의 반코드로도 찾아본다.
   function regForGroup(name) {
     let r = regFor(name);
@@ -264,7 +281,7 @@
 
   // 이 반이 열려 있는지(공개이거나 이미 비번을 통과했는지)
   function classUnlocked(reg) {
-    return !reg || !reg.locked || isAdmin || unlockedClasses.has(regKey(reg));
+    return !reg || !reg.locked || isAdmin || isOpenReg(reg) || unlockedClasses.has(regKey(reg));
   }
 
   // 열린 반 정보를 다른 스크립트(home-rails.js)에도 알린다 — 사진 줄이 같은 비번·폴더 이름을 쓰도록.
@@ -571,7 +588,10 @@
     // 시트를 아직 못 읽었을 때도(잠긴 반인지 모를 때) 일단 가린다 —
     // 그렇지 않으면 비번을 넣기 전에 그림책·이름표가 잠깐 보였다 사라진다.
     const reg = currentScopeReg();
-    const waiting = isLocked && !classRegistryLoaded && !isAdmin;
+    // 공개 반은 시트("클래스" 탭)를 아직 못 읽었더라도 가리지 않고 바로 보여준다.
+    const openNow = isOpenKey(lockClass) || isOpenKey(lockSchool) ||
+                    isOpenKey(currentSchool) || isOpenReg(reg);
+    const waiting = isLocked && !classRegistryLoaded && !isAdmin && !openNow;
     if (waiting || (reg && !classUnlocked(reg))) {
       setLocked(true);
       if (controls) controls.hidden = true;
@@ -1049,7 +1069,9 @@
         ? `<img loading="lazy" src="${escapeAttr(cover.imageURL)}" alt="${escapeAttr(school)}" />`
         : docTileHTML(cover || {});
       const reg = regForGroup(school);
-      const locked = reg ? !!reg.locked : !!schoolPasswords[school];
+      // 공개 반(config.js openClasses)은 자물쇠를 달지 않는다.
+      const openHere = isOpenKey(school) || isOpenReg(reg);
+      const locked = openHere ? false : (reg ? !!reg.locked : !!schoolPasswords[school]);
       card.innerHTML = `
         <div class="card-thumb">
           ${coverHTML}
