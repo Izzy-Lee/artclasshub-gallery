@@ -23,14 +23,25 @@
   .sub { font-size:13px; color:var(--sub); margin-bottom:10px; }
 
   /* 제목 옆 미술 갤러리 바로가기 탭 */
-  .titlerow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-  .tdiv { width:1px; height:18px; background:#d5d0d3; flex:0 0 auto; }
-  .gal-links { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .gal-label { font-size:19px; font-weight:700; color:var(--ink); letter-spacing:-.02em; }
-  .gal-links a { font-size:15px; font-weight:800; color:#fff; background:#2bbfa4;
-                 padding:9px 18px; border-radius:999px; text-decoration:none; white-space:nowrap;
-                 box-shadow:0 3px 10px rgba(43,191,164,.32); }
+  .titlerow { display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap; margin-bottom:18px; }
+  .tdiv { width:1px; height:20px; background:#d5d0d3; flex:0 0 auto; }
+  .gal-links { display:flex; gap:7px; align-items:center; flex-wrap:wrap; min-width:0; }
+  .gal-label { flex:0 0 auto; font-size:12px; font-weight:800; color:var(--sub);
+               letter-spacing:.01em; }
+  .gal-links a { flex:0 0 auto; display:inline-flex; align-items:baseline; gap:5px;
+                 color:#fff; background:#2bbfa4; text-decoration:none; white-space:nowrap;
+                 padding:8px 15px; border-radius:999px;
+                 box-shadow:0 2px 8px rgba(43,191,164,.28); transition:transform .12s ease; }
+  .gal-links a b  { font-size:15px; font-weight:800; letter-spacing:-.01em; }
+  .gal-links a em { font-size:12px; font-weight:600; font-style:normal; opacity:.85; }
+  .gal-links a:hover  { transform:translateY(-1px); }
   .gal-links a:active { transform:scale(.96); }
+  /* 좁은 화면: 옆으로 넘겨 보고, 기관 이름은 접어 지역 이름만 남긴다 */
+  @media (max-width:640px) {
+    .gal-links { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+    .gal-links::-webkit-scrollbar { display:none; }
+    .gal-links a em { display:none; }
+  }
 
   /* 맨 아래 요약 줄 (날짜 · 기관 · 사진 수) */
   .foot { max-width:1240px; margin:0 auto; padding:6px 16px 30px;
@@ -144,7 +155,10 @@
 </head>
 <body>
 
-<div id="gate" class="gate">
+<div id="booting" class="msg">활동 보고를 불러오는 중이에요…</div>
+
+<!-- 평소에는 안 나온다. 아래 OPEN_PW 가 거부될 때만 예비로 열린다. -->
+<div id="gate" class="gate" hidden>
   <h1>활동 보고</h1>
   <p>열람용 비밀번호를 입력해 주세요.</p>
   <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
@@ -157,11 +171,11 @@
     <div class="titlerow">
       <h1>활동 보고</h1>
       <span class="tdiv" aria-hidden="true"></span>
-      <nav class="gal-links">
+      <nav class="gal-links" aria-label="미술 갤러리 바로가기">
         <span class="gal-label">미술 갤러리</span>
-        <a href="index.html?school=백령종합사회복지관">백령종합사회복지관</a>
-        <a href="index.html?school=옹진가족센터">옹진가족센터</a>
-        <a href="index.html?school=영흥지역아동센터">영흥지역아동센터</a>
+        <a href="index.html?school=백령종합사회복지관"><b>백령</b><em>종합사회복지관</em></a>
+        <a href="index.html?school=옹진가족센터"><b>옹진</b><em>가족센터</em></a>
+        <a href="index.html?school=영흥지역아동센터"><b>영흥</b><em>지역아동센터</em></a>
       </nav>
     </div>
     <div class="tabs" id="tabs"></div>
@@ -188,6 +202,12 @@
 <script>
   // Apps Script 웹앱 — 앱과 같은 배포본을 쓴다.
   var API = "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec";
+
+  // 🔓 비밀번호를 묻지 않고 바로 여는 열람 키 — 페이지가 대신 넣어 준다.
+  //    Apps Script 쪽 열람 비번을 바꾸면 이 한 줄만 같이 바꾸면 된다.
+  //    (이 키가 거부될 때만 예비 비밀번호 칸이 나온다.)
+  //    ⚠️ 링크를 아는 사람은 누구나 활동 보고를 볼 수 있게 됩니다.
+  var OPEN_PW = "181818";
 
   var el = function (id) { return document.getElementById(id); };
 
@@ -223,14 +243,16 @@
   var DATA = null, REGION = "전체", DAY = null, SHOTS = [], AT = 0;
   var LAST_FETCH = 0;   // 탭으로 돌아왔을 때 너무 자주 다시 부르지 않으려고
 
-  var saved = localStorage.getItem("reportPw");
-  if (saved) {
-    el("pw").value = saved;
-    // 지난번 받아둔 자료를 즉시 그려서(재열람은 바로 뜬다) 기다림을 없앤다.
-    var cachedRaw = localStorage.getItem("reportData");
-    if (cachedRaw) { try { applyData(JSON.parse(cachedRaw)); } catch (e) { /* 깨진 캐시는 무시 */ } }
-    openReport(saved, true);   // 백그라운드에서 최신으로 갱신
-  }
+  /// 지금 쓸 열람 키 — 예전에 직접 넣어 둔 비번이 있으면 그걸, 없으면 내장 키를 쓴다.
+  function reportPw() { return localStorage.getItem("reportPw") || OPEN_PW; }
+
+  /// 내장 키가 거부됐을 때만 나오는 예비 비밀번호 칸.
+  function showGate() { el("booting").hidden = true; el("gate").hidden = false; }
+
+  // 지난번 받아둔 자료를 즉시 그려서(재열람은 바로 뜬다) 기다림을 없앤다.
+  var cachedRaw = localStorage.getItem("reportData");
+  if (cachedRaw) { try { applyData(JSON.parse(cachedRaw)); } catch (e) { /* 깨진 캐시는 무시 */ } }
+  openReport(reportPw(), false);   // 비번을 묻지 않고 바로 연다(캐시가 있으면 조용히 갱신)
 
   el("go").addEventListener("click", function () { openReport(el("pw").value.trim(), false); });
   el("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") el("go").click(); });
@@ -263,7 +285,8 @@
 
   function applyData(d) {
     DATA = sanitize(d);
-    el("gate").style.display = "none";
+    el("booting").hidden = true;
+    el("gate").hidden = true;
     el("head").hidden = false; el("main").hidden = false;
     render();
   }
@@ -284,12 +307,14 @@
           if (!haveView) {                          // 캐시로 보여주는 중이면 조용히 무시
             localStorage.removeItem("reportPw");
             setLoading(false);
+            showGate();
             el("err").textContent = d.message || "열지 못했어요.";
           }
           done(false);
           return;
         }
-        localStorage.setItem("reportPw", pw);
+        // 내장 키는 저장하지 않는다 — 나중에 키를 바꿔도 옛날 값이 남아 막지 않도록.
+        if (pw !== OPEN_PW) localStorage.setItem("reportPw", pw);
         LAST_FETCH = Date.now();
         var raw = JSON.stringify(d);
         if (haveView && raw === localStorage.getItem("reportData")) { done(false); return; }   // 바뀐 게 없으면 다시 안 그림
@@ -299,7 +324,11 @@
         done(true);
       })
       .catch(function () {
-        if (!haveView) { setLoading(false); el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요."; }
+        if (!haveView) {
+          setLoading(false);
+          showGate();
+          el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요.";
+        }
         done(false);
       });
   }
@@ -584,7 +613,7 @@
   document.addEventListener("visibilitychange", function () {
     if (document.hidden || el("main").hidden) return;
     if (Date.now() - LAST_FETCH < 120000) return;
-    openReport(localStorage.getItem("reportPw"), true);
+    openReport(reportPw(), true);
   });
 
   // 드라이브에 오늘 폴더를 막 넣었을 때 — 서버 캐시를 건너뛰고 다시 읽는다(몇 초 걸린다).
@@ -593,7 +622,7 @@
     if (btn.classList.contains("busy")) return;
     btn.classList.add("busy");
     var before = (DATA && DATA.dates ? DATA.dates.length : 0);
-    openReport(localStorage.getItem("reportPw") || el("pw").value.trim(), true, true, function (changed) {
+    openReport(el("pw").value.trim() || reportPw(), true, true, function (changed) {
       btn.classList.remove("busy");
       var now = (DATA && DATA.dates ? DATA.dates.length : 0);
       if (!changed && now === before) {

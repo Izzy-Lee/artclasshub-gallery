@@ -42,6 +42,21 @@ window.GALLERY_CONFIG = {
   classApi: "https://script.google.com/macros/s/AKfycbyV5LibT5DHLAIwujt8u8yjkyBtxpzSMF5T2aepcPdbgvQITCKc7kou4mlqcNxIvLKZ/exec",
   classSecret: "artclasshub-2026",
 
+  // 🔓 비밀번호 없이 누구나 볼 수 있는 반(공개 갤러리).
+  // 여기에 적은 반은 스프레드시트 "클래스" 탭 C열(비번)에 값이 남아 있어도
+  // 브라우저에서 비밀번호 화면을 띄우지 않습니다.
+  // 반 이름 · 반 코드 · 사진폴더명(기관 이름) 중 아무거나 적으면 됩니다.
+  //   ⚠️ 이 반의 작품·그림책은 링크만 알면 누구나 볼 수 있게 됩니다.
+  //      (아이 얼굴이 담긴 '📷 수업 모습'은 여전히 따로 잠겨 있습니다.)
+  openClasses: [
+    "백령종합사회복지관",
+    "옹진가족센터",
+    "옹진군가족센터",
+    "영흥지역아동센터",
+    "영흥도 다함께돌봄센터",
+    "영흥면 행정복지센터"
+  ],
+
   // 📚 그림책 웹앱(뷰어와 같은 Apps Script). 관리자가 학생을 다른 반으로 옮길 때도 쓴다.
   booksApi: "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec",
   booksSecret: "artclasshub-storybook",
