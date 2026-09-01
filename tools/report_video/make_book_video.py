@@ -22,6 +22,7 @@
 """
 
 import argparse
+from collections import Counter
 import math
 import os
 import re
@@ -321,6 +322,16 @@ def title_card(n, line1, line2, line3):
     centered(d, 648, line3, font(30, "regular"), MUTE)
     return [img] * n
 
+def section_card(name, count):
+    """반이 바뀔 때 끼워 넣는 간지. 어느 곳 아이들 책인지 알려 준다."""
+    img = bg_image()
+    d = ImageDraw.Draw(img)
+    centered(d, 448, "함께 만든 곳", font(26, "regular"), MUTE, tracking=8)
+    centered(d, 502, name, font(72, "bold"), INK)
+    d.rectangle(((W - 60) / 2, 622, (W + 60) / 2, 625), fill=RULE)
+    centered(d, 658, f"{count}권", font(28, "regular"), MUTE)
+    return img
+
 # ---------------------------------------------------------------- 만들기
 
 def is_blank(path):
@@ -334,7 +345,7 @@ def is_blank(path):
 
 def main():
     ap = argparse.ArgumentParser(description="그림책 책장 넘기는 영상")
-    ap.add_argument("--manifest", required=True, help="제목⇥학생⇥쪽파일들(쉼표)")
+    ap.add_argument("--manifest", required=True, help="제목⇥학생⇥쪽파일들(쉼표)⇥반이름(선택)")
     ap.add_argument("--page-dir", help="쪽 그림이 든 폴더")
     ap.add_argument("--out", default="그림책.mp4")
     ap.add_argument("--hold", type=float, default=1.5, help="속장 한 펼침면을 보여 주는 시간(초)")
@@ -343,6 +354,8 @@ def main():
     ap.add_argument("--turn", type=float, default=0.55, help="속장 넘기는 시간(초)")
     ap.add_argument("--open", type=float, default=0.7, help="책을 펴고 덮는 시간(초)")
     ap.add_argument("--gap", type=float, default=0.45, help="책과 책 사이 넘어가는 시간(초)")
+    ap.add_argument("--section-hold", type=float, default=1.8,
+                    help="반이 바뀔 때 끼우는 간지를 보여 주는 시간(초). 0이면 안 넣는다")
     ap.add_argument("--title", default="우리가 만든 그림책")
     ap.add_argument("--subtitle", default="2026 여름 · 아이들이 쓰고 그린 이야기")
     ap.add_argument("--bg", default="#FFFFFF,#D6F4FD",
@@ -373,7 +386,8 @@ def main():
                 paths.append(p)
         paths = [p for p in paths if not is_blank(p)]   # 빈 쪽은 뺀다
         if paths:
-            entries.append((nfc(f[0]), nfc(f[1]), paths))
+            cls = nfc(f[3]) if len(f) > 3 else ""
+            entries.append((nfc(f[0]), nfc(f[1]), paths, cls))
     if not entries:
         sys.exit("보여 줄 책이 없습니다.")
     n_pages = sum(len(e[2]) for e in entries)
@@ -382,9 +396,20 @@ def main():
     F = lambda x: max(1, int(round(x * FPS)))
     hold_f, cov_f, back_f = F(args.hold), F(args.cover_hold), F(args.back_hold)
     turn_f, open_f, gap_f = F(args.turn), F(args.open), F(args.gap)
-    total = 105 + 45 + sum(gap_f + cov_f + open_f + len(e[2][1:] or [1]) * hold_f
-                           + max(0, len(e[2][1:] or [1]) - 1) * turn_f + open_f + back_f
-                           for e in entries)
+    sec_f = F(args.section_hold) if args.section_hold > 0 else 0
+
+    # 반이 바뀌는 자리를 미리 세어 둔다(간지가 몇 장 들어가는지 알아야 길이가 나온다)
+    n_sec, seen = 0, None
+    for e in entries:
+        if sec_f and e[3] and e[3] != seen:
+            n_sec += 1
+            seen = e[3]
+    counts = Counter(e[3] for e in entries)
+
+    total = 105 + 45 + n_sec * (gap_f + sec_f) + sum(
+        gap_f + cov_f + open_f + len(e[2][1:] or [1]) * hold_f
+        + max(0, len(e[2][1:] or [1]) - 1) * turn_f + open_f + back_f
+        for e in entries)
     print(f"길이 약 {total / FPS:.0f}초 — 그리는 중…")
 
     proc = subprocess.Popen(
@@ -399,8 +424,17 @@ def main():
     try:
         for im in title_card(105, args.title, args.subtitle, f"{len(entries)}권 · {n_pages}장"):
             push(im)
-        prev = None
-        for bi, (title, who, paths) in enumerate(entries):
+        prev, cur_cls = None, None
+        for bi, (title, who, paths, cls) in enumerate(entries):
+            if sec_f and cls and cls != cur_cls:
+                card = section_card(cls, counts[cls])
+                src = prev if prev is not None else bg_image()
+                for k in range(gap_f):
+                    push(Image.blend(src, card, ease((k + 1) / gap_f)))
+                for _ in range(sec_f):
+                    push(card)
+                prev, cur_cls = card, cls
+                print(f"  — {cls} ({counts[cls]}권)", flush=True)
             bk = Book(title, who, paths, leaf_w, leaf_h)
             # ① 앞표지 — 닫힌 책이 가운데
             cover = spread_frame(bk, None, bk.front, -half, None, leaf_h, leaf_w)
