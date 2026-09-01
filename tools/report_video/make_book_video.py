@@ -174,67 +174,108 @@ def book_shadow(canvas, x0, y0, x1, y1):
     canvas.paste(Image.new("RGB", (W, H), (44, 44, 48)), (0, 0), lay)
 
 class Book:
-    """책 한 권 — 펼침면 여러 장."""
+    """책 한 권. 표지 파일(000)은 좌우로 갈라 앞표지·뒷표지로 쓴다.
+    · 오른쪽 반쪽 = 앞표지(제목)   · 왼쪽 반쪽 = 뒷표지(만든이)
+    나머지 파일은 펼쳐 읽는 속장이다."""
     def __init__(self, title, who, paths, leaf_w, leaf_h):
         self.title, self.who = title, who
-        self.spreads = [load_spread(p, leaf_w, leaf_h) for p in paths]
+        spreads = [load_spread(p, leaf_w, leaf_h) for p in paths]
+        self.back, self.front = spreads[0]          # 왼쪽=뒷표지, 오른쪽=앞표지
+        self.inner = spreads[1:]
+        if not self.inner:                          # 표지뿐인 책이면 표지를 속장으로도 쓴다
+            self.inner = [spreads[0]]
 
-def base_frame(book, idx, leaf_w, leaf_h, caption=1.0):
-    """책이 idx 번째 펼침면으로 펼쳐져 있는 화면."""
-    img = Image.new("RGB", (W, H), BG)
-    x0, x1 = SPINE - leaf_w, SPINE + leaf_w
-    y0, y1 = BOOK_Y, BOOK_Y + leaf_h
-    book_shadow(img, x0, y0, x1, y1)
-    L, R = book.spreads[idx]
-    img.paste(L, (x0, y0)); img.paste(R, (SPINE, y0))
-    draw_gutter(img, y0, y1)
-    if caption > 0.01:
-        put_caption(img, book, idx, caption)
-    return img
+    def caption(self, idx=None):
+        n = len(self.inner)
+        sub = self.who or ""
+        if idx is not None and n > 1:
+            sub = f"{sub} · {idx + 1} / {n}" if sub else f"{idx + 1} / {n}"
+        return self.title or "그림책", sub
 
-def draw_gutter(img, y0, y1):
-    """책등의 접힌 그늘."""
+def draw_gutter(img, y0, y1, spine=None):
+    """책등의 접힌 그늘. 책이 열리고 닫히며 책등이 옮겨 다니므로 위치를 받는다."""
+    spine = SPINE if spine is None else spine
     gw = 26
-    strip = np.linspace(-1, 1, gw * 2)
+    box = (max(0, spine - gw), y0, min(W, spine + gw), y1)
+    if box[2] <= box[0]:
+        return
+    strip = np.linspace(-1, 1, box[2] - box[0])
     g = 1.0 - 0.30 * np.exp(-(strip * 2.1) ** 2)
-    box = (SPINE - gw, y0, SPINE + gw, y1)
     seg = np.asarray(img.crop(box)).astype(np.float32) * g[None, :, None]
     img.paste(Image.fromarray(np.clip(seg, 0, 255).astype(np.uint8)), box[:2])
 
-def put_caption(img, book, idx, alpha):
+def put_caption(img, book, idx, alpha=1.0):
+    if alpha <= 0.01:
+        return
     d = ImageDraw.Draw(img)
-    tf, sf = font(40, "bold"), font(27, "regular")
+    t, sub = book.caption(idx)
     y = BOOK_Y + BOOK_H + 48
-    t = book.title or "그림책"
-    s = f"{book.who} · {idx + 1} / {len(book.spreads)}" if book.who else f"{idx + 1} / {len(book.spreads)}"
     def blend(c):
         return tuple(int(BG[i] + (c[i] - BG[i]) * alpha) for i in range(3))
-    centered(d, y, t, tf, blend(INK))
-    centered(d, y + 52, s, sf, blend(MUTE))
+    centered(d, y, t, font(40, "bold"), blend(INK))
+    centered(d, y + 52, sub, font(27, "regular"), blend(MUTE))
 
-def turn_frame(book, i, t, leaf_w, leaf_h):
-    """i 번째 펼침면에서 i+1 로 넘어가는 도중 한 장면. t 는 0→1."""
-    a = math.pi * ease(t)
-    x0, y0 = SPINE - leaf_w, BOOK_Y
+def spread_frame(book, left, right, off, idx, leaf_h, leaf_w):
+    """펼쳐진 책 한 화면. left·right 가 None 이면 그쪽은 비어 있다(책이 닫히는 중)."""
     img = Image.new("RGB", (W, H), BG)
-    book_shadow(img, x0, y0, SPINE + leaf_w, y0 + leaf_h)
-    # 바닥: 넘기기 전의 왼쪽 쪽 + 넘긴 뒤의 오른쪽 쪽
-    img.paste(book.spreads[i][0], (x0, y0))
-    img.paste(book.spreads[i + 1][1], (SPINE, y0))
-    draw_gutter(img, y0, y0 + leaf_h)
+    spine = SPINE + off
+    x0 = spine - (leaf_w if left is not None else 0)
+    x1 = spine + (leaf_w if right is not None else 0)
+    if x1 > x0:
+        book_shadow(img, x0, BOOK_Y, x1, BOOK_Y + leaf_h)
+    if left is not None:
+        img.paste(left, (spine - leaf_w, BOOK_Y))
+    if right is not None:
+        img.paste(right, (spine, BOOK_Y))
+    if left is not None and right is not None:
+        draw_gutter(img, BOOK_Y, BOOK_Y + leaf_h, spine)
+    elif left is not None or right is not None:
+        draw_spine_edge(img, spine, BOOK_Y, leaf_h, closed_left=(right is not None))
+    put_caption(img, book, idx)
+    return img
+
+def draw_spine_edge(img, spine, y0, leaf_h, closed_left):
+    """닫힌 책의 책등 쪽 — 종이 두께가 보이도록 얇게 어둡힌다."""
+    ew = 12
+    x = spine if closed_left else spine - ew
+    box = (max(0, x), y0, min(W, x + ew), y0 + leaf_h)
+    if box[2] <= box[0]:
+        return
+    seg = np.asarray(img.crop(box)).astype(np.float32)
+    ramp = np.linspace(0.80, 1.0, box[2] - box[0]) if closed_left else np.linspace(1.0, 0.80, box[2] - box[0])
+    img.paste(Image.fromarray(np.clip(seg * ramp[None, :, None], 0, 255).astype(np.uint8)), box[:2])
+
+def turn_frame(book, left_bg, right_bg, face_near, face_far, t, off0, off1, idx, leaf_w, leaf_h):
+    """장 한 장이 책등을 축으로 넘어가는 도중.
+    face_near = 넘어가기 전 오른쪽에 있던 면, face_far = 넘어간 뒤 왼쪽에 놓일 면."""
+    e = ease(t)
+    a = math.pi * e
+    off = int(round(off0 + (off1 - off0) * e))
+    spine = SPINE + off
+    img = Image.new("RGB", (W, H), BG)
+    x0 = spine - (leaf_w if left_bg is not None else 0)
+    x1 = spine + (leaf_w if right_bg is not None else 0)
+    if x1 > x0:
+        book_shadow(img, x0, BOOK_Y, x1, BOOK_Y + leaf_h)
+    if left_bg is not None:
+        img.paste(left_bg, (spine - leaf_w, BOOK_Y))
+    if right_bg is not None:
+        img.paste(right_bg, (spine, BOOK_Y))
+    if left_bg is not None and right_bg is not None:
+        draw_gutter(img, BOOK_Y, BOOK_Y + leaf_h, spine)
 
     w = int(round(leaf_w * abs(math.cos(a))))
     lift = math.sin(a)
-    d = int(leaf_h * 0.035 * lift)                      # 들린 쪽이 살짝 커 보이게
+    d = int(leaf_h * 0.035 * lift)
+    y0 = BOOK_Y
     if a <= math.pi / 2:
-        leaf = shade_leaf(book.spreads[i][1], lift, from_left=True)
-        quad = [(SPINE, y0), (SPINE + w, y0 - d), (SPINE + w, y0 + leaf_h + d), (SPINE, y0 + leaf_h)]
-        sx0, sx1 = SPINE, SPINE + w
+        leaf = shade_leaf(face_near, lift, from_left=True)
+        quad = [(spine, y0), (spine + w, y0 - d), (spine + w, y0 + leaf_h + d), (spine, y0 + leaf_h)]
+        sx0, sx1 = spine, spine + w
     else:
-        leaf = shade_leaf(book.spreads[i + 1][0], lift, from_left=False)
-        quad = [(SPINE - w, y0 - d), (SPINE, y0), (SPINE, y0 + leaf_h), (SPINE - w, y0 + leaf_h + d)]
-        sx0, sx1 = SPINE - w, SPINE
-    # 넘어가는 장이 아래 쪽에 드리우는 그림자
+        leaf = shade_leaf(face_far, lift, from_left=False)
+        quad = [(spine - w, y0 - d), (spine, y0), (spine, y0 + leaf_h), (spine - w, y0 + leaf_h + d)]
+        sx0, sx1 = spine - w, spine
     if lift > 0.02:
         sh = Image.new("L", (W, H), 0)
         bw = int(70 * lift)
@@ -243,22 +284,23 @@ def turn_frame(book, i, t, leaf_w, leaf_h):
             for c in range(bw):
                 grad[:, c] = int(96 * lift * (1 - c / bw))
             gx = sx1 if a <= math.pi / 2 else sx0 - bw
-            sh.paste(Image.fromarray(grad), (max(0, gx), y0))
-            sh = sh.filter(ImageFilter.GaussianBlur(9))
-            img.paste(Image.new("RGB", (W, H), (38, 38, 42)), (0, 0), sh)
+            if 0 <= gx < W:
+                sh.paste(Image.fromarray(grad), (gx, y0))
+                sh = sh.filter(ImageFilter.GaussianBlur(9))
+                img.paste(Image.new("RGB", (W, H), (38, 38, 42)), (0, 0), sh)
     if w > 1:
         paste_quad(img, leaf, quad)
-    put_caption(img, book, i if a <= math.pi / 2 else i + 1, 1.0)
+    put_caption(img, book, idx)
     return img
 
-def title_card(dur_frames, line1, line2, line3):
+def title_card(n, line1, line2, line3):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
     centered(d, 404, line2, font(30, "regular"), MUTE, tracking=6)
     centered(d, 466, line1, font(96, "bold"), INK)
     d.rectangle(((W - 76) / 2, 606, (W + 76) / 2, 610), fill=RULE)
     centered(d, 648, line3, font(30, "regular"), MUTE)
-    return [img] * dur_frames
+    return [img] * n
 
 # ---------------------------------------------------------------- 만들기
 
@@ -276,12 +318,15 @@ def main():
     ap.add_argument("--manifest", required=True, help="제목⇥학생⇥쪽파일들(쉼표)")
     ap.add_argument("--page-dir", help="쪽 그림이 든 폴더")
     ap.add_argument("--out", default="그림책.mp4")
-    ap.add_argument("--hold", type=float, default=1.6, help="한 펼침면을 보여 주는 시간(초)")
-    ap.add_argument("--turn", type=float, default=0.55, help="장 넘기는 시간(초)")
+    ap.add_argument("--hold", type=float, default=1.5, help="속장 한 펼침면을 보여 주는 시간(초)")
+    ap.add_argument("--cover-hold", type=float, default=1.2, help="앞표지를 보여 주는 시간(초)")
+    ap.add_argument("--back-hold", type=float, default=0.9, help="뒷표지를 보여 주는 시간(초)")
+    ap.add_argument("--turn", type=float, default=0.55, help="속장 넘기는 시간(초)")
+    ap.add_argument("--open", type=float, default=0.7, help="책을 펴고 덮는 시간(초)")
     ap.add_argument("--gap", type=float, default=0.45, help="책과 책 사이 넘어가는 시간(초)")
     ap.add_argument("--title", default="우리가 만든 그림책")
     ap.add_argument("--subtitle", default="2026 여름 · 아이들이 쓰고 그린 이야기")
-    ap.add_argument("--bg", default="#B9B9BC", help="바닥색 (예: #B9B9BC, 회색)")
+    ap.add_argument("--bg", default="#B9B9BC", help="바닥색 (예: #B9B9BC)")
     ap.add_argument("--crf", type=int, default=20)
     args = ap.parse_args()
 
@@ -290,7 +335,7 @@ def main():
     root = Path(args.page_dir or Path(args.manifest).parent)
     leaf_w, leaf_h = int(BOOK_H * 1.5) // 2, BOOK_H
 
-    books = []
+    entries = []
     for ln in open(args.manifest, encoding="utf-8"):
         f = ln.rstrip("\n").split("\t")
         if len(f) < 3:
@@ -304,54 +349,71 @@ def main():
                     p = root / (name + ".jpg")
             if p.is_file():
                 paths.append(p)
-        full = len(paths) == len(f[2].split(","))
-        # 빈 쪽은 빼고 — 다 채워진 책만 표지부터 죽 넘긴다
-        paths = [p for p in paths if not is_blank(p)]
-        if not paths:
-            continue
-        books.append((nfc(f[0]), nfc(f[1]), paths, full and len(paths) == len(f[2].split(","))))
-
-    if not books:
+        paths = [p for p in paths if not is_blank(p)]   # 빈 쪽은 뺀다
+        if paths:
+            entries.append((nfc(f[0]), nfc(f[1]), paths))
+    if not entries:
         sys.exit("보여 줄 책이 없습니다.")
-    n_pages = sum(len(b[2]) for b in books)
-    print(f"책 {len(books)}권 · 펼침면 {n_pages}장")
+    n_pages = sum(len(e[2]) for e in entries)
+    print(f"책 {len(entries)}권 · 펼침면 {n_pages}장 (표지는 앞·뒤로 나눔)")
 
-    hold_f, turn_f, gap_f = (max(1, int(round(x * FPS))) for x in (args.hold, args.turn, args.gap))
-    total = 105 + sum(len(b[2]) * hold_f + (len(b[2]) - 1) * turn_f + gap_f for b in books)
+    F = lambda x: max(1, int(round(x * FPS)))
+    hold_f, cov_f, back_f = F(args.hold), F(args.cover_hold), F(args.back_hold)
+    turn_f, open_f, gap_f = F(args.turn), F(args.open), F(args.gap)
+    total = 105 + 45 + sum(gap_f + cov_f + open_f + len(e[2][1:] or [1]) * hold_f
+                           + max(0, len(e[2][1:] or [1]) - 1) * turn_f + open_f + back_f
+                           for e in entries)
     print(f"길이 약 {total / FPS:.0f}초 — 그리는 중…")
 
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
-           "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-           "-c:v", "libx264", "-preset", "medium", "-crf", str(args.crf),
-           "-pix_fmt", "yuv420p", "-movflags", "+faststart", args.out]
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-
-    def push(im):
-        proc.stdin.write(im.tobytes())
+    proc = subprocess.Popen(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+         "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
+         "-c:v", "libx264", "-preset", "medium", "-crf", str(args.crf),
+         "-pix_fmt", "yuv420p", "-movflags", "+faststart", args.out],
+        stdin=subprocess.PIPE)
+    push = lambda im: proc.stdin.write(im.tobytes())
+    half = leaf_w // 2                       # 닫힌 책을 가운데로 옮기는 만큼
 
     try:
-        for im in title_card(105, args.title, args.subtitle, f"{len(books)}권 · {n_pages}장"):
+        for im in title_card(105, args.title, args.subtitle, f"{len(entries)}권 · {n_pages}장"):
             push(im)
-        prev_last = None
-        for bi, (title, who, paths, _) in enumerate(books):
-            book = Book(title, who, paths, leaf_w, leaf_h)
-            first = base_frame(book, 0, leaf_w, leaf_h)
-            # 앞 화면에서 새 책으로 부드럽게 건너간다
-            src = prev_last if prev_last is not None else Image.new("RGB", (W, H), BG)
+        prev = None
+        for bi, (title, who, paths) in enumerate(entries):
+            bk = Book(title, who, paths, leaf_w, leaf_h)
+            # ① 앞표지 — 닫힌 책이 가운데
+            cover = spread_frame(bk, None, bk.front, -half, None, leaf_h, leaf_w)
+            src = prev if prev is not None else Image.new("RGB", (W, H), BG)
             for k in range(gap_f):
-                push(Image.blend(src, first, ease((k + 1) / gap_f)))
-            for i in range(len(book.spreads)):
-                fr = base_frame(book, i, leaf_w, leaf_h)
+                push(Image.blend(src, cover, ease((k + 1) / gap_f)))
+            for _ in range(cov_f):
+                push(cover)
+            # ② 책을 편다 — 앞표지가 왼쪽으로 돌아가며 첫 속장이 드러난다
+            for k in range(open_f):
+                push(turn_frame(bk, None, bk.inner[0][1], bk.front, bk.inner[0][0],
+                                (k + 1) / open_f, -half, 0, 0, leaf_w, leaf_h))
+            # ③ 속장 넘기기
+            for i, (L, R) in enumerate(bk.inner):
+                fr = spread_frame(bk, L, R, 0, i, leaf_h, leaf_w)
                 for _ in range(hold_f):
                     push(fr)
-                if i + 1 < len(book.spreads):
+                if i + 1 < len(bk.inner):
                     for k in range(turn_f):
-                        push(turn_frame(book, i, (k + 1) / turn_f, leaf_w, leaf_h))
-                else:
-                    prev_last = fr
-            print(f"  {bi + 1:2d}/{len(books)}  {title}", flush=True)
-        for k in range(45):                       # 마지막은 종이 바탕으로 조용히
-            push(Image.blend(prev_last, Image.new("RGB", (W, H), BG), ease((k + 1) / 45)))
+                        push(turn_frame(bk, L, bk.inner[i + 1][1], R, bk.inner[i + 1][0],
+                                        (k + 1) / turn_f, 0, 0, i, leaf_w, leaf_h))
+            # ④ 책을 덮는다 — 마지막 장이 넘어가며 뒷표지가 위로 온다
+            last_i = len(bk.inner) - 1
+            for k in range(open_f):
+                push(turn_frame(bk, bk.inner[last_i][0], None,
+                                bk.inner[last_i][1], bk.back,
+                                (k + 1) / open_f, 0, half, last_i, leaf_w, leaf_h))
+            # ⑤ 뒷표지 — 닫힌 책이 가운데
+            back = spread_frame(bk, bk.back, None, half, None, leaf_h, leaf_w)
+            for _ in range(back_f):
+                push(back)
+            prev = back
+            print(f"  {bi + 1:2d}/{len(entries)}  {title}", flush=True)
+        for k in range(45):
+            push(Image.blend(prev, Image.new("RGB", (W, H), BG), ease((k + 1) / 45)))
     finally:
         try:
             proc.stdin.close()
