@@ -27,27 +27,52 @@
                 line-height:1.35; word-break:keep-all; }
   @media (max-width:640px) { .page-title { font-size:17px; } }
 
-  /* 제목 아래 미술 갤러리 바로가기 */
-  .titlerow { display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap; margin-bottom:16px; }
-  .gal-links { display:flex; gap:7px; align-items:center; flex-wrap:wrap; min-width:0; }
-  .gal-label { flex:0 0 auto; font-size:12px; font-weight:800; color:var(--sub);
-               letter-spacing:.01em; }
-  .gal-links a { flex:0 0 auto; display:inline-flex; align-items:baseline; gap:5px;
-                 color:#fff; background:#2bbfa4; text-decoration:none; white-space:nowrap;
-                 padding:9px 15px; border-radius:10px;
-                 box-shadow:0 2px 8px rgba(43,191,164,.28); transition:transform .12s ease; }
-  .gal-links a b  { font-size:15px; font-weight:800; letter-spacing:-.01em; }
-  .gal-links a em { font-size:12px; font-weight:600; font-style:normal; opacity:.85; }
-  .gal-div { width:1px; height:20px; background:#d5d0d3; flex:0 0 auto; margin:0 3px; }
-  /* 만족도 조사 리포트 — 갤러리 버튼과 구분되게 리포트 본문 색을 쓴다 */
-  .gal-links a.survey { background:#2F5D50; box-shadow:0 2px 8px rgba(47,93,80,.28); }
-  .gal-links a:hover  { transform:translateY(-1px); }
-  .gal-links a:active { transform:scale(.96); }
-  /* 좁은 화면: 옆으로 넘겨 보고, 기관 이름은 접어 지역 이름만 남긴다 */
-  @media (max-width:640px) {
-    .gal-links { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
-    .gal-links::-webkit-scrollbar { display:none; }
-    .gal-links a em { display:none; }
+  /* ---------- 상단 바로가기 메뉴 ----------
+     흰 카드 안에 '미술갤러리' 꼬리표와 기관 세 곳을 담고,
+     성격이 다른 만족도조사는 카드 밖 오른쪽에 따로 세운다. */
+  .menubar { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .menucard { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:4px;
+              background:#fff; border:1px solid #efeaec; border-radius:18px; padding:7px 9px;
+              box-shadow:0 2px 10px rgba(0,0,0,.04);
+              overflow-x:auto; scrollbar-width:none; }
+  .menucard::-webkit-scrollbar { display:none; }
+  .menutag { flex:0 0 auto; margin-right:6px; padding:8px 14px; border-radius:12px;
+             background:#8FE0CD; color:#12564A; font-size:14px; font-weight:800;
+             letter-spacing:-.02em; white-space:nowrap; }
+  .menucard a { flex:0 0 auto; position:relative; display:inline-flex; align-items:center; gap:8px;
+                padding:8px 14px 9px; border-radius:12px; text-decoration:none;
+                color:#8a8a8a; font-size:14px; font-weight:700; letter-spacing:-.02em;
+                white-space:nowrap; transition:color .12s ease, background .12s ease; }
+  .menucard a b { color:#2b2b2b; font-weight:800; transition:color .12s ease; }
+  .menucard a svg { flex:0 0 auto; width:19px; height:19px; opacity:.75; }
+  /* 밑줄은 자리를 미리 잡아 둔다 — 올려 놓을 때 글자가 밀리지 않게 */
+  .menucard a::after { content:""; position:absolute; left:14px; right:14px; bottom:1px;
+                       height:2px; border-radius:2px; background:transparent; }
+  .menucard a:hover { color:#2b2b2b; background:#f7f5f6; }
+  .menucard a:hover b { color:#111; }
+  .menucard a:hover::after { background:#2b2b2b; }
+  .menucard a:hover svg { opacity:1; }
+  .menucard a:active { transform:scale(.98); }
+
+  .menu-survey { flex:0 0 auto; display:inline-flex; align-items:baseline; gap:6px;
+                 padding:13px 20px; border-radius:14px; text-decoration:none;
+                 background:#2F5D50; color:#fff; white-space:nowrap;
+                 box-shadow:0 2px 10px rgba(47,93,80,.25); transition:transform .12s ease; }
+  .menu-survey b { font-size:15px; font-weight:800; letter-spacing:-.02em; }
+  .menu-survey span { font-size:12.5px; font-weight:600; opacity:.85; }
+  .menu-survey:hover { transform:translateY(-1px); }
+  .menu-survey:active { transform:scale(.97); }
+
+  /* 좁은 화면: 카드는 옆으로 넘겨 보고, 만족도조사는 아래 줄로 내린다 */
+  @media (max-width:760px) {
+    .menubar { flex-wrap:wrap; }
+    .menucard { order:2; width:100%; }
+    .menu-survey { order:1; }
+  }
+  @media (max-width:520px) {
+    .menutag { font-size:13px; padding:7px 11px; }
+    .menucard a { font-size:13px; padding:7px 10px 8px; gap:6px; }
+    .menucard a::after { left:10px; right:10px; }
   }
 
   /* 맨 아래 요약 줄 (날짜 · 기관 · 사진 수) */
@@ -179,16 +204,15 @@
 <header id="head" hidden>
   <div class="hwrap">
     <h1 class="page-title">2026 옹진군 여름방학 초등돌봄·교육운영 활동보고</h1>
-    <div class="titlerow">
-      <nav class="gal-links" aria-label="미술 갤러리 바로가기">
-        <span class="gal-label">미술 갤러리</span>
-        <a href="index.html?class=F4MD28" target="_blank" rel="noopener"><b>백령</b><em>종합사회복지관</em></a>
-        <a href="index.html?class=S753Z4" target="_blank" rel="noopener"><b>옹진</b><em>가족센터</em></a>
-        <a href="index.html?class=KHGUKC" target="_blank" rel="noopener"><b>영흥</b><em>지역아동센터</em></a>
-        <span class="gal-div" aria-hidden="true"></span>
-        <a class="survey" href="report-satisfaction.html" target="_blank" rel="noopener"><b>만족도조사</b><em>바로가기</em></a>
-      </nav>
-    </div>
+    <nav class="menubar" aria-label="바로가기">
+      <div class="menucard">
+        <span class="menutag">미술갤러리 바로가기</span>
+        <a href="index.html?class=F4MD28" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9.5 20v-4.5h5V20"/><path d="M9 13h.01M15 13h.01"/></svg><span><b>백령</b> 종합사회복지관</span></a>
+        <a href="index.html?class=S753Z4" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5-3.5L13 9v11"/><path d="M13 20V12l4-2.5L21 12v8"/><path d="M2 20h20"/><path d="M6.5 13h3M16 15h2"/></svg><span><b>옹진</b> 가족센터</span></a>
+        <a href="index.html?class=KHGUKC" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V8l8-4 8 4v12"/><path d="M2 20h20"/><path d="M9.5 20v-5h5v5"/><path d="M12 4V2"/><path d="M12 2.5 15.5 3.5 12 4.5"/></svg><span><b>영흥</b> 지역아동센터</span></a>
+      </div>
+      <a class="menu-survey" href="report-satisfaction.html" target="_blank" rel="noopener"><b>만족도조사</b><span>바로가기</span></a>
+    </nav>
     <div class="tabs" id="tabs"></div>
     <div class="daybar">
       <div class="daystrip" id="days"></div>
