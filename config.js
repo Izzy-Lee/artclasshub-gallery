@@ -65,8 +65,8 @@ window.GALLERY_CONFIG = {
 
   // 🔓 공개 반의 '📷 수업 모습'을 열 때 페이지가 대신 넣어 주는 열람 키.
   // (사진 웹앱의 비번 대조는 Apps Script 에서만 하므로 키가 하나 필요합니다.)
-  // 비워 두면 위 adminPassword 를 그대로 씁니다.
-  openPhotoPw: "",
+  // 이 키가 막히면 위 adminPassword 로 한 번 더 시도합니다(둘 중 통하는 걸 씁니다).
+  openPhotoPw: "2026",
 
   // 📚 그림책 웹앱(뷰어와 같은 Apps Script). 관리자가 학생을 다른 반으로 옮길 때도 쓴다.
   booksApi: "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec",
