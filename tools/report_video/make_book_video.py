@@ -35,19 +35,33 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 W, H, FPS = 1920, 1080, 30
 
-BG = (185, 185, 188)             # 책이 놓인 바닥 — --bg 로 바꾼다
+BG = (185, 185, 188)             # 바닥의 대표색(글자 대비를 정할 때 쓴다)
 INK = (30, 30, 32)
 MUTE = (92, 92, 97)
 RULE = (120, 120, 126)
+_BG_IMG = None                   # 미리 그려 둔 바닥 그림
 
-def set_bg(color):
-    """바닥색을 바꾸면 글자·괘선도 밝기에 맞춰 따라간다."""
-    global BG, INK, MUTE, RULE
-    BG = color
-    dark = sum(color) / 3 < 128
+def set_bg(left, right=None, gamma=1.5):
+    """바닥을 칠한다. 두 색을 주면 왼→오 가로 그라데이션이 된다.
+    gamma 가 1보다 크면 왼쪽 색이 더 오래 머문다."""
+    global BG, INK, MUTE, RULE, _BG_IMG
+    right = right or left
+    BG = tuple((left[i] + right[i]) // 2 for i in range(3))
+    x = np.linspace(0.0, 1.0, W) ** gamma
+    row = np.stack([left[i] + (right[i] - left[i]) * x for i in range(3)], axis=1)
+    plane = np.repeat(row[None, :, :], H, axis=0)
+    # 색이 40단계 남짓 되는 완만한 그라데이션은 그냥 반올림하면 세로 띠가 보인다.
+    # 화면 전체에 ±0.5단계의 잡음을 섞어 경계를 흩뜨린다(디더링).
+    rng = np.random.default_rng(7)
+    plane = plane + rng.uniform(-0.5, 0.5, plane.shape)
+    _BG_IMG = Image.fromarray(np.clip(plane, 0, 255).astype(np.uint8), "RGB")
+    dark = sum(BG) / 3 < 128
     INK = (238, 238, 240) if dark else (30, 30, 32)
     MUTE = (176, 176, 182) if dark else (92, 92, 97)
     RULE = (150, 150, 156) if dark else (120, 120, 126)
+
+def bg_image():
+    return _BG_IMG.copy()
 
 def parse_color(s):
     s = s.strip().lstrip("#")
@@ -56,6 +70,11 @@ def parse_color(s):
     if len(s) == 6:
         return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
     raise argparse.ArgumentTypeError(f"색을 알아볼 수 없습니다: {s}")
+
+def parse_bg(spec):
+    """'#FFFFFF' 또는 '#FFFFFF,#D6F4FD' (왼쪽,오른쪽)"""
+    parts = [parse_color(x) for x in spec.split(",")]
+    return parts[0], (parts[1] if len(parts) > 1 else None)
 
 BOOK_H = 742                     # 펼친 책의 높이
 BOOK_Y = 150                     # 책 위쪽 여백
@@ -217,7 +236,7 @@ def put_caption(img, book, idx, alpha=1.0):
 
 def spread_frame(book, left, right, off, idx, leaf_h, leaf_w):
     """펼쳐진 책 한 화면. left·right 가 None 이면 그쪽은 비어 있다(책이 닫히는 중)."""
-    img = Image.new("RGB", (W, H), BG)
+    img = bg_image()
     spine = SPINE + off
     x0 = spine - (leaf_w if left is not None else 0)
     x1 = spine + (leaf_w if right is not None else 0)
@@ -252,7 +271,7 @@ def turn_frame(book, left_bg, right_bg, face_near, face_far, t, off0, off1, idx,
     a = math.pi * e
     off = int(round(off0 + (off1 - off0) * e))
     spine = SPINE + off
-    img = Image.new("RGB", (W, H), BG)
+    img = bg_image()
     x0 = spine - (leaf_w if left_bg is not None else 0)
     x1 = spine + (leaf_w if right_bg is not None else 0)
     if x1 > x0:
@@ -294,7 +313,7 @@ def turn_frame(book, left_bg, right_bg, face_near, face_far, t, off0, off1, idx,
     return img
 
 def title_card(n, line1, line2, line3):
-    img = Image.new("RGB", (W, H), BG)
+    img = bg_image()
     d = ImageDraw.Draw(img)
     centered(d, 404, line2, font(30, "regular"), MUTE, tracking=6)
     centered(d, 466, line1, font(96, "bold"), INK)
@@ -326,11 +345,14 @@ def main():
     ap.add_argument("--gap", type=float, default=0.45, help="책과 책 사이 넘어가는 시간(초)")
     ap.add_argument("--title", default="우리가 만든 그림책")
     ap.add_argument("--subtitle", default="2026 여름 · 아이들이 쓰고 그린 이야기")
-    ap.add_argument("--bg", default="#B9B9BC", help="바닥색 (예: #B9B9BC)")
+    ap.add_argument("--bg", default="#FFFFFF,#D6F4FD",
+                    help="바닥색. 쉼표로 두 색을 주면 왼→오 그라데이션 (예: #FFFFFF,#D6F4FD)")
+    ap.add_argument("--bg-gamma", type=float, default=1.5,
+                    help="그라데이션 기울기. 클수록 왼쪽 색이 오래 머문다")
     ap.add_argument("--crf", type=int, default=20)
     args = ap.parse_args()
 
-    set_bg(parse_color(args.bg))
+    set_bg(*parse_bg(args.bg), gamma=args.bg_gamma)
     pick_fonts()
     root = Path(args.page_dir or Path(args.manifest).parent)
     leaf_w, leaf_h = int(BOOK_H * 1.5) // 2, BOOK_H
@@ -382,7 +404,7 @@ def main():
             bk = Book(title, who, paths, leaf_w, leaf_h)
             # ① 앞표지 — 닫힌 책이 가운데
             cover = spread_frame(bk, None, bk.front, -half, None, leaf_h, leaf_w)
-            src = prev if prev is not None else Image.new("RGB", (W, H), BG)
+            src = prev if prev is not None else bg_image()
             for k in range(gap_f):
                 push(Image.blend(src, cover, ease((k + 1) / gap_f)))
             for _ in range(cov_f):
@@ -413,7 +435,7 @@ def main():
             prev = back
             print(f"  {bi + 1:2d}/{len(entries)}  {title}", flush=True)
         for k in range(45):
-            push(Image.blend(prev, Image.new("RGB", (W, H), BG), ease((k + 1) / 45)))
+            push(Image.blend(prev, bg_image(), ease((k + 1) / 45)))
     finally:
         try:
             proc.stdin.close()
