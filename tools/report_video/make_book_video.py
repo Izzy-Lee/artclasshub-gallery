@@ -35,9 +35,27 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 W, H, FPS = 1920, 1080, 30
 
-PAPER = (243, 238, 229)          # 책이 놓인 바닥
-INK = (38, 34, 30)
-MUTE = (139, 129, 116)
+BG = (185, 185, 188)             # 책이 놓인 바닥 — --bg 로 바꾼다
+INK = (30, 30, 32)
+MUTE = (92, 92, 97)
+RULE = (120, 120, 126)
+
+def set_bg(color):
+    """바닥색을 바꾸면 글자·괘선도 밝기에 맞춰 따라간다."""
+    global BG, INK, MUTE, RULE
+    BG = color
+    dark = sum(color) / 3 < 128
+    INK = (238, 238, 240) if dark else (30, 30, 32)
+    MUTE = (176, 176, 182) if dark else (92, 92, 97)
+    RULE = (150, 150, 156) if dark else (120, 120, 126)
+
+def parse_color(s):
+    s = s.strip().lstrip("#")
+    if len(s) == 3:
+        s = "".join(c * 2 for c in s)
+    if len(s) == 6:
+        return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+    raise argparse.ArgumentTypeError(f"색을 알아볼 수 없습니다: {s}")
 
 BOOK_H = 742                     # 펼친 책의 높이
 BOOK_Y = 150                     # 책 위쪽 여백
@@ -153,7 +171,7 @@ def book_shadow(canvas, x0, y0, x1, y1):
     lay = Image.new("L", (W, H), 0)
     ImageDraw.Draw(lay).rounded_rectangle((x0 - 6, y0 + 10, x1 + 6, y1 + 22), 10, fill=105)
     lay = lay.filter(ImageFilter.GaussianBlur(26))
-    canvas.paste(Image.new("RGB", (W, H), (60, 50, 40)), (0, 0), lay)
+    canvas.paste(Image.new("RGB", (W, H), (44, 44, 48)), (0, 0), lay)
 
 class Book:
     """책 한 권 — 펼침면 여러 장."""
@@ -163,7 +181,7 @@ class Book:
 
 def base_frame(book, idx, leaf_w, leaf_h, caption=1.0):
     """책이 idx 번째 펼침면으로 펼쳐져 있는 화면."""
-    img = Image.new("RGB", (W, H), PAPER)
+    img = Image.new("RGB", (W, H), BG)
     x0, x1 = SPINE - leaf_w, SPINE + leaf_w
     y0, y1 = BOOK_Y, BOOK_Y + leaf_h
     book_shadow(img, x0, y0, x1, y1)
@@ -190,7 +208,7 @@ def put_caption(img, book, idx, alpha):
     t = book.title or "그림책"
     s = f"{book.who} · {idx + 1} / {len(book.spreads)}" if book.who else f"{idx + 1} / {len(book.spreads)}"
     def blend(c):
-        return tuple(int(PAPER[i] + (c[i] - PAPER[i]) * alpha) for i in range(3))
+        return tuple(int(BG[i] + (c[i] - BG[i]) * alpha) for i in range(3))
     centered(d, y, t, tf, blend(INK))
     centered(d, y + 52, s, sf, blend(MUTE))
 
@@ -198,7 +216,7 @@ def turn_frame(book, i, t, leaf_w, leaf_h):
     """i 번째 펼침면에서 i+1 로 넘어가는 도중 한 장면. t 는 0→1."""
     a = math.pi * ease(t)
     x0, y0 = SPINE - leaf_w, BOOK_Y
-    img = Image.new("RGB", (W, H), PAPER)
+    img = Image.new("RGB", (W, H), BG)
     book_shadow(img, x0, y0, SPINE + leaf_w, y0 + leaf_h)
     # 바닥: 넘기기 전의 왼쪽 쪽 + 넘긴 뒤의 오른쪽 쪽
     img.paste(book.spreads[i][0], (x0, y0))
@@ -227,18 +245,18 @@ def turn_frame(book, i, t, leaf_w, leaf_h):
             gx = sx1 if a <= math.pi / 2 else sx0 - bw
             sh.paste(Image.fromarray(grad), (max(0, gx), y0))
             sh = sh.filter(ImageFilter.GaussianBlur(9))
-            img.paste(Image.new("RGB", (W, H), (40, 34, 28)), (0, 0), sh)
+            img.paste(Image.new("RGB", (W, H), (38, 38, 42)), (0, 0), sh)
     if w > 1:
         paste_quad(img, leaf, quad)
     put_caption(img, book, i if a <= math.pi / 2 else i + 1, 1.0)
     return img
 
 def title_card(dur_frames, line1, line2, line3):
-    img = Image.new("RGB", (W, H), PAPER)
+    img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
     centered(d, 404, line2, font(30, "regular"), MUTE, tracking=6)
     centered(d, 466, line1, font(96, "bold"), INK)
-    d.rectangle(((W - 76) / 2, 606, (W + 76) / 2, 610), fill=(196, 158, 96))
+    d.rectangle(((W - 76) / 2, 606, (W + 76) / 2, 610), fill=RULE)
     centered(d, 648, line3, font(30, "regular"), MUTE)
     return [img] * dur_frames
 
@@ -263,9 +281,11 @@ def main():
     ap.add_argument("--gap", type=float, default=0.45, help="책과 책 사이 넘어가는 시간(초)")
     ap.add_argument("--title", default="우리가 만든 그림책")
     ap.add_argument("--subtitle", default="2026 여름 · 아이들이 쓰고 그린 이야기")
+    ap.add_argument("--bg", default="#B9B9BC", help="바닥색 (예: #B9B9BC, 회색)")
     ap.add_argument("--crf", type=int, default=20)
     args = ap.parse_args()
 
+    set_bg(parse_color(args.bg))
     pick_fonts()
     root = Path(args.page_dir or Path(args.manifest).parent)
     leaf_w, leaf_h = int(BOOK_H * 1.5) // 2, BOOK_H
@@ -317,7 +337,7 @@ def main():
             book = Book(title, who, paths, leaf_w, leaf_h)
             first = base_frame(book, 0, leaf_w, leaf_h)
             # 앞 화면에서 새 책으로 부드럽게 건너간다
-            src = prev_last if prev_last is not None else Image.new("RGB", (W, H), PAPER)
+            src = prev_last if prev_last is not None else Image.new("RGB", (W, H), BG)
             for k in range(gap_f):
                 push(Image.blend(src, first, ease((k + 1) / gap_f)))
             for i in range(len(book.spreads)):
@@ -331,7 +351,7 @@ def main():
                     prev_last = fr
             print(f"  {bi + 1:2d}/{len(books)}  {title}", flush=True)
         for k in range(45):                       # 마지막은 종이 바탕으로 조용히
-            push(Image.blend(prev_last, Image.new("RGB", (W, H), PAPER), ease((k + 1) / 45)))
+            push(Image.blend(prev_last, Image.new("RGB", (W, H), BG), ease((k + 1) / 45)))
     finally:
         try:
             proc.stdin.close()
