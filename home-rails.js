@@ -62,6 +62,8 @@
   var reportData = null;   // 한 번 받아 둔 사진 트리(자격이 바뀌기 전까지 재사용)
   var reportCred = "";     // 그 사진을 받을 때 쓴 자격(표·관리자·반) — 같으면 다시 안 받는다
   var photosLoading = false;
+  var loadingCred = "";    // 지금 받는 중인 요청이 어떤 자격(반·키)으로 나갔는지
+  var photoReq = 0;        // 요청 일련번호 — 자격이 바뀌면 옛 응답은 버린다
   var revalidating = false;
   var currentClass = "";
   var isAdmin = !!window.galleryAdmin;   // script.js가 관리자 모드일 때 알려줌(그림책 삭제 버튼)
@@ -532,6 +534,19 @@
     }, true);
   }
 
+  /// 사진을 못 불러왔을 때 이유를 한 줄 보여 준다(조용히 사라지면 원인을 못 찾는다).
+  function showPhotoNote(rail, why) {
+    var old = rail.section.querySelector(".rail-note");
+    if (old) old.remove();
+    rail.track.innerHTML = "";
+    rail.setCount("");
+    var note = document.createElement("p");
+    note.className = "rail-note";
+    note.textContent = "수업 사진을 불러오지 못했어요 — " + why;
+    rail.section.insertBefore(note, rail.track);
+    rail.section.hidden = false;
+  }
+
   function fillPhotos(rail, className) {
     if (locked) {
       rail.track.innerHTML = "";
@@ -549,7 +564,10 @@
       revalidatePhotos(rail, className, t0, photoPw(className));   // 화면은 그대로 두고 최신인지만 확인
       return;
     }
-    if (photosLoading) return;                        // 이미 받는 중이면 중복 요청하지 않는다
+    // 같은 자격으로 이미 받는 중일 때만 중복 요청을 막는다.
+    // 반 정보(반 코드·사진 폴더 이름)는 시트를 읽은 뒤에야 도착한다. 그 전에 나간 첫 요청은
+    // 서버에 '어느 반인지'를 못 알려 주므로, 자격이 채워지면 반드시 다시 받아야 한다.
+    if (photosLoading && loadingCred === cred) return;
 
     // 반 비번을 이미 넣고 들어온 사람은 사진 앞에서 또 묻지 않는다.
     //   · 반 비번을 맞히면 서버가 준 '사진 열람 표'(photoToken)로 바로 연다.
@@ -565,13 +583,24 @@
         rail.setCount("불러오는 중…");
       }
       photosLoading = true;
+      loadingCred = cred;
+      var myReq = ++photoReq;
       askPhotos(token, adminPw, function (d) {
+        if (myReq !== photoReq) return;               // 자격이 바뀌어 새로 받는 중 — 옛 응답은 버린다
         photosLoading = false;
-        if (!d || !d.ok) { if (!have) rail.section.hidden = true; return; }   // 실패해도 있던 사진은 안 지운다
+        if (!d || !d.ok) {
+          // 실패해도 이미 받아 둔 사진은 그대로 둔다.
+          // 처음부터 못 받았으면 조용히 사라지지 않게 이유를 한 줄 남긴다 —
+          // 줄만 없어지면 사진이 없는 건지 열람 키가 막힌 건지 알 수가 없다.
+          if (!have) showPhotoNote(rail, (d && (d.message || d.error)) || "연결에 실패했어요");
+          return;
+        }
+        var stale = rail.section.querySelector(".rail-note");
+        if (stale) stale.remove();
         reportData = sanitizeDates(d.dates || []);
         reportCred = cred;
-        renderPhotos(rail, className);
-        revalidatePhotos(rail, className, token, adminPw);   // 뒤에서 최신인지 확인
+        renderPhotos(rail, currentClass || className);
+        revalidatePhotos(rail, currentClass || className, token, adminPw);   // 뒤에서 최신인지 확인
       });
       return;
     }
