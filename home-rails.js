@@ -60,6 +60,9 @@
   // 클래스 이름 → 그 반의 반코드 모음 (그림책을 반과 이어 붙이는 데 쓴다)
   var codesByClass = {};
   var reportData = null;   // 한 번 받아 둔 사진 트리(자격이 바뀌기 전까지 재사용)
+  // 거르기 전에 뽑아 둔 요약 { orgs, dropped } — 왜 사진이 안 이어지는지 알려 줄 때 쓴다.
+  // (sanitizeDates 는 받은 트리를 그 자리에서 깎아 내므로 나중에는 알 수 없다)
+  var reportInfo = null;
   var reportCred = "";     // 그 사진을 받을 때 쓴 자격(표·관리자·반) — 같으면 다시 안 받는다
   var photosLoading = false;
   var loadingCred = "";    // 지금 받는 중인 요청이 어떤 자격(반·키)으로 나갔는지
@@ -499,6 +502,7 @@
       askPhotos(token, photoPw(currentClass), function (d) {
         b.disabled = false; b.textContent = keep;
         if (!d || !d.ok) return;
+        reportInfo = photoSummary(d.dates || []);
         reportData = sanitizeDates(d.dates || []);
         reportCred = photoCred();
         renderPhotos(rail, currentClass || className);
@@ -534,7 +538,7 @@
     }, true);
   }
 
-  /// 사진을 못 불러왔을 때 이유를 한 줄 보여 준다(조용히 사라지면 원인을 못 찾는다).
+  /// 사진 줄에 안내문 한 줄을 남긴다(조용히 사라지면 원인을 못 찾는다).
   function showPhotoNote(rail, why) {
     var old = rail.section.querySelector(".rail-note");
     if (old) old.remove();
@@ -542,7 +546,7 @@
     rail.setCount("");
     var note = document.createElement("p");
     note.className = "rail-note";
-    note.textContent = "수업 사진을 불러오지 못했어요 — " + why;
+    note.textContent = why;
     rail.section.insertBefore(note, rail.track);
     rail.section.hidden = false;
   }
@@ -592,11 +596,13 @@
           // 실패해도 이미 받아 둔 사진은 그대로 둔다.
           // 처음부터 못 받았으면 조용히 사라지지 않게 이유를 한 줄 남긴다 —
           // 줄만 없어지면 사진이 없는 건지 열람 키가 막힌 건지 알 수가 없다.
-          if (!have) showPhotoNote(rail, (d && (d.message || d.error)) || "연결에 실패했어요");
+          if (!have) showPhotoNote(rail, "수업 사진을 불러오지 못했어요 — " +
+            ((d && (d.message || d.error)) || "연결에 실패했어요"));
           return;
         }
         var stale = rail.section.querySelector(".rail-note");
         if (stale) stale.remove();
+        reportInfo = photoSummary(d.dates || []);
         reportData = sanitizeDates(d.dates || []);
         reportCred = cred;
         renderPhotos(rail, currentClass || className);
@@ -649,7 +655,8 @@
             return;
           }
           if (pw !== classPw) localStorage.setItem("reportPw", pw);
-          reportData = sanitizeDates(d.dates || []);
+          reportInfo = photoSummary(d.dates || []);
+        reportData = sanitizeDates(d.dates || []);
           reportCred = photoCred();
           gate.remove();
           renderPhotos(rail, className);
@@ -678,6 +685,23 @@
     return false;
   }
 
+  /// 거르기 전에 '무엇이 왔는지'만 뽑아 둔다 — 기관 폴더 이름, 그리고
+  /// 수업 이름 필터(photoPrograms)에 걸려 빠진 폴더 이름.
+  function photoSummary(dates) {
+    var orgs = {}, dropped = {};
+    (dates || []).forEach(function (day) {
+      (day.orgs || []).forEach(function (o) {
+        var nm = String(o.org || "").trim();
+        if (nm && !isHiddenFolder(nm)) orgs[nm] = true;
+        (o.programs || []).forEach(function (pr) {
+          var t = String(pr.title || "").trim();
+          if (t && !isHiddenFolder(t) && !programAllowed(t)) dropped[t] = true;
+        });
+      });
+    });
+    return { orgs: Object.keys(orgs), dropped: Object.keys(dropped) };
+  }
+
   function sanitizeDates(dates) {
     return (dates || [])
       .filter(function (day) { return !isHiddenFolder(day.folder); })
@@ -695,6 +719,14 @@
         return day;
       })
       .filter(function (day) { return (day.orgs || []).length; });
+  }
+
+  /// 기관(폴더) 이름 비교용으로 다듬는다 — 띄어쓰기·가운뎃점·괄호·하이픈 차이 때문에
+  /// 사진이 안 이어지는 일이 잦아서, 눈에 보이는 글자만 남겨 견준다.
+  /// (예: "영흥 지역아동센터" ↔ "영흥지역아동센터")
+  function normName(v) {
+    return String(v == null ? "" : v).toLowerCase()
+      .replace(/[\s·・‧.,()[\]{}\-_/\\]/g, "");
   }
 
   function dparts(f) {
@@ -716,12 +748,13 @@
     // 스프레드시트 "클래스" 탭 D열(사진폴더명)에 적어 두면 그 이름으로도 이어 준다.
     // 날짜마다 폴더 이름이 달리 적혀 있으면 쉼표로 여러 개 적을 수 있다.
     var names = {};
-    names[className] = true;
+    names[normName(className)] = true;
     ((classInfo && classInfo.orgs) || String((classInfo && classInfo.org) || "").split(/[,·|\/]/))
-      .forEach(function (v) { v = String(v || "").trim(); if (v) names[v] = true; });
+      .forEach(function (v) { v = normName(v); if (v) names[v] = true; });
+    delete names[""];
     var byFolder = {}, days = [];
     (reportData || []).forEach(function (day) {
-      var orgs = day.orgs.filter(function (o) { return names[String(o.org || "").trim()] === true; });
+      var orgs = day.orgs.filter(function (o) { return names[normName(o.org)] === true; });
       if (!orgs.length) return;
       if (byFolder[day.folder]) {
         byFolder[day.folder].orgs = byFolder[day.folder].orgs.concat(orgs);
@@ -737,9 +770,22 @@
     while (stale) { stale.remove(); stale = rail.section.querySelector(".rail-days"); }
 
     if (!days.length) {
+      // 사진은 받았는데 이 반과 안 이어졌다 — 드라이브 기관 폴더 이름이 반 이름과
+      // 다르거나(시트 D열로 이어 준다), 수업 이름 필터에 걸린 경우다.
+      // 조용히 감추면 "사진이 없는 건지 이어지지 않은 건지"를 알 수가 없어 진단을 남긴다.
+      var gotList = (reportInfo && reportInfo.orgs) || [];
+      var dropList = (reportInfo && reportInfo.dropped) || [];
+      var detail = "이 반 이름: “" + className + "”" +
+        " / 서버가 준 기관 폴더: " + (gotList.length ? gotList.join(", ") : "(없음)") +
+        (dropList.length ? " / 수업 이름 필터(photoPrograms)에 걸린 폴더: " + dropList.join(", ") : "") +
+        " → 시트 “클래스” 탭 D열(사진폴더명)에 맞는 폴더 이름을 적으면 이어집니다.";
+      try { console.log("[수업 사진] 이 반과 이어진 폴더가 없어요 — " + detail); } catch (e) {}
+
       rail.track.innerHTML = "";
       rail.setCount("");
-      rail.section.hidden = true;   // 이 반 사진이 없으면 줄 자체를 감춘다
+      if (isAdmin) { showPhotoNote(rail, "이 반과 이어진 사진 폴더가 없어요 — " + detail); return; }
+      if (reportInfo) { showPhotoNote(rail, "아직 올라온 수업 사진이 없어요."); return; }
+      rail.section.hidden = true;   // 아직 한 번도 안 받아 봤으면 줄 자체를 감춘다
       return;
     }
 
@@ -870,6 +916,7 @@
     document.addEventListener("gallery-admin", function (e) {
       isAdmin = !!(e && e.detail);
       if (currentClass && bookRailRef) fillBooks(bookRailRef, currentClass);
+      if (currentClass && photoRailRef) fillPhotos(photoRailRef, currentClass);
     });
     // 작품 정렬 칸(최신순/오래된순)을 바꾸면 그림책 줄도 같은 순서로 맞춘다.
     var sortEl = document.getElementById("sortSelect");
