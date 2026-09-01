@@ -46,8 +46,7 @@ window.GALLERY_CONFIG = {
   // 여기에 적은 반은 스프레드시트 "클래스" 탭 C열(비번)에 값이 남아 있어도
   // 브라우저에서 비밀번호 화면을 띄우지 않습니다.
   // 반 이름 · 반 코드 · 사진폴더명(기관 이름) 중 아무거나 적으면 됩니다.
-  //   ⚠️ 이 반의 작품·그림책은 링크만 알면 누구나 볼 수 있게 됩니다.
-  //      (아이 얼굴이 담긴 '📷 수업 모습'은 여전히 따로 잠겨 있습니다.)
+  //   ⚠️ 이 반의 작품·그림책·수업 사진은 링크만 알면 누구나 볼 수 있게 됩니다.
   openClasses: [
     "백령종합사회복지관",
     "옹진가족센터",
@@ -56,6 +55,11 @@ window.GALLERY_CONFIG = {
     "영흥도 다함께돌봄센터",
     "영흥면 행정복지센터"
   ],
+
+  // 🔓 공개 반의 '📷 수업 모습'을 열 때 페이지가 대신 넣어 주는 열람 키.
+  // (사진 웹앱의 비번 대조는 Apps Script 에서만 하므로 키가 하나 필요합니다.)
+  // 비워 두면 위 adminPassword 를 그대로 씁니다.
+  openPhotoPw: "",
 
   // 📚 그림책 웹앱(뷰어와 같은 Apps Script). 관리자가 학생을 다른 반으로 옮길 때도 쓴다.
   booksApi: "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec",

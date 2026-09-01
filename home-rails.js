@@ -20,6 +20,37 @@
   function photoApiFor(info) {
     return (info && String(info.src || "").indexOf("report") === 0) ? REPORT_API_LEGACY : REPORT_API;
   }
+
+  // ---------- 🔓 공개 반(비밀번호 없음) ----------
+  // config.js 의 openClasses 에 적어 둔 반은 수업 모습 사진까지 비번 없이 연다.
+  // 비번 대조는 Apps Script 에서만 하므로, 페이지가 열람 키를 대신 넣어 준다.
+  function openKeys() {
+    var list = (window.GALLERY_CONFIG || {}).openClasses || [];
+    var out = {};
+    for (var i = 0; i < list.length; i++) {
+      var k = String(list[i] == null ? "" : list[i]).trim().toLowerCase();
+      if (k) out[k] = true;
+    }
+    return out;
+  }
+  function isOpenClass(info, name) {
+    var keys = openKeys();
+    var cand = [name, info && info.name, info && info.code, info && info.org]
+      .concat((info && info.orgs) || []);
+    for (var i = 0; i < cand.length; i++) {
+      var k = String(cand[i] == null ? "" : cand[i]).trim().toLowerCase();
+      if (k && keys[k]) return true;
+    }
+    return false;
+  }
+
+  /// 사진 웹앱에 보낼 열람 키. 선생님(관리자)이거나 공개 반이면 비번 칸 없이 바로 열린다.
+  function photoPw(name) {
+    var CFG = window.GALLERY_CONFIG || {};
+    if (classInfo && classInfo.admin) return CFG.adminPassword || "";
+    if (isOpenClass(classInfo, name)) return CFG.openPhotoPw || CFG.adminPassword || "";
+    return "";
+  }
   // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
   var VIEWER = "viewer.html";
@@ -442,7 +473,7 @@
   /// 그래서 페이지를 다시 열 때마다 사진을 다시 받아 깜박이는 일이 없다.
   function photoCred() {
     var t = classInfo && classInfo.photoToken;
-    return [t ? "token" : "", (classInfo && classInfo.admin) ? "admin" : "",
+    return [t ? "token" : "", photoPw(currentClass) ? "key" : "",
             (classInfo && classInfo.code) || "", (classInfo && classInfo.src) || ""].join("|");
   }
 
@@ -463,8 +494,7 @@
       var keep = b.textContent;
       b.textContent = "읽는 중…";
       var token = (classInfo && classInfo.photoToken) || null;
-      var adminPw = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
-      askPhotos(token, adminPw, function (d) {
+      askPhotos(token, photoPw(currentClass), function (d) {
         b.disabled = false; b.textContent = keep;
         if (!d || !d.ok) return;
         reportData = sanitizeDates(d.dates || []);
@@ -516,8 +546,7 @@
     var cred = photoCred();
     if (have && cred === reportCred) {
       var t0 = (classInfo && classInfo.photoToken) || null;
-      var a0 = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
-      revalidatePhotos(rail, className, t0, a0);      // 화면은 그대로 두고 최신인지만 확인
+      revalidatePhotos(rail, className, t0, photoPw(className));   // 화면은 그대로 두고 최신인지만 확인
       return;
     }
     if (photosLoading) return;                        // 이미 받는 중이면 중복 요청하지 않는다
@@ -525,9 +554,10 @@
     // 반 비번을 이미 넣고 들어온 사람은 사진 앞에서 또 묻지 않는다.
     //   · 반 비번을 맞히면 서버가 준 '사진 열람 표'(photoToken)로 바로 연다.
     //   · 선생님(관리자 모드)은 관리자 키로 연다.
-    // 비번이 걸려 있지 않은(공개) 반에서만 아래 비밀번호 칸이 나온다.
+    //   · config.js openClasses 에 적어 둔 공개 반은 페이지가 열람 키를 대신 넣는다.
+    // 셋 다 아닐 때만 아래 비밀번호 칸이 나온다.
     var token = (classInfo && classInfo.photoToken) || null;
-    var adminPw = (classInfo && classInfo.admin) ? ((window.GALLERY_CONFIG || {}).adminPassword || "") : "";
+    var adminPw = photoPw(className);
     if (token || adminPw) {
       if (!have) {                                    // 처음 받을 때만 '불러오는 중…'
         rail.track.innerHTML = "";
