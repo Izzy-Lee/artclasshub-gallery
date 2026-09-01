@@ -64,19 +64,19 @@ p{ margin:0 0 2mm; }
 
 /* ---------- 표지 ---------- */
 .cover{
-  background:var(--c-main); color:#fff; padding:11mm 10mm; margin-bottom:6mm;
+  background:var(--c-main); color:#fff; padding:9mm 10mm; margin-bottom:5mm;
 }
 .cover .kicker{ font-size:9pt; letter-spacing:.06em; opacity:.75; margin-bottom:3mm; }
 .cover h1{
-  font-size:21pt; line-height:1.35; margin:0 0 4mm; letter-spacing:-.03em; font-weight:800;
+  font-size:19pt; line-height:1.35; margin:0 0 4mm; letter-spacing:-.03em; font-weight:800;
   word-break:keep-all;
 }
 .cover .scope{ font-size:10pt; opacity:.9; border-top:.6pt solid rgba(255,255,255,.35); padding-top:3.5mm; }
 .cover .org{ margin-top:2mm; font-size:9pt; opacity:.75; }
 
 /* 핵심지표 4칸 */
-.kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:3mm; margin-bottom:6mm; }
-.kpi{ background:var(--c-block); padding:5mm 4mm; border-top:2.2pt solid var(--c-main); }
+.kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:3mm; margin-bottom:5mm; }
+.kpi{ background:var(--c-block); padding:4mm 3.5mm; border-top:2.2pt solid var(--c-main); }
 .kpi .k{ font-size:8pt; color:var(--c-muted); letter-spacing:-.01em; margin-bottom:1.5mm; }
 .kpi .v{ font-size:19pt; font-weight:800; line-height:1.1; letter-spacing:-.04em; color:var(--c-main); }
 .kpi .v small{ font-size:10pt; font-weight:700; margin-left:.6mm; }
@@ -108,6 +108,22 @@ td.dim{ color:var(--c-flat); }
 .stack .s0,.sbar .s0{ background:var(--c-main); }
 .stack .s1,.sbar .s1{ background:var(--c-main-soft); }
 .stack .s2,.sbar .s2{ background:var(--c-sub); color:#5A4207; }
+
+/* 순위 막대 — 8개 지역·기관을 같은 축에서 견준다 */
+.rank{ margin-top:1mm; }
+.rrow{ display:grid; grid-template-columns:36mm 1fr 15mm; align-items:center; gap:2.5mm; margin-bottom:1mm; }
+.rrow:last-of-type{ margin-bottom:0; }
+.rlab{ font-size:8pt; letter-spacing:-.02em; }
+.rlab em{ font-style:normal; color:var(--c-muted); font-size:7pt; }
+.rtrack{ position:relative; display:block; height:4.4mm; background:#fff; border:.4pt solid var(--c-line); }
+.rtrack::after{ content:""; position:absolute; left:90%; top:-.8mm; bottom:-.8mm; border-left:.7pt dashed #ADADA6; }
+.rfill{ display:block; height:100%; background:var(--c-main); }
+.rval{ font-size:8.5pt; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; color:var(--c-main); }
+.rrow.mark .rfill{ background:var(--c-sub); }
+.rrow.mark .rval, .rrow.mark .rlab{ color:#8A6314; font-weight:700; }
+
+/* 표에서 100%가 아닌 값 — 경고색이 아니라 보조색 톤으로 짚어 준다 */
+td.low{ background:#FCF6E9; font-weight:700; color:#8A6314; }
 
 /* 지역별 한 줄 누적 막대 — 여러 지역을 같은 축에서 견주기 */
 .srow{ display:grid; grid-template-columns:30mm 1fr 15mm; align-items:center; gap:2.5mm; margin-bottom:1.8mm; }
@@ -172,8 +188,8 @@ td.dim{ color:var(--c-flat); }
 
 /* ---------- 2단 ---------- */
 .two{ display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
-.bullets{ margin:0; padding-left:4mm; font-size:8.5pt; line-height:1.55; }
-.bullets li{ margin-bottom:.8mm; word-break:keep-all; }
+.bullets{ margin:0; padding-left:4mm; font-size:8.5pt; line-height:1.5; }
+.bullets li{ margin-bottom:.5mm; word-break:keep-all; }
 .tagline{ font-size:8pt; color:var(--c-muted); line-height:1.6; word-break:keep-all; }
 
 /* ---------- 종합 매트릭스 ---------- */
@@ -181,6 +197,13 @@ td.dim{ color:var(--c-flat); }
 .mx td.axis{ background:var(--c-main-10); color:var(--c-main); font-weight:700; font-size:8.5pt; }
 
 /* ---------- 각주 ---------- */
+/* 조사 개요 — 표보다 낮게 앉는 정의 목록 */
+.meta{ display:grid; grid-template-columns:26mm 1fr; gap:0; margin:0;
+       border-top:.6pt solid var(--c-line); }
+.meta dt{ font-size:8pt; font-weight:700; color:var(--c-main);
+          padding:1.4mm 0; border-bottom:.6pt solid var(--c-line); }
+.meta dd{ font-size:8pt; margin:0; padding:1.4mm 0; border-bottom:.6pt solid var(--c-line); }
+
 .notes{ background:var(--c-block); padding:3.5mm 4.5mm; }
 .notes ol{ margin:0; padding-left:4.5mm; font-size:7.5pt; color:var(--c-muted); line-height:1.6; }
 .notes li{ margin-bottom:1mm; word-break:keep-all; }
@@ -237,24 +260,34 @@ td.dim{ color:var(--c-flat); }
 
   <section>
     <h2><span class="num">1</span>조사 개요</h2>
-    <table>
-      <tbody>
-        <tr><td class="t" style="width:34mm"><span class="nm">조사 분류</span></td>
-            <td class="t">백령지역 / 영흥지역(3개 기관) / 학교연계(4개 지역)</td></tr>
-        <tr><td class="t"><span class="nm">총 참가 인원</span></td>
-            <td class="t">115명 (확정 참가인원 기준)</td></tr>
-        <tr><td class="t"><span class="nm">설문 제출</span></td>
-            <td class="t">88건 (백령 24 / 영흥 34 / 학교연계 30)</td></tr>
-        <tr><td class="t"><span class="nm">환산 응답</span></td>
-            <td class="t">105건 (복수 학년 가정을 아동 기준으로 환산)</td></tr>
-        <tr><td class="t"><span class="nm">작성일 · 운영</span></td>
-            <td class="t">2026.08.31 · ㈜놀이동무토왕성</td></tr>
-      </tbody>
-    </table>
+    <dl class="meta">
+      <dt>조사 분류</dt><dd>백령지역 / 영흥지역(3개 기관) / 학교연계(4개 지역) — 8개 지역·기관</dd>
+      <dt>총 참가 인원</dt><dd>115명 (확정 참가인원 기준)</dd>
+      <dt>설문 제출</dt><dd>88건 — 백령 24 / 영흥 34 / 학교연계 30</dd>
+      <dt>환산 응답</dt><dd>105건 — 복수 학년 가정을 아동 기준으로 환산</dd>
+    </dl>
   </section>
 
   <section>
-    <h2><span class="num">2</span>요약</h2>
+    <h2><span class="num">2</span>지역·기관별 만족 이상 한눈에 보기</h2>
+    <div class="barbox">
+      <div class="rank">
+        <div class="rrow"><span class="rlab">영흥 지역아동센터 <em>14건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">영흥 다함께돌봄센터 <em>18건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">영흥 옹진군가족센터 <em>12건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">자월도 <em>8건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">연평도 <em>13건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">신도 <em>7건</em></span><span class="rtrack"><span class="rfill" style="width:100%"></span></span><span class="rval">100.0%</span></div>
+        <div class="rrow"><span class="rlab">백령도 <em>24건</em></span><span class="rtrack"><span class="rfill" style="width:95.8%"></span></span><span class="rval">95.8%</span></div>
+        <div class="rrow mark"><span class="rlab">대청도 <em>9건</em></span><span class="rtrack"><span class="rfill" style="width:66.7%"></span></span><span class="rval">66.7%</span></div>
+      </div>
+      <p class="small" style="margin:2.5mm 0 0">가로축은 0~100%, 점선은 90% 기준선이다.
+        8개 지역·기관 중 7곳이 90%를 넘고 대청도 한 곳만 아래에 있다. 괄호 안은 환산 응답 수.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>요약</h2>
     <ul class="bullets">
       <li>환산 105건 중 <b>101건(96.2%)</b>이 만족 이상으로 응답했고, 불만족·매우 불만족은 <b>0건</b>이었다.</li>
       <li><b>운영시간</b>은 세 분류 모두 만족도 100.0%로, 이번 조사에서 가장 안정적인 항목이다.</li>
@@ -276,7 +309,7 @@ td.dim{ color:var(--c-flat); }
 <div class="page">
  <div class="page-body">
   <section>
-    <h2><span class="num">3</span>전체 결과</h2>
+    <h2><span class="num">4</span>전체 결과</h2>
     <p class="lead">환산 105건 기준. 반올림으로 각 항목의 합이 100%가 되지 않을 수 있다.</p>
 
     <div class="barbox">
@@ -350,14 +383,15 @@ td.dim{ color:var(--c-flat); }
 
   <section>
     <h3>운영 항목별</h3>
+    <p class="lead">색이 들어간 칸은 100%가 아닌 항목이다. 운영시간은 세 분류 모두 100%로 이견이 없었다.</p>
     <table>
       <thead>
         <tr><th class="t">분류</th><th>참가 / 환산</th><th>프로그램 만족 이상</th><th>운영시간 만족</th><th>운영장소 만족</th><th>겨울방학 참가 ‘예’</th></tr>
       </thead>
       <tbody>
-        <tr><td class="t"><span class="nm">백령지역</span></td><td class="num">25명 / 24건</td><td class="num">95.8%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">87.0%</td></tr>
-        <tr><td class="t"><span class="nm">영흥지역</span></td><td class="num">49명 / 44건</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">90.9%</td><td class="num">97.6%</td></tr>
-        <tr><td class="t"><span class="nm">학교연계</span></td><td class="num">41명 / 37건</td><td class="num">91.9%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num">90.9%</td></tr>
+        <tr><td class="t"><span class="nm">백령지역</span></td><td class="num">25명 / 24건</td><td class="num low">95.8%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num low">87.0%</td></tr>
+        <tr><td class="t"><span class="nm">영흥지역</span></td><td class="num">49명 / 44건</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num low">90.9%</td><td class="num low">97.6%</td></tr>
+        <tr><td class="t"><span class="nm">학교연계</span></td><td class="num">41명 / 37건</td><td class="num low">91.9%</td><td class="num">100.0%</td><td class="num">100.0%</td><td class="num low">90.9%</td></tr>
       </tbody>
     </table>
   </section>
@@ -372,7 +406,7 @@ td.dim{ color:var(--c-flat); }
 <div class="page">
  <div class="page-body">
   <section>
-    <h2><span class="num">4</span>백령지역</h2>
+    <h2><span class="num">5</span>백령지역</h2>
     <p class="lead">백령도 · 참가 25명 · 설문 제출 24건 · 아동 기준 환산 24건</p>
 
     <div class="donut-wrap">
@@ -406,6 +440,37 @@ td.dim{ color:var(--c-flat); }
       <div class="card"><div class="k">운영시간 만족</div><div class="v">100.0%</div><div class="n">불만족 응답 없음</div></div>
       <div class="card"><div class="k">운영장소 만족</div><div class="v">100.0%</div><div class="n">개선 의견 1건 별도 접수</div></div>
       <div class="card"><div class="k">겨울방학 참가 ‘예’</div><div class="v">87.0%</div><div class="n">세 분류 중 가장 낮음</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>전체와 견주기</h3>
+    <div class="barbox">
+      <div class="legend">
+        <span><i style="background:var(--c-main)"></i>매우 만족</span>
+        <span><i style="background:var(--c-main-soft)"></i>만족</span>
+        <span><i style="background:var(--c-sub)"></i>보통</span>
+      </div>
+      <div class="srow">
+        <div class="slab">백령지역<em>환산 24건</em></div>
+        <div class="sbar">
+          <span class="s0" style="width:91.6%">91.6%</span>
+          <span class="s1" style="width:4.2%"></span>
+          <span class="s2" style="width:4.2%"></span>
+        </div>
+        <div class="stot">95.8%</div>
+      </div>
+      <div class="srow">
+        <div class="slab">전체<em>환산 105건</em></div>
+        <div class="sbar">
+          <span class="s0" style="width:78.1%">78.1%</span>
+          <span class="s1" style="width:18.1%">18.1%</span>
+          <span class="s2" style="width:3.8%"></span>
+        </div>
+        <div class="stot">96.2%</div>
+      </div>
+      <p class="small" style="margin:2.5mm 0 0">만족 이상 비율은 전체와 비슷하지만,
+        ‘매우 만족’ 비중은 백령지역이 91.6%로 전체 78.1%보다 13.5%p 높다.</p>
     </div>
   </section>
 
@@ -458,7 +523,7 @@ td.dim{ color:var(--c-flat); }
 <div class="page">
  <div class="page-body">
   <section>
-    <h2><span class="num">5</span>영흥지역</h2>
+    <h2><span class="num">6</span>영흥지역</h2>
     <p class="lead">지역아동센터 · 다함께돌봄센터 · 옹진군가족센터 ·
       참가 49명 · 설문 제출 34건(지역아동 11 / 다함께 14 / 가족센터 9) · 환산 44건</p>
 
@@ -549,7 +614,7 @@ td.dim{ color:var(--c-flat); }
 <div class="page">
  <div class="page-body">
   <section>
-    <h2><span class="num">6</span>학교연계</h2>
+    <h2><span class="num">7</span>학교연계</h2>
     <p class="lead">자월도 · 대청도 · 연평도 · 신도 ·
       참가 41명 · 설문 제출 30건(자월 5 / 대청 7 / 연평 11 / 신도 7) · 환산 37건</p>
 
@@ -662,7 +727,7 @@ td.dim{ color:var(--c-flat); }
 <div class="page">
  <div class="page-body">
   <section>
-    <h2><span class="num">7</span>개선 요구와 반영 방향</h2>
+    <h2><span class="num">8</span>개선 요구와 반영 방향</h2>
     <table class="mx">
       <thead><tr><th class="t axis">구분</th><th class="t">확인된 수요·이슈</th><th class="t">차기 운영 반영 방향</th></tr></thead>
       <tbody>
@@ -700,7 +765,7 @@ td.dim{ color:var(--c-flat); }
   </section>
 
   <section>
-    <h2><span class="num">8</span>희망 프로그램 카테고리</h2>
+    <h2><span class="num">9</span>희망 프로그램 카테고리</h2>
     <p class="lead">8개 지역·기관의 희망 프로그램 자유응답을 카테고리로 묶어, 해당 항목을 언급한 지역·기관 수를 센 값이다(각주 5).</p>
     <div class="barbox">
       <div class="row"><span class="lab">미술·공예·만들기</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">8곳</span></div>
@@ -716,7 +781,7 @@ td.dim{ color:var(--c-flat); }
   </section>
 
   <section>
-    <h2><span class="num">9</span>응답 해석 유의사항</h2>
+    <h2><span class="num">10</span>응답 해석 유의사항</h2>
     <div class="notes">
       <ol>
         <li>환산 건수는 한 가정이 여러 학년의 자녀를 보낸 경우를 아동 기준으로 나누어 계산한 값이다.
