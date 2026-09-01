@@ -44,12 +44,38 @@
     return false;
   }
 
-  /// 사진 웹앱에 보낼 열람 키. 선생님(관리자)이거나 공개 반이면 비번 칸 없이 바로 열린다.
-  function photoPw(name) {
+  /// 사진 웹앱에 보낼 열람 키 후보들 — 앞에서부터 하나씩 넣어 본다.
+  /// 사진 웹앱의 비번이 활동 보고와 다를 수 있어, 하나가 막히면 다음 것으로 다시 묻는다.
+  function photoPwList(name) {
     var CFG = window.GALLERY_CONFIG || {};
-    if (classInfo && classInfo.admin) return CFG.adminPassword || "";
-    if (isOpenClass(classInfo, name)) return CFG.openPhotoPw || CFG.adminPassword || "";
-    return "";
+    var out = [];
+    function add(v) { v = String(v == null ? "" : v).trim(); if (v && out.indexOf(v) < 0) out.push(v); }
+    if (classInfo && classInfo.admin) { add(CFG.adminPassword); return out; }
+    if (isOpenClass(classInfo, name)) { add(CFG.openPhotoPw); add(CFG.adminPassword); }
+    return out;
+  }
+  // 한 번 통해 본 열람 키 — 다음부터는 이것만 쓴다(막힌 키로 다시 헛걸음하지 않게).
+  var photoKeyOk = null;
+
+  /// 지금 쓸 열람 키 하나. 선생님(관리자)이거나 공개 반이면 비번 칸 없이 바로 열린다.
+  function photoPw(name) {
+    var list = photoPwList(name);
+    if (photoKeyOk && list.indexOf(photoKeyOk) >= 0) return photoKeyOk;
+    return list[0] || "";
+  }
+
+  /// 열람 키를 앞에서부터 하나씩 넣어 보고, 통하는 게 있으면 그걸로 답한다.
+  function askPhotosTry(token, keys, done, live) {
+    if (!keys.length) { askPhotos(token, "", done, live); return; }
+    var i = 0;
+    (function step() {
+      askPhotos(token, keys[i], function (d) {
+        if (d && d.ok) { photoKeyOk = keys[i]; done(d); return; }
+        i += 1;
+        if (i < keys.length) { step(); return; }   // 막혔으면 다음 키로 다시 묻는다
+        done(d);
+      }, live);
+    })();
   }
   // 온라인 발행 그림책의 출처(뷰어와 동일한 GAS 웹앱). ?class=<반코드> → {ok, books:[{bookId,title,student,cover}]}
   var BOOKS_API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
@@ -579,8 +605,9 @@
     //   · config.js openClasses 에 적어 둔 공개 반은 페이지가 열람 키를 대신 넣는다.
     // 셋 다 아닐 때만 아래 비밀번호 칸이 나온다.
     var token = (classInfo && classInfo.photoToken) || null;
+    var keys = photoPwList(className);
     var adminPw = photoPw(className);
-    if (token || adminPw) {
+    if (token || keys.length) {
       if (!have) {                                    // 처음 받을 때만 '불러오는 중…'
         rail.track.innerHTML = "";
         rail.section.hidden = false;
@@ -589,7 +616,7 @@
       photosLoading = true;
       loadingCred = cred;
       var myReq = ++photoReq;
-      askPhotos(token, adminPw, function (d) {
+      askPhotosTry(token, keys, function (d) {
         if (myReq !== photoReq) return;               // 자격이 바뀌어 새로 받는 중 — 옛 응답은 버린다
         photosLoading = false;
         if (!d || !d.ok) {
@@ -606,7 +633,7 @@
         reportData = sanitizeDates(d.dates || []);
         reportCred = cred;
         renderPhotos(rail, currentClass || className);
-        revalidatePhotos(rail, currentClass || className, token, adminPw);   // 뒤에서 최신인지 확인
+        revalidatePhotos(rail, currentClass || className, token, photoPw(className));   // 뒤에서 최신인지 확인
       });
       return;
     }
