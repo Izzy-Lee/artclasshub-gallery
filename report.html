@@ -133,6 +133,8 @@
   .gate button { width:100%; font:inherit; font-weight:800; font-size:15px; color:#fff;
                  background:var(--pink); border:0; border-radius:12px; padding:13px; cursor:pointer; }
   .err { color:#d7443e; font-size:13px; min-height:18px; margin-top:8px; }
+  /* 왜 자동으로 못 열었는지 — 원인을 찾을 수 있게 서버가 준 말을 그대로 남긴다 */
+  .gate-why { font-size:11px; color:#b0aaad; margin:10px 0 0; line-height:1.6; word-break:break-all; }
   .msg { text-align:center; color:var(--sub); padding:40px 20px; font-size:14px; line-height:1.7; }
 
   /* 크게 보기 */
@@ -159,11 +161,12 @@
 
 <!-- 평소에는 안 나온다. 아래 OPEN_PW 가 거부될 때만 예비로 열린다. -->
 <div id="gate" class="gate" hidden>
-  <h1>활동 보고</h1>
-  <p>열람용 비밀번호를 입력해 주세요.</p>
+  <h1>자동 열기에 실패했어요</h1>
+  <p>비번 없이 여는 열람 키가 막혔습니다.<br>열람용 비밀번호를 넣어 주세요.</p>
   <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
   <button id="go">열기</button>
   <div id="err" class="err"></div>
+  <p class="gate-why" id="why"></p>
 </div>
 
 <header id="head" hidden>
@@ -309,6 +312,7 @@
             setLoading(false);
             showGate();
             el("err").textContent = d.message || "열지 못했어요.";
+            el("why").textContent = "서버 응답: " + JSON.stringify(d) + " · 내장 키: " + OPEN_PW;
           }
           done(false);
           return;
@@ -328,6 +332,7 @@
           setLoading(false);
           showGate();
           el("err").textContent = "연결에 실패했어요. 잠시 뒤 다시 시도해 주세요.";
+          el("why").textContent = "웹앱에 연결하지 못했어요(주소·배포 권한 확인) · 내장 키: " + OPEN_PW;
         }
         done(false);
       });
