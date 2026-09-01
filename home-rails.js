@@ -677,6 +677,10 @@
   /// 이 클래스(기관)에 해당하는 날짜만 골라 날짜 카드 + 사진 한 줄로.
   function renderPhotos(rail, className) {
     if (locked) { rail.track.innerHTML = ""; rail.section.hidden = true; return; }
+    // ?class=코드 링크는 반 이름이 늦게 확정된다(시트를 읽은 뒤에야 '코드'가 '반 이름'이 됨).
+    // 사진을 부를 때 넘긴 이름이 이미 옛것(코드)일 수 있으니, 지금 열려 있는 반 이름을 우선한다.
+    // 안 그러면 이름이 안 맞아 사진이 있는데도 줄이 통째로 사라진다.
+    className = currentClass || className;
     // 같은 날짜(folder)가 여러 번 와도 한 줄만: folder로 묶어 프로그램만 합친다.
     // (GAS가 같은 날짜를 두 번 돌려주면 날짜 카드가 두 줄로 중복되던 버그 방지)
     // 드라이브의 기관 폴더 이름이 반 제목과 다를 수 있다(예: 반 '온마을학교 2기' ↔ 폴더 '부일초등학교').
