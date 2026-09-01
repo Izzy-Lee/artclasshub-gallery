@@ -77,8 +77,8 @@ def parse_bg(spec):
     parts = [parse_color(x) for x in spec.split(",")]
     return parts[0], (parts[1] if len(parts) > 1 else None)
 
-BOOK_H = 742                     # 펼친 책의 높이
-BOOK_Y = 150                     # 책 위쪽 여백
+BOOK_H = 700                     # 펼친 책의 높이
+BOOK_Y = 138                     # 책 위쪽 여백
 SPINE = W // 2                   # 책등(가운데)
 
 def nfc(s):
@@ -183,15 +183,169 @@ def shade_leaf(img, amount, from_left):
     w, h = img.size
     g = np.linspace(0, 1, w) if from_left else np.linspace(1, 0, w)
     g = (1.0 - amount * (0.46 * (1 - g) ** 1.7 + 0.09))
-    arr = np.asarray(img).astype(np.float32) * g[None, :, None]
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+    arr = np.asarray(img.convert("RGBA")).astype(np.float32)
+    arr[:, :, :3] *= g[None, :, None]                # 알파는 그대로 둔다
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
 
-def book_shadow(canvas, x0, y0, x1, y1):
-    """책 아래로 은은한 그림자 — 테두리 없이도 놓여 있는 느낌이 난다."""
-    lay = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(lay).rounded_rectangle((x0 - 6, y0 + 10, x1 + 6, y1 + 22), 10, fill=105)
-    lay = lay.filter(ImageFilter.GaussianBlur(26))
-    canvas.paste(Image.new("RGB", (W, H), (44, 44, 48)), (0, 0), lay)
+# ---------------------------------------------------------------- 양장본 모양
+
+GUT_W    = 0.24     # 책등 쪽에서 이만큼(쪽 너비 대비)까지 종이가 눕는다
+GUT_SQZ  = 0.42     # 누운 자리의 가로 줄어듦
+SPREAD_T = 0.013    # 바깥으로 갈수록 윗변이 내려온다(원근)
+SPREAD_B = 0.032    # 바깥으로 갈수록 아랫변이 올라온다
+SQ_SIDE  = 20       # 표지가 종이보다 옆으로 튀어나온 폭
+SQ_TB    = 18       # 표지가 종이보다 위·아래로 튀어나온 폭
+STACK    = 15       # 쌓인 종이의 두께
+PAPER    = (243, 240, 232)        # 종이 마구리 색
+
+def _profile(w, h):
+    """책등이 0번 칸일 때 열마다의 윗변 y·아랫변 y·원본에서 뽑아 올 x.
+    펼친 책은 책등 쪽이 가장 높고 바깥으로 갈수록 낮아 보인다."""
+    s = np.arange(w, dtype=np.float64) / max(1, w - 1)
+    j = s ** 1.7                                       # 책등에서 멀어질수록 1
+    top = h * SPREAD_T * j
+    bot = h * (1.0 - SPREAD_B * j)
+    k = np.clip(1.0 - s / GUT_W, 0.0, 1.0) ** 1.6      # 책등 언저리에서만 1
+    c = np.cumsum(1.0 + GUT_SQZ * k)                   # 눕는 만큼 원본이 빨리 지나간다
+    c = (c - c[0]) / (c[-1] - c[0]) * (w - 1)
+    return top, bot, c
+
+def leaf_profile(w, h, right):
+    """오른쪽 쪽이면 책등이 왼쪽 끝, 왼쪽 쪽이면 오른쪽 끝이다."""
+    top, bot, sx = _profile(w, h)
+    if right:
+        return top, bot, sx
+    return top[::-1], bot[::-1], (w - 1) - sx[::-1]
+
+def curl_page(img, right):
+    """쪽 그림을 책등으로 말려 드는 모양으로 휘어 RGBA 로 돌려준다."""
+    w, h = img.size
+    top, bot, sx = leaf_profile(w, h, right)
+    a = np.asarray(img.convert("RGB")).astype(np.float32)
+    yy = np.arange(h, dtype=np.float64)[:, None]
+    hgt = np.maximum(bot - top, 1.0)[None, :]
+    sy = (yy - top[None, :]) / hgt * (h - 1)
+    alpha = np.clip(np.minimum(sy + 0.5, (h - 1) - sy + 0.5), 0, 1)
+    sy = np.clip(sy, 0, h - 1)
+    y0 = np.floor(sy).astype(int); y1 = np.minimum(y0 + 1, h - 1)
+    fy = (sy - y0)[..., None]
+    x0 = np.floor(sx).astype(int); x1 = np.minimum(x0 + 1, w - 1)
+    fx = (sx - x0)[None, :, None]
+    X0 = np.broadcast_to(x0, (h, w)); X1 = np.broadcast_to(x1, (h, w))
+    v = ((a[y0, X0] * (1 - fy) + a[y1, X0] * fy) * (1 - fx)
+         + (a[y0, X1] * (1 - fy) + a[y1, X1] * fy) * fx)
+    # 책등 쪽은 안으로 접혀 들어가니 그늘이 진다
+    s = np.arange(w) / max(1, w - 1)
+    if not right:
+        s = s[::-1]
+    k = np.clip(1.0 - s / GUT_W, 0.0, 1.0) ** 1.6
+    v *= (1.0 - 0.13 * k)[None, :, None]
+    out = np.dstack([np.clip(v, 0, 255), alpha * 255]).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
+
+def block_profile(leaf_w, leaf_h, has_left, has_right):
+    """펼친 책 전체에 걸친 윗변·아랫변과, 책등에서 왼쪽으로 얼마나 떨어져 시작하는지."""
+    top, bot, _ = _profile(leaf_w, leaf_h)
+    if has_left and has_right:
+        return np.concatenate([top[::-1], top]), np.concatenate([bot[::-1], bot]), -leaf_w
+    if has_right:
+        return top, bot, 0
+    return top[::-1], bot[::-1], -leaf_w
+
+def _round_ends(top, bot, r):
+    """네 귀퉁이를 살짝 둥글린다."""
+    if r <= 0:
+        return top, bot
+    n = len(top)
+    e = np.arange(n)
+    cut = np.minimum(e, n - 1 - e).astype(float)
+    tap = np.where(cut < r, r - np.sqrt(np.maximum(r * r - (r - cut) ** 2, 0.0)), 0.0)
+    return top + tap, bot - tap
+
+def paste_band(img, color, top, bot, x0, blur=0.0, alpha=1.0):
+    """열마다 위·아래가 다른 띠를 화면에 칠한다. x0 는 화면 좌표."""
+    n = len(top)
+    xs0, xs1 = max(0, x0), min(W, x0 + n)
+    if xs1 <= xs0:
+        return
+    yy = np.arange(H, dtype=np.float64)[:, None]
+    seg = slice(xs0 - x0, xs1 - x0)
+    m = np.clip(np.minimum(yy - top[None, seg] + 0.5,
+                           bot[None, seg] - yy + 0.5), 0, 1) * alpha
+    full = np.zeros((H, W), np.float32)
+    full[:, xs0:xs1] = m
+    lay = Image.fromarray((full * 255).astype(np.uint8), "L")
+    if blur:
+        lay = lay.filter(ImageFilter.GaussianBlur(blur))
+    img.paste(Image.new("RGB", (W, H), color), (0, 0), lay)
+
+def case_color(cover):
+    """표지 그림에서 속표지(보드) 색을 뽑아 파스텔로 눅인다."""
+    a = np.asarray(cover.convert("RGB").resize((36, 36))).astype(np.float32).reshape(-1, 3)
+    lum = a.mean(1)
+    sel = a[(lum > 45) & (lum < 232)]
+    c = sel.mean(0) if len(sel) > 12 else a.mean(0)
+    g = c.mean()
+    c = g + (c - g) * 0.62                    # 채도를 낮추고
+    c = 255 - (255 - c) * 0.44                # 밝게 올린다
+    m = max(c.mean(), 1.0)                    # 흰 표지도 바탕에 묻히지 않게 눌러 준다
+    if m > 206:
+        c = c * (206 / m)
+    return tuple(int(v) for v in np.clip(c, 140, 224))
+
+def draw_case(img, spine, y0, leaf_w, leaf_h, color, has_left, has_right):
+    """표지 보드와 종이 마구리를 그리고, 쪽을 얹을 자리를 마련한다."""
+    T, B, dx = block_profile(leaf_w, leaf_h, has_left, has_right)
+    T, B = T + y0, B + y0                      # 화면 좌표로 옮긴다
+    x0 = spine + dx
+    # ① 바닥 그림자 — 보드보다 조금 크게, 아래로 밀어서
+    st, sb = _round_ends(T - SQ_TB + 12, B + SQ_TB + STACK + 20, 22)
+    paste_band(img, (52, 52, 58), st, sb, x0 - SQ_SIDE - 4, blur=24, alpha=0.42)
+    # ② 표지 보드
+    bt, bb = _round_ends(T - SQ_TB, B + SQ_TB + STACK, 13)
+    pad = np.full(SQ_SIDE, 0.0)
+    bt = np.concatenate([bt[:1] + pad, bt, bt[-1:] + pad])
+    bb = np.concatenate([bb[:1] + pad, bb, bb[-1:] + pad])
+    bt, bb = _round_ends(bt, bb, 15)
+    rim = tuple(int(v * 0.82) for v in color)          # 가장자리에 얇은 테를 둘러
+    paste_band(img, rim, bt - 1.6, bb + 1.6, x0 - SQ_SIDE)   # 옅은 표지도 눈에 띄게
+    paste_band(img, color, bt, bb, x0 - SQ_SIDE)
+    # ③ 종이 뭉치가 보드에 드리우는 그늘 — 이게 있어야 종이가 얹힌 것으로 보인다
+    paste_band(img, (60, 58, 54), T - 7.0, B + STACK + 9, x0 - 9, blur=7, alpha=0.34)
+    # ④ 쌓인 종이의 마구리 — 쪽보다 살짝 넓고 아래로 두껍게
+    pt, pb = _round_ends(T - 2.0, B + STACK, 5)
+    pad = np.full(6, 0.0)
+    pt = np.concatenate([pt[:1] + pad, pt, pt[-1:] + pad])
+    pb = np.concatenate([pb[:1] + pad, pb, pb[-1:] + pad])
+    paste_band(img, PAPER, pt, pb, x0 - 6)
+    paste_band(img, (176, 170, 156), B - 0.5, B + 1.6, x0)      # 맨 윗장의 마구리 선
+    for i in range(1, 5):                     # 낱장이 비치도록 결을 몇 줄
+        yl = B + STACK * i / 5.0
+        paste_band(img, (198, 192, 178), yl, yl + 1.2, x0, alpha=0.6)
+    return x0
+
+def draw_closed(img, art, x0, y0, w, h, fore_right, case):
+    """닫힌 책 — 표지 그림이 곧 보드 앞면이고, 배지 쪽으로 판의 두께가 보인다."""
+    sh = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(sh).rounded_rectangle((x0 - 5, y0 + 14, x0 + w + 5, y0 + h + 26), 14, fill=112)
+    img.paste(Image.new("RGB", (W, H), (52, 52, 58)), (0, 0),
+              sh.filter(ImageFilter.GaussianBlur(22)))
+    d = STACK - 4
+    ex0 = x0 - (0 if fore_right else d)
+    ex1 = x0 + w + (d if fore_right else 0)
+    bd = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(bd).rounded_rectangle((ex0, y0 + 4, ex1, y0 + h + d), 6, fill=255)
+    img.paste(Image.new("RGB", (W, H), tuple(int(c * 0.70) for c in case)), (0, 0), bd)
+    # 판 두께 사이로 종이 마구리가 한 줄 비친다
+    pg = Image.new("L", (W, H), 0)
+    dp = ImageDraw.Draw(pg)
+    dp.rectangle((ex0 + 1, y0 + h + 2, ex1 - 1, y0 + h + d - 3), fill=210)
+    if fore_right:
+        dp.rectangle((x0 + w + 2, y0 + 8, ex1 - 1, y0 + h + d - 3), fill=210)
+    else:
+        dp.rectangle((ex0 + 1, y0 + 8, x0 - 2, y0 + h + d - 3), fill=210)
+    img.paste(Image.new("RGB", (W, H), PAPER), (0, 0), pg)
+    img.paste(art, (x0, y0))
 
 class Book:
     """책 한 권. 표지 파일(000)은 좌우로 갈라 앞표지·뒷표지로 쓴다.
@@ -201,9 +355,10 @@ class Book:
         self.title, self.who = title, who
         spreads = [load_spread(p, leaf_w, leaf_h) for p in paths]
         self.back, self.front = spreads[0]          # 왼쪽=뒷표지, 오른쪽=앞표지
-        self.inner = spreads[1:]
-        if not self.inner:                          # 표지뿐인 책이면 표지를 속장으로도 쓴다
-            self.inner = [spreads[0]]
+        inner = spreads[1:] or [spreads[0]]         # 표지뿐인 책이면 표지를 속장으로도 쓴다
+        # 펼쳐 놓을 쪽은 미리 휘어 둔다(가만히 있는 화면이라 한 번만 하면 된다)
+        self.inner = [(curl_page(L, False), curl_page(R, True)) for L, R in inner]
+        self.case = case_color(self.front)          # 속표지(보드) 색
 
     def caption(self, idx=None):
         n = len(self.inner)
@@ -229,28 +384,25 @@ def put_caption(img, book, idx, alpha=1.0):
         return
     d = ImageDraw.Draw(img)
     t, sub = book.caption(idx)
-    y = BOOK_Y + BOOK_H + 48
+    y = BOOK_Y + BOOK_H + SQ_TB + STACK + 42
     def blend(c):
         return tuple(int(BG[i] + (c[i] - BG[i]) * alpha) for i in range(3))
     centered(d, y, t, font(40, "bold"), blend(INK))
     centered(d, y + 52, sub, font(27, "regular"), blend(MUTE))
 
 def spread_frame(book, left, right, off, idx, leaf_h, leaf_w):
-    """펼쳐진 책 한 화면. left·right 가 None 이면 그쪽은 비어 있다(책이 닫히는 중)."""
+    """펼쳐진 책 한 화면. 한쪽이 None 이면 책이 닫혀 있다는 뜻이다."""
     img = bg_image()
     spine = SPINE + off
-    x0 = spine - (leaf_w if left is not None else 0)
-    x1 = spine + (leaf_w if right is not None else 0)
-    if x1 > x0:
-        book_shadow(img, x0, BOOK_Y, x1, BOOK_Y + leaf_h)
-    if left is not None:
-        img.paste(left, (spine - leaf_w, BOOK_Y))
-    if right is not None:
-        img.paste(right, (spine, BOOK_Y))
     if left is not None and right is not None:
+        draw_case(img, spine, BOOK_Y, leaf_w, leaf_h, book.case, True, True)
+        img.paste(left, (spine - leaf_w, BOOK_Y), left)
+        img.paste(right, (spine, BOOK_Y), right)
         draw_gutter(img, BOOK_Y, BOOK_Y + leaf_h, spine)
     elif left is not None or right is not None:
-        draw_spine_edge(img, spine, BOOK_Y, leaf_h, closed_left=(right is not None))
+        art = left if left is not None else right
+        x = spine - leaf_w if left is not None else spine
+        draw_closed(img, art, x, BOOK_Y, leaf_w, leaf_h, right is not None, book.case)
     put_caption(img, book, idx)
     return img
 
@@ -273,20 +425,19 @@ def turn_frame(book, left_bg, right_bg, face_near, face_far, t, off0, off1, idx,
     off = int(round(off0 + (off1 - off0) * e))
     spine = SPINE + off
     img = bg_image()
-    x0 = spine - (leaf_w if left_bg is not None else 0)
-    x1 = spine + (leaf_w if right_bg is not None else 0)
-    if x1 > x0:
-        book_shadow(img, x0, BOOK_Y, x1, BOOK_Y + leaf_h)
+    if left_bg is not None or right_bg is not None:
+        draw_case(img, spine, BOOK_Y, leaf_w, leaf_h, book.case,
+                  left_bg is not None, right_bg is not None)
     if left_bg is not None:
-        img.paste(left_bg, (spine - leaf_w, BOOK_Y))
+        img.paste(left_bg, (spine - leaf_w, BOOK_Y), left_bg)
     if right_bg is not None:
-        img.paste(right_bg, (spine, BOOK_Y))
+        img.paste(right_bg, (spine, BOOK_Y), right_bg)
     if left_bg is not None and right_bg is not None:
         draw_gutter(img, BOOK_Y, BOOK_Y + leaf_h, spine)
 
     w = int(round(leaf_w * abs(math.cos(a))))
     lift = math.sin(a)
-    d = int(leaf_h * 0.035 * lift)
+    d = int(leaf_h * 0.010 * lift)      # 쉬고 있는 쪽과 실루엣을 맞춘다
     y0 = BOOK_Y
     if a <= math.pi / 2:
         leaf = shade_leaf(face_near, lift, from_left=True)
