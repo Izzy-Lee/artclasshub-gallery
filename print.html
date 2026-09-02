@@ -55,7 +55,9 @@
   .cap { position:absolute; top:100%; left:0; right:0; margin-top:8px;
          text-align:center; color:#a5a5ad; font-size:12px; font-weight:700; }
 
+  #mobHint { display:none; }
   @media (max-width: 620px) {
+    #mobHint { display:inline; }
     #bar { padding:8px 10px 10px; }
     button, a.btn { padding:8px 11px; font-size:12px; }
     .seg button { padding:7px 9px; font-size:12px; }
@@ -100,6 +102,7 @@
     <button id="guideBtn" class="ghost" title="접고 자를 자리를 알려 주는 점선">접는 선: 보임</button>
   </div>
   <div class="row"><span id="note" class="hint"></span></div>
+  <div class="row"><span id="mobHint" class="hint">휴대폰에선 ‘📥 PDF 파일 받기’로 받아서 인쇄하는 쪽이 확실해요 · 카카오톡·인스타 안에서 열었다면 ‘사파리(크롬)로 열기’ 뒤에 눌러 주세요</span></div>
 </div>
 <div id="bookcard" hidden>
   <div id="bookTitle">그림책</div>

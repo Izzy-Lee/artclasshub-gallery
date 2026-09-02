@@ -43,18 +43,10 @@
                      cursor:pointer; background:rgba(255,255,255,.85); color:#8a6;
                      box-shadow:0 2px 8px rgba(0,0,0,.08); font-family:inherit; }
   #swapBtn { background:var(--pink); color:#fff; }
-  /* 인쇄용 파일 — 부모님도 쓰시는 버튼이라 자물쇠와 달리 늘 보인다. */
-  #printBtn { background:#fff; color:var(--pink); }
+  /* 인쇄용 파일 — 부모님도 쓰시는 버튼이라 자물쇠와 달리 늘 보인다.
+     '#adminBar button' 보다 규칙이 약하면 색이 안 먹으므로 앞에 #adminBar 를 붙인다. */
+  #adminBar #printBtn { background:var(--pink); color:#fff; }
   #adminBar button[disabled] { opacity:.6; cursor:default; }
-  @media (max-width: 520px) {
-    /* 좁은 화면에선 글자를 빼고 프린터 그림만 남긴다(가운데 제목과 겹치지 않게). */
-    #printBtn { font-size:0; padding:7px 10px; }
-    #printBtn::before { content:"🖨"; font-size:15px; }
-    #zoomBar { gap:4px; }
-    #zoomBar button { width:34px; height:34px; font-size:16px; }
-    #zoomBar #zoomFit, #zoomBar #zoomWide { padding:0 8px; font-size:12px; }
-    #zoomPct { padding:5px 7px; font-size:11px; }
-  }
   #backlist { position:absolute; top:10px; left:12px; z-index:8; background:transparent; border:0; cursor:pointer;
               font-weight:800; font-size:15px; color:#333; padding:6px 4px; font-family:inherit; }
   .nav { position:absolute; top:0; bottom:0; width:36%; border:0; background:transparent; cursor:pointer; z-index:5; }
@@ -74,6 +66,19 @@
   .bookcard .cap { padding:8px 10px; }
   .bookcard .t { font-weight:800; font-size:14px; color:#333; }
   .bookcard .s { font-size:12px; color:#999; }
+  @media (max-width: 520px) {
+    /* 좁은 화면에선 가운데 제목('그림책 📖')을 감춰 인쇄 버튼에 자리를 내준다.
+       예전엔 버튼 글자를 없애려 했지만 위의 '#adminBar button' 규칙에 밀려
+       그대로 남았고, 제목과 겹쳐 아무것도 읽히지 않았다. */
+    #title { display:none; }
+    #backlist { font-size:14px; padding:6px 2px; }
+    #adminBar { gap:6px; top:7px; right:8px; }
+    #adminBar button { padding:8px 11px; font-size:13px; }
+    #zoomBar { gap:4px; }
+    #zoomBar button { width:34px; height:34px; font-size:16px; }
+    #zoomBar #zoomFit, #zoomBar #zoomWide { padding:0 8px; font-size:12px; }
+    #zoomPct { padding:5px 7px; font-size:11px; }
+  }
 </style>
 </head>
 <body>
