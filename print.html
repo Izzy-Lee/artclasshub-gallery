@@ -97,7 +97,7 @@
       <button data-p="a4x2">A4 2장 분할</button>
       <button data-p="a2">A2 전시용</button>
     </span>
-    <button id="fitBtn" class="ghost" title="칸을 꽉 채울지, 그림 전체가 다 보이게 할지">여백: 꽉 채움</button>
+    <button id="fitBtn" class="ghost" title="그림이 한 점도 안 잘리게 할지, 종이를 끝까지 채울지">그림: 안 잘리게</button>
     <button id="trimBtn" class="ghost" title="그림에 같이 저장된 회색 그림자·검은 실선 테두리를 빼고 뽑습니다">테두리: 정리</button>
     <button id="guideBtn" class="ghost" title="접고 자를 자리를 알려 주는 점선">접는 선: 보임</button>
   </div>
@@ -145,7 +145,8 @@
   var PAPERS = ["a3", "a4", "a4x2", "a2"];
   // 기본은 앱과 같은 'A4 축소' — 집·학교 프린터에 든 종이가 대개 A4 라 종이와 판이 맞는다.
   var paper = PAPERS.indexOf(pref("printPaper2", "a4")) >= 0 ? pref("printPaper2", "a4") : "a4";
-  var fitMode = pref("printFit", "fill") === "fit" ? "fit" : "fill";
+  // 기본은 '안 잘리게' — 아이 그림 가장자리가 먹히는 쪽이 흰 띠보다 아쉽다.
+  var fitMode = pref("printFit2", "whole") === "fill" ? "fill" : "whole";
   var trimOn = pref("printTrim", "1") !== "0";
   var guidesOn = pref("printGuide", "1") !== "0";
 
@@ -292,22 +293,40 @@
 
   /// 한 장을 만든다 — 칸을 격자로 늘어놓고 접는 선까지 계산한다.
   ///   items: [{ file, half, rot }] 를 왼쪽 위부터 줄 단위로 채운다(빈 칸은 null).
+  ///
+  ///   칸 크기는 두 가지로 잡는다.
+  ///     · 안 잘리게(기본) — 칸을 그림 비율에 맞춘다. 아이 그림이 한 점도 안 잘리고,
+  ///       남는 자리는 종이 위·아래(또는 좌·우) 가장자리로 고르게 보낸다.
+  ///       앱 그림은 3:2 인데 A 판 종이는 1.414 라, 칸을 종이에 딱 맞추면
+  ///       좌우가 2.9% 씩(합쳐 5.7%) 잘려 나간다 — 가장자리 글씨가 먹힌다.
+  ///     · 종이 꽉  — 예전처럼 칸이 종이를 다 채운다(가장자리가 조금 잘린다).
+  ///   접는 자리(종이 한가운데)는 두 경우 다 그대로다. 칸을 가운데 정렬하기 때문이다.
   function makeSheet(wmm, hmm, cols, items, label){
     var rows = Math.ceil(items.length / cols);
-    var cw = wmm / cols, ch = hmm / rows;
+    var cw = wmm / cols, ch = hmm / rows, ox = 0, oy = 0;
+    var crops = items.map(function(it){ return it ? cropOf(it.file, it.half || null) : null; });
+    if (fitMode !== "fill") {
+      // 여러 쪽 중 가장 '세로로 긴' 비율에 맞춰야 모두 안 잘린다.
+      var ar = 0;
+      crops.forEach(function(c){ if (c) { var a = c.w / c.h; if (!ar || a < ar) ar = a; } });
+      if (ar) {
+        ch = cw / ar;
+        if (ch * rows > hmm) { ch = hmm / rows; cw = ch * ar; }
+        ox = (wmm - cw * cols) / 2; oy = (hmm - ch * rows) / 2;
+      }
+    }
     var cells = [], v = [], h = [];
     items.forEach(function(it, k){
       if (!it) return;
       var c = k % cols, r = Math.floor(k / cols);
-      cells.push({ file:it.file, half:it.half || null, rot:it.rot || 0,
-                   crop: cropOf(it.file, it.half || null),
-                   box: { x:c * cw, y:r * ch, w:cw, h:ch } });
+      cells.push({ file:it.file, half:it.half || null, rot:it.rot || 0, crop: crops[k],
+                   box: { x:ox + c * cw, y:oy + r * ch, w:cw, h:ch } });
     });
-    for (var c = 1; c < cols; c++) v.push(c * cw);
-    for (var r = 1; r < rows; r++) h.push(r * ch);
+    for (var c = 1; c < cols; c++) v.push(ox + c * cw);
+    for (var r = 1; r < rows; r++) h.push(oy + r * ch);
     // 펼침면 칸은 한가운데가 쪽과 쪽 사이(접는 자리)다.
     if (!items.some(function(it){ return it && it.half; }))
-      for (var c2 = 0; c2 < cols; c2++) v.push(c2 * cw + cw / 2);
+      for (var c2 = 0; c2 < cols; c2++) v.push(ox + c2 * cw + cw / 2);
     return { w:wmm, h:hmm, cells:cells, guides:{ v:v, h:h }, label:label };
   }
 
@@ -717,16 +736,16 @@
 
   // ── 도구 모음 ──────────────────────────────────────────────────────────
   var NOTE = {
-    a3:  "A3 가로로 한 장 뽑아 가로·세로 반씩 접으면 그림책이 돼요 · 배율 100%, 여백 없음",
-    a4:  "A4 가로로 한 장 뽑아 가로·세로 반씩 접으면 손바닥만 한 그림책이 돼요 · 배율 100%, 여백 없음",
-    a4x2:"A4 세로로 두 장 뽑아 옆으로 붙이면 A3 한 장이 돼요 · 배율 100%, 여백 없음",
-    a2:  "접지 않고 벽에 붙이는 전시용이에요 · 인쇄 창에서 A2 가로, 배율 100%, 여백 없음"
+    a3:  "A3 가로로 한 장 뽑아 가로·세로 반씩 접으면 그림책이 돼요 · 배율 100%",
+    a4:  "A4 가로로 한 장 뽑아 가로·세로 반씩 접으면 손바닥만 한 그림책이 돼요 · 배율 100%",
+    a4x2:"A4 세로로 두 장 뽑아 옆으로 붙이면 A3 한 장이 돼요 · 배율 100%",
+    a2:  "접지 않고 벽에 붙이는 전시용이에요 · 인쇄 창에서 A2 가로, 배율 100%"
   };
   function syncBar(){
     var segs = el("paperSeg").querySelectorAll("button");
     for (var i = 0; i < segs.length; i++)
       segs[i].classList.toggle("on", segs[i].getAttribute("data-p") === paper);
-    el("fitBtn").textContent = "여백: " + (fitMode === "fill" ? "꽉 채움" : "남김(전체 보임)");
+    el("fitBtn").textContent = "그림: " + (fitMode === "fill" ? "종이 꽉(가장자리 잘림)" : "안 잘리게");
     el("trimBtn").textContent = "테두리: " + (trimOn ? "정리" : "그대로");
     el("trimBtn").disabled = !pixelsReadable;
     el("guideBtn").textContent = "접는 선: " + (guidesOn ? "보임" : "숨김");
@@ -739,8 +758,8 @@
     paper = p; prefSet("printPaper2", paper); syncBar(); render();
   });
   el("fitBtn").addEventListener("click", function(){
-    fitMode = (fitMode === "fill") ? "fit" : "fill";
-    prefSet("printFit", fitMode); syncBar(); render();
+    fitMode = (fitMode === "fill") ? "whole" : "fill";
+    prefSet("printFit2", fitMode); syncBar(); render();
   });
   el("trimBtn").addEventListener("click", function(){
     trimOn = !trimOn; prefSet("printTrim", trimOn ? "1" : "0"); syncBar(); render();
