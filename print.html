@@ -128,15 +128,20 @@
   //   guides 접고 자를 자리를 알려 주는 점선
   function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
   function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
-  // 브라우저 '인쇄'로 뽑을 때만 조금(6%) 줄인다.
-  //   프린터는 종이 가장자리 몇 mm 를 못 찍는다(하드웨어 여백). 그래서 종이와 비율이
-  //   같은 A3·A4 조판을 그대로 보내면 '찍을 수 있는 칸'보다 세로가 1~4% 길어져
+  // 브라우저 '프린트'로 뽑을 때 판을 종이 안쪽으로 아주 조금 들여 앉힌다.
+  //   프린터는 종이 가장자리 몇 mm 를 못 찍는다(하드웨어 여백). 브라우저는 '찍을 수
+  //   있는 칸'에 폭을 맞춰 줄이는데, 가로 판(A3·A4 가로)은 그러면 세로가 1~5% 넘쳐
   //   맨 아랫줄이 둘째 장으로 넘어간다(휴대폰에서 2/2쪽이 생기던 이유).
-  //   6% 줄이면 여백이 19mm 인 프린터까지 한 장에 들어간다.
-  //   PDF 파일은 그대로 정확한 크기다 — 인쇄소에는 PDF 를 주면 된다.
-  var PRINT_FIT = 0.94;
+  //   세로 판(A4 2장)은 반대로 세로가 남으므로 거의 줄일 게 없다.
+  //   줄인 만큼은 위·아래로 나눠 가운데에 앉힌다 — 한쪽으로 몰린 흰 띠가 안 생긴다.
+  //   PDF 파일은 손대지 않는다 — 인쇄소에는 PDF 를 주면 크기가 정확하다.
+  //     s = 판 크기 · t = 위에서 내려 앉히는 양(세로 비율)
+  //     가로: 0.013 + 0.95 = 0.963 → 가장자리 12mm 못 찍는 프린터까지 한 장
+  //     세로: 0.020 + 0.97 = 0.990 → 세로 판은 원래 여유가 있다
+  var PRINT_INSET = { land:{ s:0.95, t:0.013 }, port:{ s:0.97, t:0.020 } };
   var PAPERS = ["a3", "a4", "a4x2", "a2"];
-  var paper = PAPERS.indexOf(pref("printPaper2", "a3")) >= 0 ? pref("printPaper2", "a3") : "a3";
+  // 기본은 앱과 같은 'A4 축소' — 집·학교 프린터에 든 종이가 대개 A4 라 종이와 판이 맞는다.
+  var paper = PAPERS.indexOf(pref("printPaper2", "a4")) >= 0 ? pref("printPaper2", "a4") : "a4";
   var fitMode = pref("printFit", "fill") === "fit" ? "fit" : "fill";
   var trimOn = pref("printTrim", "1") !== "0";
   var guidesOn = pref("printGuide", "1") !== "0";
@@ -411,13 +416,15 @@
       host.appendChild(slot);
     });
     var first = sheets[0] || { w:420, h:297 };
-    // 종이 크기 + '한 장에 들어가게' 규칙. 아래 <style> 보다 규칙이 세도록
+    // 종이 크기 + '한 장에 들여 앉히기' 규칙. 아래 <style> 보다 규칙이 세도록
     // #sheets 를 앞에 붙인다(그냥 .slot 이면 아래 인쇄 규칙에 덮인다).
+    var ins = PRINT_INSET[(first.w >= first.h) ? "land" : "port"];
     el("pageCss").textContent =
       "@page { size:" + first.w + "mm " + first.h + "mm; margin:0; }\n"
       + "@media print {\n"
-      + "  #sheets .slot { height:" + num(first.h * PRINT_FIT) + "mm !important; overflow:hidden; }\n"
-      + "  #sheets .page { transform:scale(" + PRINT_FIT + ") !important; transform-origin:top center; }\n"
+      + "  #sheets .slot { height:" + num(first.h * (ins.t + ins.s)) + "mm !important; overflow:hidden; }\n"
+      + "  #sheets .page { transform:translateY(" + num(first.h * ins.t) + "mm) scale(" + ins.s + ") !important;"
+      + " transform-origin:top center; }\n"
       + "}";
     el("msg").hidden = true; el("bar").hidden = false;
     el("bookcard").hidden = false; el("sheetsTitle").hidden = false; el("sheets").hidden = false;
@@ -667,7 +674,7 @@
     el("trimBtn").disabled = !pixelsReadable;
     el("guideBtn").textContent = "접는 선: " + (guidesOn ? "보임" : "숨김");
     el("note").textContent = NOTE[paper]
-      + " · ‘프린트’는 한 장에 꼭 들어가도록 아주 조금 줄여 나가요(정확한 크기는 PDF로)";
+      + " · ‘프린트’는 한 장에 꼭 들어가도록 사방 여백을 고르게 두고 나가요(정확한 크기는 PDF로)";
   }
   el("paperSeg").addEventListener("click", function(e){
     var p = e.target && e.target.getAttribute && e.target.getAttribute("data-p");
