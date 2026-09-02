@@ -50,8 +50,8 @@
   .clip img.flip { transform:rotate(180deg); }        /* 뒤집힌 칸(윗줄) */
   /* 접는·자르는 선 — 인쇄에도 함께 나온다(배경색이 아니라 테두리라 '배경 그래픽' 설정과 무관). */
   .guide { position:absolute; }
-  .guide.v { top:0; bottom:0; border-left:0.4mm dashed rgba(0,0,0,.32); }
-  .guide.h { left:0; right:0; border-top:0.4mm dashed rgba(0,0,0,.32); }
+  .guide.v { top:0; bottom:0; border-left:0.15mm dashed rgba(0,0,0,.2); }
+  .guide.h { left:0; right:0; border-top:0.15mm dashed rgba(0,0,0,.2); }
   .cap { position:absolute; top:100%; left:0; right:0; margin-top:8px;
          text-align:center; color:#a5a5ad; font-size:12px; font-weight:700; }
 
@@ -139,6 +139,9 @@
   //     가로: 0.013 + 0.95 = 0.963 → 가장자리 12mm 못 찍는 프린터까지 한 장
   //     세로: 0.020 + 0.97 = 0.990 → 세로 판은 원래 여유가 있다
   var PRINT_INSET = { land:{ s:0.95, t:0.013 }, port:{ s:0.97, t:0.020 } };
+  // 접는 선 모양(PDF) — 굵기(pt) · 회색(0 검정 ~ 1 흰색) · 점선 길이·사이(pt)
+  //   0.3pt 보다 얇으면 프린터마다 들쭉날쭉 찍히므로 0.4pt 를 아래한계로 둔다.
+  var GUIDE = { w: 0.4, gray: 0.75, dash: "1.5 3" };
   var PAPERS = ["a3", "a4", "a4x2", "a2"];
   // 기본은 앱과 같은 'A4 축소' — 집·학교 프린터에 든 종이가 대개 A4 라 종이와 판이 맞는다.
   var paper = PAPERS.indexOf(pref("printPaper2", "a4")) >= 0 ? pref("printPaper2", "a4") : "a4";
@@ -608,7 +611,9 @@
             + cm + " cm\n/" + nm + " Do\nQ\n";
         });
         if (guidesOn) {
-          content += "q\n0.45 G 0.85 w [3 3] 0 d\n";
+          // 접는 선은 접을 자리만 알아보면 된다. 종이에 진하게 남지 않도록
+          // 가늘게(0.3pt ≈ 0.1mm) · 연하게(먹 25%) · 잔점선으로 긋는다.
+          content += "q\n" + GUIDE.gray + " G " + GUIDE.w + " w [" + GUIDE.dash + "] 0 d\n";
           sh.guides.v.forEach(function(x){
             content += num(x * PT) + " 0 m " + num(x * PT) + " " + num(ph) + " l S\n";
           });
