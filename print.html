@@ -102,7 +102,7 @@
     <button id="guideBtn" class="ghost" title="접고 자를 자리를 알려 주는 점선">접는 선: 보임</button>
   </div>
   <div class="row"><span id="note" class="hint"></span></div>
-  <div class="row"><span id="mobHint" class="hint">휴대폰에선 ‘📥 PDF 파일 받기’로 받아서 인쇄하는 쪽이 확실해요 · 카카오톡·인스타 안에서 열었다면 ‘사파리(크롬)로 열기’ 뒤에 눌러 주세요</span></div>
+  <div class="row"><span id="mobHint" class="hint">휴대폰: ‘프린트’ → PDF 가 열리면 공유(⬆︎) → ‘프린트’ · 카톡·인스타 안에서 열었다면 먼저 ‘사파리로 열기’</span></div>
 </div>
 <div id="bookcard" hidden>
   <div id="bookTitle">그림책</div>
@@ -638,25 +638,77 @@
 
   var PAPER_NAME = { a3:"A3 원본", a4:"A4 축소", a4x2:"A4 2장", a2:"A2 전시용" };
 
+  function pdfName(){ return bookName + " (인쇄용 " + PAPER_NAME[paper] + ").pdf"; }
+  function savePdf(blob){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = pdfName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
+  }
+
   el("pdfBtn").addEventListener("click", function(){
     var btn = this;
     busy(btn, true, "⏳ 만드는 중…");
     makePdf()
-      .then(function(blob){
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = bookName + " (인쇄용 " + PAPER_NAME[paper] + ").pdf";
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
-      })
+      .then(savePdf)
       .catch(function(err){
         alert("PDF 를 만들지 못했어요: " + ((err && err.message) || err)
             + "\n대신 ‘🖨 프린트’를 눌러 인쇄 창에서 ‘PDF로 저장’을 골라 주세요.");
       })
       .then(function(){ busy(btn, false); });
   });
-  el("printBtn").addEventListener("click", function(){ window.print(); });
+
+  // ── 프린트 — 화면(HTML)이 아니라 PDF 를 인쇄한다 ───────────────────────
+  //   ① 브라우저가 종이에 찍어 넣는 주소·날짜(머리말·꼬리말)가 안 나온다.
+  //      아이폰 사파리는 그 줄을 끄는 설정이 아예 없어서, 웹페이지로 인쇄하면
+  //      아래에 주소가 그대로 남는다(PC 크롬은 기본으로 꺼져 있어 안 남았다).
+  //   ② 판 크기가 종이와 똑같은 PDF 라, 프린터의 '여백 없음(무테)' 을 켜면
+  //      종이 끝까지 꽉 찬다. 브라우저가 다시 배치하지 않으니 두 장으로도 안 갈라진다.
+  function isMobile(){
+    return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+  var printFrame = null;
+
+  el("printBtn").addEventListener("click", function(){
+    var btn = this;
+    busy(btn, true, "⏳ 만드는 중…");
+    makePdf()
+      .then(function(blob){
+        var url = URL.createObjectURL(blob);
+        if (isMobile()) {
+          // 휴대폰은 숨은 창으로 인쇄를 못 시킨다. PDF 를 열어 주고 공유 → 프린트로 안내.
+          var w = window.open(url, "_blank");
+          if (!w) savePdf(blob);                      // 새 창이 막히면 파일로 받아 준다
+          setTimeout(function(){
+            alert((w ? "PDF 를 열었어요. " : "PDF 를 받았어요. 파일 앱에서 열고 ")
+                + "공유 아이콘(⬆︎) → ‘프린트’ 를 눌러 주세요.\n"
+                + "프린터 설정에서 ‘여백 없음(무테)’ 을 켜면 종이 끝까지 찍혀요.");
+          }, 400);
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 120000);
+          return;
+        }
+        // PC — 안 보이는 창에 PDF 를 넣고 그대로 인쇄 창을 연다.
+        if (printFrame && printFrame.parentNode) printFrame.parentNode.removeChild(printFrame);
+        printFrame = document.createElement("iframe");
+        printFrame.setAttribute("aria-hidden", "true");
+        printFrame.style.cssText = "position:fixed; right:0; bottom:0; width:1px; height:1px; opacity:0; border:0;";
+        printFrame.onload = function(){
+          try { printFrame.contentWindow.focus(); printFrame.contentWindow.print(); }
+          catch (e) { window.open(url, "_blank"); }
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 120000);
+        };
+        printFrame.src = url;
+        document.body.appendChild(printFrame);
+      })
+      .catch(function(err){
+        // PDF 를 못 만들면 예전처럼 화면을 인쇄한다(주소 줄이 남을 수 있다).
+        alert("PDF 로 인쇄하지 못해 화면 그대로 인쇄합니다.\n(" + ((err && err.message) || err) + ")");
+        window.print();
+      })
+      .then(function(){ busy(btn, false); });
+  });
 
   // ── 도구 모음 ──────────────────────────────────────────────────────────
   var NOTE = {
@@ -674,7 +726,7 @@
     el("trimBtn").disabled = !pixelsReadable;
     el("guideBtn").textContent = "접는 선: " + (guidesOn ? "보임" : "숨김");
     el("note").textContent = NOTE[paper]
-      + " · ‘프린트’는 한 장에 꼭 들어가도록 사방 여백을 고르게 두고 나가요(정확한 크기는 PDF로)";
+      + " · ‘프린트’는 PDF 로 인쇄합니다(주소·날짜 안 찍힘, 프린터의 ‘여백 없음’ 을 켜면 꽉 참)";
   }
   el("paperSeg").addEventListener("click", function(e){
     var p = e.target && e.target.getAttribute && e.target.getAttribute("data-p");
