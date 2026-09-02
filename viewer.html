@@ -43,8 +43,13 @@
                      cursor:pointer; background:rgba(255,255,255,.85); color:#8a6;
                      box-shadow:0 2px 8px rgba(0,0,0,.08); font-family:inherit; }
   #swapBtn { background:var(--pink); color:#fff; }
+  /* 인쇄용 파일 — 부모님도 쓰시는 버튼이라 자물쇠와 달리 늘 보인다. */
+  #printBtn { background:#fff; color:var(--pink); }
   #adminBar button[disabled] { opacity:.6; cursor:default; }
   @media (max-width: 520px) {
+    /* 좁은 화면에선 글자를 빼고 프린터 그림만 남긴다(가운데 제목과 겹치지 않게). */
+    #printBtn { font-size:0; padding:7px 10px; }
+    #printBtn::before { content:"🖨"; font-size:15px; }
     #zoomBar { gap:4px; }
     #zoomBar button { width:34px; height:34px; font-size:16px; }
     #zoomBar #zoomFit, #zoomBar #zoomWide { padding:0 8px; font-size:12px; }
@@ -94,6 +99,7 @@
       <button id="zoomFit" title="화면에 맞춤">맞춤</button>
     </div>
     <div id="adminBar">
+      <button id="printBtn" hidden title="인쇄용 PDF 파일로 받거나 바로 인쇄합니다">🖨 인쇄용 파일</button>
       <button id="lockBtn" title="관리자">🔒</button>
       <button id="swapBtn" hidden>🖼 이 쪽 그림 바꾸기</button>
       <button id="fillLBtn" hidden title="왼쪽에 생긴 빈 자리를 AI로 채웁니다">◧ 왼쪽 여백 채우기</button>
@@ -317,6 +323,12 @@
     // 그냥 'viewer.html'로만 보면 새로고침(자기 자신)도 걸려 엉뚱한 곳으로 간다.
     var fromViewerList = (document.referrer || "").indexOf("viewer.html?class=") >= 0;
     location.href = (fromViewerList ? "viewer.html?class=" : "./?class=") + encodeURIComponent(classId);
+  });
+
+  // ── 인쇄용 파일 — 이 책을 종이에 맞춰 펴서 PDF로 받거나 바로 인쇄한다 ──
+  el("printBtn").addEventListener("click", function(){
+    location.href = "print.html?book=" + encodeURIComponent(bookId)
+                  + (classId ? "&class=" + encodeURIComponent(classId) : "");
   });
 
   // ── 관리자: 이 쪽 그림만 새 파일로 갈아 끼우기 ─────────────────────────
@@ -811,6 +823,7 @@
     // book이 있으면 책 우선(주소에 class가 같이 붙어 있어도 책을 연다).
     if (bookId) {
       el("backlist").hidden = !(classId || document.referrer);
+      el("printBtn").hidden = false;
       loadBook();
     }
     else if (classId) loadClass();

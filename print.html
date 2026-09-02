@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그림책 인쇄용 파일 🖨</title>
+<style id="pageCss">@page { size:297mm 210mm; margin:0; }</style>
+<style>
+  :root { --pink:#F35AA0; --bg:#FDF6F9; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+
+  /* 화면 위 도구 모음 — 인쇄할 땐 숨긴다.
+     스크롤해도 위에 붙어 있되(sticky) 자리는 차지하게 뒀다. 고정(fixed)이던 때는
+     버튼 줄이 두 줄로 접히면 첫 장 윗부분이 그 아래로 숨었다. */
+  #bar { position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+         padding:10px 14px; background:rgba(255,255,255,.96); box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  #bar .t { font-weight:800; color:var(--pink); margin-right:4px; }
+  #bar .hint { color:#888; font-size:12px; }
+  #bar .grow { margin-left:auto; }
+  #bar button, #bar a { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
+                        cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
+  #bar button.ghost { background:#eee; color:#666; }
+  #bar button[disabled] { opacity:.55; cursor:default; }
+  #msg { padding:90px 20px; text-align:center; color:#9a7; font-size:17px; line-height:1.6; }
+
+  #sheets { padding:18px 12px 28px; display:flex; flex-direction:column; align-items:center; }
+  /* 한 장(.page)은 실제 인쇄 크기(mm) 그대로 두고, 화면에서만 줄여 보여준다.
+     줄여도 원래 크기만큼 자리를 차지하므로(transform 은 자리를 안 줄인다)
+     종이를 자리 밖으로 빼고(absolute) 바깥 상자(.slot)를 줄어든 크기로 맞춘다. */
+  .slot { position:relative; flex:0 0 auto; margin-bottom:34px; }
+  .page { position:absolute; top:0; left:0; background:#fff; overflow:hidden; transform-origin:top left;
+          box-shadow:0 8px 26px rgba(0,0,0,.14); }
+  .clip { position:absolute; overflow:hidden; }
+  .clip img { position:absolute; display:block; }
+  .cap { position:absolute; top:100%; left:0; right:0; margin-top:7px;
+         text-align:center; color:#aaa; font-size:12px; font-weight:700; }
+
+  /* 휴대폰 — 버튼 줄이 화면을 다 덮지 않게 조금씩 줄인다 */
+  @media (max-width: 560px) {
+    #bar { gap:6px; padding:8px 10px; }
+    #bar button, #bar a { padding:7px 10px; font-size:12px; }
+    #bar .t { font-size:13px; }
+    #bar .hint { font-size:11px; }
+    #bar .grow { margin-left:0; }
+  }
+
+  @media print {
+    html,body { background:#fff; }
+    #bar, #msg { display:none !important; }
+    #sheets { padding:0; display:block; }
+    .slot { position:static; width:auto !important; height:auto !important; margin:0;
+            break-after:page; page-break-after:always; }
+    .slot:last-child { break-after:auto; page-break-after:auto; }
+    /* 종이를 다시 흐름 안에 놓는다. 다만 relative 는 지켜야 한다 —
+       static 으로 두면 안에 얹은 그림(.clip)이 종이가 아니라 화면 전체를 기준으로
+       자리를 잡아 엉뚱한 곳이 인쇄된다. */
+    .page { position:relative !important; transform:none !important; box-shadow:none; }
+    .cap { display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="bar" hidden>
+  <span class="t">인쇄용 파일 🖨</span>
+  <button id="pdfBtn">📥 PDF 파일 받기</button>
+  <button id="printBtn" class="ghost">🖨 바로 인쇄</button>
+  <button id="layoutBtn" class="ghost">배치: 펼침면 그대로</button>
+  <button id="paperBtn" class="ghost">용지: A4</button>
+  <button id="fitBtn" class="ghost">여백: 남김</button>
+  <button id="trimBtn" class="ghost">테두리: 없앰</button>
+  <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
+  <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
+  <span id="dpi" class="hint grow"></span>
+  <span id="note" class="hint"></span>
+</div>
+<div id="msg">인쇄용으로 펴는 중… 🖨</div>
+<div id="sheets" hidden></div>
+<script>
+  var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
+  var qp = new URLSearchParams(location.search);
+  var bookId = qp.get("book");
+  var classId = qp.get("class") || "";
+  var el = function(id){ return document.getElementById(id); };
+
+  // ── 무엇을 어떻게 뽑을지 ───────────────────────────────────────────────
+  //   layout  spread = 펼침면 한 장씩(가로) · single = 낱쪽 한 장씩(세로)
+  //   paper   a4 / a3 / native(그림 비율 그대로 — 인쇄소에 맡길 때)
+  //   fit     fit = 그림 전체가 다 보이게(흰 여백 남음) · fill = 종이를 꽉 채움(가장자리 잘림)
+  //   trimOn  그림 파일에 같이 저장된 회색 그림자·검은 실선 테두리를 빼고 뽑는다
+  function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+  function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  var layout = pref("printLayout", "spread") === "single" ? "single" : "spread";
+  var paper  = ["a4","a3","native"].indexOf(pref("printPaper", "a4")) >= 0 ? pref("printPaper", "a4") : "a4";
+  var fitMode = pref("printFit", "fit") === "fill" ? "fill" : "fit";
+  var trimOn = pref("printTrim", "1") !== "0";
+
+  var srcUrls = [];        // 원본 그림 주소(앱이 올린 파일 순서: 표지 · 1-2 · 3-4 · 5-6)
+  var imgs = [];           // 화면에 쓸 Image 객체
+  var meta = [];           // 그림마다 { w, h, trim:{l,t,r,b}, seam }
+  var pixelsReadable = true;   // 다른 곳에서 온 그림이라 픽셀을 못 읽는 경우가 있다
+  var bookName = "그림책";
+
+  // ── 그림 불러오기 ──────────────────────────────────────────────────────
+  //   픽셀을 읽어야 테두리·이음매를 찾을 수 있어 crossOrigin 으로 먼저 시도하고,
+  //   막히면 그냥 불러온다(그리기는 되므로 인쇄는 그대로 된다).
+  function loadImage(u){
+    return new Promise(function(res){
+      var a = new Image(); a.crossOrigin = "anonymous";
+      a.onload = function(){ res(a); };
+      a.onerror = function(){
+        var b = new Image();
+        b.onload = function(){ res(b); };
+        b.onerror = function(){ res(null); };
+        b.src = u;
+      };
+      a.src = u;
+    });
+  }
+
+  // ── 그림 파일에 같이 저장된 테두리 찾기 ────────────────────────────────
+  //   어떤 쪽은 종이 카드의 회색 그림자 띠와 검은 실선까지 그림 안에 찍혀 있다.
+  //   테두리는 '한 줄 안에서 색이 거의 변하지 않는다'는 점으로 알아본다.
+  //   (뷰어·전시용 A2 와 같은 방식 — 원본 파일은 건드리지 않고 인쇄에서만 뺀다)
+  function lineStat(d, W, H, side, n){
+    var horiz = (side === "l" || side === "r");
+    var lines = horiz ? W : H, across = horiz ? H : W;
+    var i = (side === "l" || side === "t") ? n : lines - 1 - n;
+    var sum = 0, sum2 = 0, cnt = 0;
+    for (var j = 0; j < across; j += 3) {
+      var o = (horiz ? (j * W + i) : (i * W + j)) * 4;
+      var g = (d[o] + d[o + 1] + d[o + 2]) / 3;
+      sum += g; sum2 += g * g; cnt++;
+    }
+    var m = sum / cnt;
+    return { mean: m, sd: Math.sqrt(Math.max(0, sum2 / cnt - m * m)) };
+  }
+  function borderRun(d, W, H, side){
+    var lines = (side === "l" || side === "r") ? W : H;
+    var cap = Math.round(lines * 0.12);       // 테두리는 얇다. 이보다 넓으면 그림의 일부로 본다.
+    var n = 0;
+    while (n < cap && lineStat(d, W, H, side, n).sd < 22) n++;
+    if (n >= cap) n = 0;                      // 넓은 단색 면 = 일부러 비워 둔 배경
+    for (var k = 0; k < 3; k++) {             // 남은 1~2px 실선까지 마저 벗긴다
+      if (n + 4 >= lines) break;
+      if (Math.abs(lineStat(d, W, H, side, n).mean - lineStat(d, W, H, side, n + 3).mean) > 55) n++;
+      else break;
+    }
+    if (!n) return 0;
+    var edge = lineStat(d, W, H, side, 0).mean;
+    var inside = lineStat(d, W, H, side, Math.min(lines - 1, n + 2)).mean;
+    // ① 종이보다 밝은 띠는 아이가 일부러 남긴 여백이다 — 손대지 않는다.
+    //    다만 1~3px짜리 새하얀 실선은 잘라 내야 종이에서 흰 줄로 남지 않는다.
+    if (edge >= 225) return (n <= 3 && Math.abs(inside - edge) > 45) ? n : 0;
+    // ② 어두운 테두리는 안쪽 그림과 뚝 끊긴다. 깊은 바다색 같은 어두운 그림은
+    //    안쪽으로 색이 이어지므로 여기서 걸러진다(그건 아이 그림이다).
+    var darkest = 255;
+    for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(d, W, H, side, q).mean);
+    if (inside - darkest <= 45) return 0;
+    return n;
+  }
+
+  /// 그림 한가운데의 '거의 흰 세로 띠'(두 쪽 사이 여백)를 찾아 그 한가운데 x를 돌려준다.
+  /// 낱쪽으로 뽑을 때 실제 이음매가 정확히 절반이 아니면 한쪽 그림이 잘려 나가기 때문이다.
+  function seamCenter(img, W, H){
+    var mid = Math.round(W / 2);
+    var band = Math.round(W * 0.12);                       // 가운데 ±12%만 살펴본다
+    var x0 = Math.max(0, mid - band), x1 = Math.min(W - 1, mid + band);
+    var cw = x1 - x0 + 1, ch = Math.min(H, 360);           // 세로는 360줄로 줄여 빠르게
+    var cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+    var ctx = cv.getContext("2d", { willReadFrequently: true });
+    var data;
+    try {
+      ctx.drawImage(img, x0, 0, cw, H, 0, 0, cw, ch);
+      data = ctx.getImageData(0, 0, cw, ch).data;
+    } catch (e) { return mid; }
+    var energy = new Array(cw).fill(0);
+    for (var x = 1; x < cw; x++) {
+      var sum = 0;
+      for (var y = 0; y < ch; y++) {
+        var i = (y * cw + x) * 4, j = (y * cw + (x - 1)) * 4;
+        sum += Math.abs(data[i] - data[j]) + Math.abs(data[i+1] - data[j+1]) + Math.abs(data[i+2] - data[j+2]);
+      }
+      energy[x] = sum / ch;
+    }
+    energy[0] = energy[1] || 0;
+    var FLAT = 2.0;
+    var flat = energy.map(function(e){ return e <= FLAT; });
+    var c = mid - x0;
+    if (!flat[c]) return mid;                              // 한가운데에 그림이 걸쳐 있으면 거기가 곧 이음매
+    var a = c, b = c;
+    while (a - 1 >= 0 && flat[a - 1]) a--;
+    while (b + 1 < cw && flat[b + 1]) b++;
+    if ((b - a + 1) > cw * 0.6) return mid;                // 너무 넓은 평지는 이음매로 보기 어렵다
+    var center = x0 + Math.round((a + b) / 2);
+    if (Math.abs(center - mid) > W * 0.10) center = mid;   // 너무 멀면 믿지 않는다
+    return center;
+  }
+
+  /// 그림 하나를 살펴 테두리 두께와 이음매를 적어 둔다(한 번만).
+  function measure(img){
+    var W = img.naturalWidth, H = img.naturalHeight;
+    var info = { w:W, h:H, trim:{ l:0, t:0, r:0, b:0 }, seam: Math.round(W / 2) };
+    var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    var ctx = cv.getContext("2d", { willReadFrequently: true });
+    var d;
+    try { ctx.drawImage(img, 0, 0); d = ctx.getImageData(0, 0, W, H).data; }
+    catch (e) { pixelsReadable = false; return info; }
+    var L = borderRun(d, W, H, "l"), R = borderRun(d, W, H, "r");
+    var T = borderRun(d, W, H, "t"), B = borderRun(d, W, H, "b");
+    // 너무 많이 잘라 내면(그림의 절반 넘게) 잘못 본 것이므로 그만둔다.
+    if (W - L - R >= W * 0.5 && H - T - B >= H * 0.5) info.trim = { l:L, t:T, r:R, b:B };
+    info.seam = seamCenter(img, W, H);
+    return info;
+  }
+
+  // ── 어떤 종이에 무엇을 얹을지 계산 ─────────────────────────────────────
+  /// 이 그림에서 실제로 쓸 부분(테두리를 뺀 안쪽, 낱쪽이면 그 반쪽)
+  function cropOf(i, half){
+    var m = meta[i];
+    var t = trimOn ? m.trim : { l:0, t:0, r:0, b:0 };
+    var x = t.l, y = t.t, w = m.w - t.l - t.r, h = m.h - t.t - t.b;
+    if (half) {
+      var seam = Math.max(x + 8, Math.min(x + w - 8, m.seam));
+      if (half === "l") { w = seam - x; }
+      else { w = (x + w) - seam; x = seam; }
+    }
+    return { x:x, y:y, w:w, h:h };
+  }
+
+  /// 뽑을 쪽 목록 — 펼침면은 파일 순서 그대로, 낱쪽은 앞표지 → 속쪽 → 뒤표지 순.
+  function pageList(){
+    var out = [];
+    if (layout === "spread") {
+      srcUrls.forEach(function(u, i){
+        out.push({ file:i, half:null, crop: cropOf(i, null),
+                   label: i === 0 ? "표지 (뒤표지 · 앞표지)" : ((i * 2 - 1) + "-" + (i * 2) + "쪽") });
+      });
+      return out;
+    }
+    out.push({ file:0, half:"r", crop: cropOf(0, "r"), label:"앞표지" });
+    for (var i = 1; i < srcUrls.length; i++) {
+      out.push({ file:i, half:"l", crop: cropOf(i, "l"), label:(i * 2 - 1) + "쪽" });
+      out.push({ file:i, half:"r", crop: cropOf(i, "r"), label:(i * 2) + "쪽" });
+    }
+    out.push({ file:0, half:"l", crop: cropOf(0, "l"), label:"뒤표지" });
+    return out;
+  }
+
+  /// 그림 비율 그대로일 때의 종이 크기 — A4 긴 변(297mm)에 맞춘다.
+  function nativeMMFor(crop){
+    var LONG = 297, ar = crop.w / crop.h;
+    return ar >= 1 ? { w:LONG, h:Math.round(LONG / ar * 10) / 10 }
+                   : { w:Math.round(LONG * ar * 10) / 10, h:LONG };
+  }
+  /// 쪽마다 테두리를 조금씩 다르게 잘라 내므로 비율도 조금씩 다르다.
+  /// 인쇄소에 넘길 파일은 크기가 들쭉날쭉하면 곤란하니 첫 장 크기로 통일한다
+  /// (차이는 1mm 안쪽이라 꽉 채워 앉히면 눈에 띄지 않는다).
+  var nativeMM = null;
+
+  /// 종이 크기(mm) — A4·A3 는 배치에 따라 가로/세로로 눕히고,
+  /// '그림 비율 그대로'는 그림 비율대로 만든다(여백 0).
+  function paperMM(crop){
+    if (paper === "native") return nativeMM || nativeMMFor(crop);
+    var base = (paper === "a3") ? [420, 297] : [297, 210];
+    return (layout === "spread") ? { w:base[0], h:base[1] } : { w:base[1], h:base[0] };
+  }
+
+  /// 종이 위 자리 잡기 — 그림 전체를 얹을 때의 좌표(mm)와 보여 줄 구간을 함께 돌려준다.
+  ///   full  : 그림 한 장을 통째로 얹었을 때의 크기·위치(테두리 바깥까지 포함)
+  ///   clip  : 그중 실제로 보이는 네모(테두리·반대쪽 반쪽은 여기서 가려진다)
+  ///   mmPerPx: 원본 1px 이 종이에서 몇 mm 가 되는가 → 인쇄 해상도 계산에 쓴다
+  function place(sp){
+    var m = meta[sp.file], crop = sp.crop, pm = paperMM(crop);
+    var s = (fitMode === "fill" || paper === "native")
+          ? Math.max(pm.w / crop.w, pm.h / crop.h)
+          : Math.min(pm.w / crop.w, pm.h / crop.h);
+    var dw = crop.w * s, dh = crop.h * s;
+    var left = (pm.w - dw) / 2, top = (pm.h - dh) / 2;
+    var cx = Math.max(0, left), cy = Math.max(0, top);
+    var cw = Math.min(left + dw, pm.w) - cx, chh = Math.min(top + dh, pm.h) - cy;
+    return {
+      paper: pm, mmPerPx: s,
+      full: { w:m.w * s, h:m.h * s, x:left - crop.x * s, y:top - crop.y * s },
+      clip: { x:cx, y:cy, w:Math.max(0, cw), h:Math.max(0, chh) }
+    };
+  }
+
+  // ── 화면 미리보기 ──────────────────────────────────────────────────────
+  var placed = [];
+  function render(){
+    var list = pageList();
+    nativeMM = (paper === "native" && list.length) ? nativeMMFor(list[0].crop) : null;
+    placed = list.map(function(sp){ var p = place(sp); p.spec = sp; return p; });
+    var host = el("sheets"); host.innerHTML = "";
+    placed.forEach(function(p){
+      var slot = document.createElement("div"); slot.className = "slot";
+      var page = document.createElement("div"); page.className = "page";
+      page.style.width = p.paper.w + "mm"; page.style.height = p.paper.h + "mm";
+      var clip = document.createElement("div"); clip.className = "clip";
+      clip.style.left = p.clip.x + "mm"; clip.style.top = p.clip.y + "mm";
+      clip.style.width = p.clip.w + "mm"; clip.style.height = p.clip.h + "mm";
+      var im = document.createElement("img");
+      im.src = srcUrls[p.spec.file]; im.alt = "";
+      im.style.left = (p.full.x - p.clip.x) + "mm"; im.style.top = (p.full.y - p.clip.y) + "mm";
+      im.style.width = p.full.w + "mm"; im.style.height = p.full.h + "mm";
+      clip.appendChild(im); page.appendChild(clip); slot.appendChild(page);
+      var cap = document.createElement("div"); cap.className = "cap";
+      cap.textContent = p.spec.label + " · " + Math.round(p.paper.w) + "×" + Math.round(p.paper.h) + "mm";
+      slot.appendChild(cap);
+      host.appendChild(slot);
+    });
+    // 인쇄 창이 첫 장 크기를 종이 크기로 쓴다(같은 크기가 이어지므로 문제없다).
+    var first = placed[0] ? placed[0].paper : { w:297, h:210 };
+    el("pageCss").textContent = "@page { size:" + first.w + "mm " + first.h + "mm; margin:0; }";
+    el("msg").hidden = true; el("bar").hidden = false; el("sheets").hidden = false;
+    fitSoon();
+    showDpi();
+  }
+
+  /// 인쇄 크기(mm)는 그대로 두고 화면에서만 줄여 보여준다.
+  ///   휴대폰에서는 종이가 화면 밖으로 넘치면 브라우저가 화면 너비를 크게 잡아 두었다가
+  ///   줄인 뒤에야 제 너비를 알려 준다. 그래서 한 번 더 재서 맞춘다(fitSoon).
+  function fitToScreen(){
+    var availW = Math.max(200, (document.documentElement.clientWidth || window.innerWidth) - 28);
+    var availH = Math.max(200, window.innerHeight - (el("bar").offsetHeight || 60) - 70);
+    var slots = document.querySelectorAll("#sheets .slot");
+    for (var i = 0; i < slots.length; i++) {
+      var page = slots[i].querySelector(".page");
+      var w = page.offsetWidth || 1, h = page.offsetHeight || 1;
+      var s = Math.min(1, availW / w, availH / h);
+      page.style.transform = "scale(" + s + ")";
+      slots[i].style.width = Math.round(w * s) + "px";
+      slots[i].style.height = Math.round(h * s) + "px";
+    }
+  }
+  function fitSoon(){
+    fitToScreen();
+    requestAnimationFrame(fitToScreen);
+    setTimeout(fitToScreen, 250);
+    setTimeout(fitToScreen, 800);
+  }
+  window.addEventListener("resize", fitToScreen);
+
+  /// 인쇄 해상도 — 가장 낮은 쪽을 기준으로 알려 준다(200dpi면 인쇄소도 넉넉하다).
+  function showDpi(){
+    var worst = 0;
+    placed.forEach(function(p){
+      var dpi = 25.4 / p.mmPerPx;                 // 원본 1px 이 p.mmPerPx mm 로 커진다
+      if (!worst || dpi < worst) worst = dpi;
+    });
+    worst = Math.round(worst);
+    el("dpi").textContent = "인쇄 해상도 약 " + worst + " dpi"
+      + (worst < 150 ? " · 조금 거칠 수 있어요" : (worst >= 200 ? " · 인쇄소에 맡겨도 좋아요" : ""));
+  }
+
+  // ── PDF 파일 만들기 ────────────────────────────────────────────────────
+  //   원본 JPEG 를 다시 그리지 않고 그대로 넣는다(화질이 하나도 안 깎인다).
+  //   테두리 자르기·반쪽 나누기는 PDF 안에서 '보일 부분만 오려 보이기'로 처리한다.
+  function latin1(s){
+    var a = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 255;
+    return a;
+  }
+  function pdfText(s){                            // 한글 제목은 UTF-16 로 적는다
+    var out = "FEFF";
+    for (var i = 0; i < s.length; i++) out += ("000" + s.charCodeAt(i).toString(16)).slice(-4);
+    return "<" + out.toUpperCase() + ">";
+  }
+  function pad10(n){ return ("0000000000" + n).slice(-10); }
+  function num(v){ return (Math.round(v * 1000) / 1000).toString(); }
+
+  function PDF(){ this.objs = []; }
+  PDF.prototype.add = function(body, stream){ this.objs.push({ body:body, stream:stream || null }); return this.objs.length; };
+  PDF.prototype.blob = function(rootId, infoId){
+    var parts = [], len = 0, i;
+    function put(x){ var u = (typeof x === "string") ? latin1(x) : x; parts.push(u); len += u.length; }
+    put("%PDF-1.4\n%âãÏÓ\n");
+    var offs = [];
+    for (i = 0; i < this.objs.length; i++) {
+      offs[i] = len;
+      var o = this.objs[i];
+      put((i + 1) + " 0 obj\n" + o.body + "\n");
+      if (o.stream) { put("stream\n"); put(o.stream); put("\nendstream\n"); }
+      put("endobj\n");
+    }
+    var xref = len, n = this.objs.length + 1;
+    var s = "xref\n0 " + n + "\n0000000000 65535 f \n";
+    for (i = 0; i < offs.length; i++) s += pad10(offs[i]) + " 00000 n \n";
+    s += "trailer\n<< /Size " + n + " /Root " + rootId + " 0 R /Info " + infoId + " 0 R >>\n"
+       + "startxref\n" + xref + "\n%%EOF\n";
+    put(s);
+    return new Blob(parts, { type:"application/pdf" });
+  };
+
+  /// JPEG 파일에서 크기와 색 종류를 읽는다. PDF 에 그대로 넣어도 되는지도 함께 본다.
+  function jpegInfo(b){
+    if (b.length < 4 || b[0] !== 0xFF || b[1] !== 0xD8) return null;
+    var i = 2;
+    while (i + 3 < b.length) {
+      if (b[i] !== 0xFF) { i++; continue; }
+      var m = b[i + 1];
+      if (m === 0xD8 || m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { i += 2; continue; }
+      if (m === 0xD9 || m === 0xDA) break;
+      var len = (b[i + 2] << 8) | b[i + 3];
+      if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) {
+        return { w:(b[i + 7] << 8) | b[i + 8], h:(b[i + 5] << 8) | b[i + 6],
+                 nc:b[i + 9], prec:b[i + 4],
+                 plain:(m === 0xC0 || m === 0xC1) };   // 이 두 가지만 PDF 가 확실히 읽는다
+      }
+      i += 2 + len;
+    }
+    return null;
+  }
+
+  /// 원본 파일을 그대로 쓸 수 없을 때만 한 번 다시 그려 JPEG 로 만든다.
+  function reencode(i){
+    return new Promise(function(res, rej){
+      var img = imgs[i];
+      if (!img || !img.naturalWidth) { rej(new Error("그림을 불러오지 못했어요")); return; }
+      var cv = document.createElement("canvas");
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.getContext("2d").drawImage(img, 0, 0);
+      try {
+        cv.toBlob(function(blob){
+          if (!blob) { rej(new Error("그림을 만들지 못했어요")); return; }
+          blob.arrayBuffer().then(function(buf){
+            var b = new Uint8Array(buf), info = jpegInfo(b);
+            if (!info) { rej(new Error("그림을 만들지 못했어요")); return; }
+            res({ bytes:b, w:info.w, h:info.h, nc:info.nc });
+          }).catch(rej);
+        }, "image/jpeg", 0.95);
+      } catch (e) { rej(new Error("이 그림은 브라우저가 내려받기를 막고 있어요")); }
+    });
+  }
+
+  var embedCache = {};
+  function embedOf(i){
+    if (embedCache[i]) return Promise.resolve(embedCache[i]);
+    return fetch(srcUrls[i])
+      .then(function(r){ return r.arrayBuffer(); })
+      .then(function(buf){
+        var b = new Uint8Array(buf), info = jpegInfo(b);
+        if (info && info.plain && info.prec === 8 && (info.nc === 1 || info.nc === 3)) {
+          return { bytes:b, w:info.w, h:info.h, nc:info.nc };     // 원본 그대로 — 화질 그대로
+        }
+        return reencode(i);
+      })
+      .catch(function(){ return reencode(i); })
+      .then(function(e){ embedCache[i] = e; return e; });
+  }
+
+  function makePdf(){
+    var used = {};
+    placed.forEach(function(p){ used[p.spec.file] = true; });
+    var files = Object.keys(used).map(Number).sort(function(a, b){ return a - b; });
+    return Promise.all(files.map(embedOf)).then(function(list){
+      var byFile = {};
+      files.forEach(function(f, k){ byFile[f] = list[k]; });
+
+      var pdf = new PDF();
+      var rootId = pdf.add("");                                  // 1 목차(나중에 채운다)
+      var pagesId = pdf.add("");                                 // 2 쪽 목록(나중에 채운다)
+      var infoId = pdf.add("<< /Title " + pdfText(bookName + " (그림책 인쇄용)")
+                         + " /Producer (Artable artclasshub-gallery) >>");
+      var imgId = {};
+      files.forEach(function(f){
+        var e = byFile[f];
+        imgId[f] = pdf.add("<< /Type /XObject /Subtype /Image /Width " + e.w + " /Height " + e.h
+                         + " /ColorSpace /Device" + (e.nc === 1 ? "Gray" : "RGB")
+                         + " /BitsPerComponent 8 /Filter /DCTDecode /Length " + e.bytes.length + " >>", e.bytes);
+      });
+
+      var kids = [];
+      placed.forEach(function(p){
+        var PT = 72 / 25.4;                                       // mm → PDF 단위(pt)
+        var pw = p.paper.w * PT, ph = p.paper.h * PT;
+        var fw = p.full.w * PT, fh = p.full.h * PT;
+        var fx = p.full.x * PT, fy = ph - (p.full.y * PT) - fh;   // PDF 는 아래에서 위로 잰다
+        var cx = p.clip.x * PT, cy = ph - (p.clip.y * PT) - p.clip.h * PT;
+        var content = "q\n"
+          + num(cx) + " " + num(cy) + " " + num(p.clip.w * PT) + " " + num(p.clip.h * PT) + " re W n\n"
+          + num(fw) + " 0 0 " + num(fh) + " " + num(fx) + " " + num(fy) + " cm\n/Im0 Do\nQ\n";
+        var cid = pdf.add("<< /Length " + content.length + " >>", latin1(content));
+        kids.push(pdf.add("<< /Type /Page /Parent " + pagesId + " 0 R /MediaBox [0 0 "
+          + num(pw) + " " + num(ph) + "] /Resources << /XObject << /Im0 " + imgId[p.spec.file]
+          + " 0 R >> >> /Contents " + cid + " 0 R >>"));
+      });
+
+      pdf.objs[rootId - 1].body = "<< /Type /Catalog /Pages " + pagesId + " 0 R >>";
+      pdf.objs[pagesId - 1].body = "<< /Type /Pages /Count " + kids.length + " /Kids ["
+        + kids.map(function(k){ return k + " 0 R"; }).join(" ") + "] >>";
+      return pdf.blob(rootId, infoId);
+    });
+  }
+
+  function busy(btn, on, label){
+    btn.disabled = on;
+    if (on) { btn.dataset.label = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+  }
+
+  el("pdfBtn").addEventListener("click", function(){
+    var btn = this;
+    busy(btn, true, "⏳ 만드는 중…");
+    makePdf()
+      .then(function(blob){
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = bookName + (layout === "spread" ? " (인쇄용 펼침면)" : " (인쇄용 낱쪽)") + ".pdf";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
+      })
+      .catch(function(err){
+        alert("PDF 를 만들지 못했어요: " + ((err && err.message) || err)
+            + "\n대신 ‘🖨 바로 인쇄’를 눌러 인쇄 창에서 ‘PDF로 저장’을 골라 주세요.");
+      })
+      .then(function(){ busy(btn, false); });
+  });
+  el("printBtn").addEventListener("click", function(){ window.print(); });
+
+  // ── 도구 모음 ──────────────────────────────────────────────────────────
+  function syncBar(){
+    el("layoutBtn").textContent = "배치: " + (layout === "spread" ? "펼침면 그대로" : "낱쪽으로");
+    el("paperBtn").textContent = "용지: " + (paper === "a4" ? "A4" : paper === "a3" ? "A3" : "그림 비율 그대로");
+    el("fitBtn").textContent = "여백: " + (fitMode === "fit" ? "남김" : "꽉 채움(가장자리 잘림)");
+    el("fitBtn").disabled = (paper === "native");
+    el("trimBtn").textContent = "테두리: " + (trimOn ? "없앰" : "그대로");
+    el("trimBtn").disabled = !pixelsReadable;
+    el("note").textContent = paper === "native"
+      ? "인쇄소용 — 여백 없이 그림 비율 그대로"
+      : (layout === "spread" ? "인쇄 창에서 용지 " + paper.toUpperCase() + " 가로, 배율 100%, 여백 없음"
+                             : "인쇄 창에서 용지 " + paper.toUpperCase() + " 세로, 배율 100%, 여백 없음");
+  }
+  el("layoutBtn").addEventListener("click", function(){
+    layout = (layout === "spread") ? "single" : "spread";
+    prefSet("printLayout", layout); syncBar(); render();
+  });
+  el("paperBtn").addEventListener("click", function(){
+    paper = (paper === "a4") ? "a3" : (paper === "a3" ? "native" : "a4");
+    prefSet("printPaper", paper); syncBar(); render();
+  });
+  el("fitBtn").addEventListener("click", function(){
+    fitMode = (fitMode === "fit") ? "fill" : "fit";
+    prefSet("printFit", fitMode); syncBar(); render();
+  });
+  el("trimBtn").addEventListener("click", function(){
+    trimOn = !trimOn;
+    prefSet("printTrim", trimOn ? "1" : "0"); syncBar(); render();
+  });
+
+  el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
+                     + (classId ? "&class=" + encodeURIComponent(classId) : "");
+  el("listBtn").href = classId ? "./?class=" + encodeURIComponent(classId) : "./";
+
+  // ── 파일 이름 — 반 목록에서 이 책의 지은이와 제목을 찾아 쓴다 ──────────
+  //   그냥 두면 모든 책이 같은 이름으로 저장돼 서로 덮어쓴다.
+  function setBookName(){
+    if (!bookId || !classId) return Promise.resolve();
+    return fetch(API + "?class=" + encodeURIComponent(classId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok || !d.books) return;
+        var me = null;
+        for (var i = 0; i < d.books.length; i++) if (d.books[i].bookId === bookId) { me = d.books[i]; break; }
+        if (!me) return;
+        var name = String(me.student || "").trim();
+        var t = String(me.title || "").replace(/\s+/g, " ").trim();
+        var base = (name && t) ? (name + " - " + t) : (name || t);
+        base = base.replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+        if (base) { bookName = base; document.title = base + " (그림책 인쇄용)"; }
+      })
+      .catch(function(){ /* 못 읽으면 기본 이름 그대로 */ });
+  }
+
+  if (!bookId) { el("msg").textContent = "주소에 book 이 없어요."; }
+  else {
+    setBookName();
+    fetch(API + "?book=" + encodeURIComponent(bookId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok || !d.pages || !d.pages.length) { el("msg").textContent = "그림책을 찾지 못했어요 😢"; return; }
+        srcUrls = d.pages;
+        return Promise.all(srcUrls.map(loadImage)).then(function(list){
+          if (list.some(function(im){ return !im || !im.naturalWidth; })) {
+            el("msg").textContent = "그림을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; return;
+          }
+          imgs = list;
+          meta = list.map(measure);
+          if (!pixelsReadable) trimOn = false;
+          syncBar();
+          render();
+        });
+      })
+      .catch(function(){ el("msg").textContent = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; });
+  }
+</script>
+</body>
+</html>
