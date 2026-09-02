@@ -128,6 +128,13 @@
   //   guides 접고 자를 자리를 알려 주는 점선
   function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
   function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  // 브라우저 '인쇄'로 뽑을 때만 조금(6%) 줄인다.
+  //   프린터는 종이 가장자리 몇 mm 를 못 찍는다(하드웨어 여백). 그래서 종이와 비율이
+  //   같은 A3·A4 조판을 그대로 보내면 '찍을 수 있는 칸'보다 세로가 1~4% 길어져
+  //   맨 아랫줄이 둘째 장으로 넘어간다(휴대폰에서 2/2쪽이 생기던 이유).
+  //   6% 줄이면 여백이 19mm 인 프린터까지 한 장에 들어간다.
+  //   PDF 파일은 그대로 정확한 크기다 — 인쇄소에는 PDF 를 주면 된다.
+  var PRINT_FIT = 0.94;
   var PAPERS = ["a3", "a4", "a4x2", "a2"];
   var paper = PAPERS.indexOf(pref("printPaper2", "a3")) >= 0 ? pref("printPaper2", "a3") : "a3";
   var fitMode = pref("printFit", "fill") === "fit" ? "fit" : "fill";
@@ -404,7 +411,14 @@
       host.appendChild(slot);
     });
     var first = sheets[0] || { w:420, h:297 };
-    el("pageCss").textContent = "@page { size:" + first.w + "mm " + first.h + "mm; margin:0; }";
+    // 종이 크기 + '한 장에 들어가게' 규칙. 아래 <style> 보다 규칙이 세도록
+    // #sheets 를 앞에 붙인다(그냥 .slot 이면 아래 인쇄 규칙에 덮인다).
+    el("pageCss").textContent =
+      "@page { size:" + first.w + "mm " + first.h + "mm; margin:0; }\n"
+      + "@media print {\n"
+      + "  #sheets .slot { height:" + num(first.h * PRINT_FIT) + "mm !important; overflow:hidden; }\n"
+      + "  #sheets .page { transform:scale(" + PRINT_FIT + ") !important; transform-origin:top center; }\n"
+      + "}";
     el("msg").hidden = true; el("bar").hidden = false;
     el("bookcard").hidden = false; el("sheetsTitle").hidden = false; el("sheets").hidden = false;
     fitSoon();
@@ -652,7 +666,8 @@
     el("trimBtn").textContent = "테두리: " + (trimOn ? "정리" : "그대로");
     el("trimBtn").disabled = !pixelsReadable;
     el("guideBtn").textContent = "접는 선: " + (guidesOn ? "보임" : "숨김");
-    el("note").textContent = NOTE[paper];
+    el("note").textContent = NOTE[paper]
+      + " · ‘프린트’는 한 장에 꼭 들어가도록 아주 조금 줄여 나가요(정확한 크기는 PDF로)";
   }
   el("paperSeg").addEventListener("click", function(e){
     var p = e.target && e.target.getAttribute && e.target.getAttribute("data-p");
