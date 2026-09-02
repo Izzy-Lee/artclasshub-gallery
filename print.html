@@ -3,58 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>그림책 인쇄용 파일 🖨</title>
-<style id="pageCss">@page { size:297mm 210mm; margin:0; }</style>
+<title>그림책 인쇄 요청 🖨</title>
+<style id="pageCss">@page { size:420mm 297mm; margin:0; }</style>
 <style>
-  :root { --pink:#F35AA0; --bg:#FDF6F9; }
+  :root { --pink:#F35AA0; --bg:#F1F1F6; --ink:#2b2b30; --dim:#8a8a92; }
   * { box-sizing:border-box; }
-  html,body { margin:0; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  html,body { margin:0; background:var(--bg); color:var(--ink);
+              font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
 
-  /* 화면 위 도구 모음 — 인쇄할 땐 숨긴다.
-     스크롤해도 위에 붙어 있되(sticky) 자리는 차지하게 뒀다. 고정(fixed)이던 때는
-     버튼 줄이 두 줄로 접히면 첫 장 윗부분이 그 아래로 숨었다. */
-  #bar { position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-         padding:10px 14px; background:rgba(255,255,255,.96); box-shadow:0 2px 10px rgba(0,0,0,.08); }
-  #bar .t { font-weight:800; color:var(--pink); margin-right:4px; }
-  #bar .hint { color:#888; font-size:12px; }
-  #bar .grow { margin-left:auto; }
-  #bar button, #bar a { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
-                        cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
-  #bar button.ghost { background:#eee; color:#666; }
-  #bar button[disabled] { opacity:.55; cursor:default; }
-  #msg { padding:90px 20px; text-align:center; color:#9a7; font-size:17px; line-height:1.6; }
+  /* 위 도구 모음 — 스크롤해도 붙어 있되 자리는 차지한다(가려지지 않게). 인쇄할 땐 숨긴다. */
+  #bar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.97);
+         box-shadow:0 2px 12px rgba(0,0,0,.07); padding:10px 14px 12px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .row + .row { margin-top:9px; }
+  .t { font-weight:800; color:var(--pink); margin-right:2px; }
+  .lab { font-size:12px; font-weight:800; color:var(--dim); margin-right:2px; }
+  .hint { color:var(--dim); font-size:12px; }
+  .grow { margin-left:auto; }
+  button, a.btn { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
+                  cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
+  button.ghost, a.btn.ghost { background:#eceef3; color:#666; }
+  button[disabled] { opacity:.5; cursor:default; }
 
-  #sheets { padding:18px 12px 28px; display:flex; flex-direction:column; align-items:center; }
-  /* 한 장(.page)은 실제 인쇄 크기(mm) 그대로 두고, 화면에서만 줄여 보여준다.
-     줄여도 원래 크기만큼 자리를 차지하므로(transform 은 자리를 안 줄인다)
-     종이를 자리 밖으로 빼고(absolute) 바깥 상자(.slot)를 줄어든 크기로 맞춘다. */
-  .slot { position:relative; flex:0 0 auto; margin-bottom:34px; }
+  /* 용지 고르기 — 앱과 같은 알약 모양 한 줄 */
+  .seg { display:inline-flex; background:#eceef3; border-radius:999px; padding:4px; gap:2px; }
+  .seg button { background:transparent; color:#6a6a72; padding:8px 13px; }
+  .seg button.on { background:#fff; color:#1c1c20; box-shadow:0 1px 4px rgba(0,0,0,.14); }
+
+  /* 책 이름 — 앱의 맨 윗줄과 같은 자리 */
+  #bookcard { max-width:760px; margin:16px auto 0; padding:0 14px; }
+  #bookTitle { font-size:15px; font-weight:800; color:var(--dim); padding-left:4px; }
+  #bookWho { margin-top:8px; background:#fff; border-radius:16px; padding:15px 18px;
+             font-size:15px; font-weight:600; color:#55555c; }
+
+  #msg { padding:80px 20px; text-align:center; color:#9a7; font-size:17px; line-height:1.6; }
+  #sheetsTitle { max-width:760px; margin:22px auto 0; padding:0 18px; font-size:15px; font-weight:800; color:var(--dim); }
+  #sheets { padding:12px 12px 30px; display:flex; flex-direction:column; align-items:center; }
+  /* 한 장(.page)은 인쇄 크기(mm) 그대로 두고 화면에서만 줄인다.
+     줄여도 자리는 원래 크기만큼 차지하므로(transform 은 자리를 안 줄인다)
+     종이를 흐름 밖으로 빼고(absolute) 바깥 상자(.slot)를 줄어든 크기로 맞춘다. */
+  .slot { position:relative; flex:0 0 auto; margin-bottom:36px; }
   .page { position:absolute; top:0; left:0; background:#fff; overflow:hidden; transform-origin:top left;
-          box-shadow:0 8px 26px rgba(0,0,0,.14); }
+          box-shadow:0 8px 26px rgba(0,0,0,.13); }
   .clip { position:absolute; overflow:hidden; }
   .clip img { position:absolute; display:block; }
-  .cap { position:absolute; top:100%; left:0; right:0; margin-top:7px;
-         text-align:center; color:#aaa; font-size:12px; font-weight:700; }
+  .clip img.flip { transform:rotate(180deg); }        /* 뒤집힌 칸(윗줄) */
+  /* 접는·자르는 선 — 인쇄에도 함께 나온다(배경색이 아니라 테두리라 '배경 그래픽' 설정과 무관). */
+  .guide { position:absolute; }
+  .guide.v { top:0; bottom:0; border-left:0.4mm dashed rgba(0,0,0,.32); }
+  .guide.h { left:0; right:0; border-top:0.4mm dashed rgba(0,0,0,.32); }
+  .cap { position:absolute; top:100%; left:0; right:0; margin-top:8px;
+         text-align:center; color:#a5a5ad; font-size:12px; font-weight:700; }
 
-  /* 휴대폰 — 버튼 줄이 화면을 다 덮지 않게 조금씩 줄인다 */
-  @media (max-width: 560px) {
-    #bar { gap:6px; padding:8px 10px; }
-    #bar button, #bar a { padding:7px 10px; font-size:12px; }
-    #bar .t { font-size:13px; }
-    #bar .hint { font-size:11px; }
-    #bar .grow { margin-left:0; }
+  @media (max-width: 620px) {
+    #bar { padding:8px 10px 10px; }
+    button, a.btn { padding:8px 11px; font-size:12px; }
+    .seg button { padding:7px 9px; font-size:12px; }
+    .hint { font-size:11px; }
+    .grow { margin-left:0; }
   }
 
   @media print {
     html,body { background:#fff; }
-    #bar, #msg { display:none !important; }
+    #bar, #msg, #bookcard, #sheetsTitle { display:none !important; }
     #sheets { padding:0; display:block; }
     .slot { position:static; width:auto !important; height:auto !important; margin:0;
             break-after:page; page-break-after:always; }
     .slot:last-child { break-after:auto; page-break-after:auto; }
-    /* 종이를 다시 흐름 안에 놓는다. 다만 relative 는 지켜야 한다 —
-       static 으로 두면 안에 얹은 그림(.clip)이 종이가 아니라 화면 전체를 기준으로
-       자리를 잡아 엉뚱한 곳이 인쇄된다. */
+    /* 종이를 다시 흐름 안에 놓되 relative 는 지킨다 — static 으로 두면 안에 얹은 그림이
+       종이가 아니라 화면 전체를 기준으로 자리를 잡아 엉뚱한 곳이 인쇄된다. */
     .page { position:relative !important; transform:none !important; box-shadow:none; }
     .cap { display:none !important; }
   }
@@ -62,19 +79,34 @@
 </head>
 <body>
 <div id="bar" hidden>
-  <span class="t">인쇄용 파일 🖨</span>
-  <button id="pdfBtn">📥 PDF 파일 받기</button>
-  <button id="printBtn" class="ghost">🖨 바로 인쇄</button>
-  <button id="layoutBtn" class="ghost">배치: 펼침면 그대로</button>
-  <button id="paperBtn" class="ghost">용지: A4</button>
-  <button id="fitBtn" class="ghost">여백: 남김</button>
-  <button id="trimBtn" class="ghost">테두리: 없앰</button>
-  <a id="backBtn" class="ghost" href="#">‹ 그림책으로</a>
-  <a id="listBtn" class="ghost" href="#">‹ 리스트로</a>
-  <span id="dpi" class="hint grow"></span>
-  <span id="note" class="hint"></span>
+  <div class="row">
+    <span class="t">인쇄 요청 🖨</span>
+    <button id="pdfBtn">📥 PDF 파일 받기</button>
+    <button id="printBtn" class="ghost">🖨 프린트</button>
+    <a id="backBtn" class="btn ghost" href="#">‹ 그림책으로</a>
+    <a id="listBtn" class="btn ghost" href="#">‹ 리스트로</a>
+    <span id="dpi" class="hint grow"></span>
+  </div>
+  <div class="row">
+    <span class="lab">용지</span>
+    <span class="seg" id="paperSeg">
+      <button data-p="a3">A3 원본</button>
+      <button data-p="a4">A4 축소</button>
+      <button data-p="a4x2">A4 2장 분할</button>
+      <button data-p="a2">A2 전시용</button>
+    </span>
+    <button id="fitBtn" class="ghost" title="칸을 꽉 채울지, 그림 전체가 다 보이게 할지">여백: 꽉 채움</button>
+    <button id="trimBtn" class="ghost" title="그림에 같이 저장된 회색 그림자·검은 실선 테두리를 빼고 뽑습니다">테두리: 정리</button>
+    <button id="guideBtn" class="ghost" title="접고 자를 자리를 알려 주는 점선">접는 선: 보임</button>
+  </div>
+  <div class="row"><span id="note" class="hint"></span></div>
 </div>
-<div id="msg">인쇄용으로 펴는 중… 🖨</div>
+<div id="bookcard" hidden>
+  <div id="bookTitle">그림책</div>
+  <div id="bookWho"></div>
+</div>
+<div id="msg">인쇄용으로 조판하는 중… 🖨</div>
+<div id="sheetsTitle" hidden>조판 미리보기</div>
 <div id="sheets" hidden></div>
 <script>
   var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
@@ -84,21 +116,25 @@
   var el = function(id){ return document.getElementById(id); };
 
   // ── 무엇을 어떻게 뽑을지 ───────────────────────────────────────────────
-  //   layout  spread = 펼침면 한 장씩(가로) · single = 낱쪽 한 장씩(세로)
-  //   paper   a4 / a3 / native(그림 비율 그대로 — 인쇄소에 맡길 때)
-  //   fit     fit = 그림 전체가 다 보이게(흰 여백 남음) · fill = 종이를 꽉 채움(가장자리 잘림)
-  //   trimOn  그림 파일에 같이 저장된 회색 그림자·검은 실선 테두리를 빼고 뽑는다
+  //   paper  a3   = A3 가로 한 장(접어서 만드는 8쪽 그림책) ← 앱의 '원본'
+  //          a4   = 같은 조판을 A4 가로 한 장으로 줄여서
+  //          a4x2 = 같은 조판을 A4 세로 두 장으로 나눠서(붙이면 A3)
+  //          a2   = A2 가로 한 장에 8쪽을 쭉 펼친 전시용(접지 아님)
+  //   fit    fill = 칸을 꽉 채움(가장자리 조금 잘림) · fit = 그림 전체 보임(흰 여백)
+  //   trimOn 그림 파일에 같이 저장된 회색 그림자 띠·검은 실선을 빼고 뽑는다
+  //   guides 접고 자를 자리를 알려 주는 점선
   function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
   function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
-  var layout = pref("printLayout", "spread") === "single" ? "single" : "spread";
-  var paper  = ["a4","a3","native"].indexOf(pref("printPaper", "a4")) >= 0 ? pref("printPaper", "a4") : "a4";
-  var fitMode = pref("printFit", "fit") === "fill" ? "fill" : "fit";
+  var PAPERS = ["a3", "a4", "a4x2", "a2"];
+  var paper = PAPERS.indexOf(pref("printPaper2", "a3")) >= 0 ? pref("printPaper2", "a3") : "a3";
+  var fitMode = pref("printFit", "fill") === "fit" ? "fit" : "fill";
   var trimOn = pref("printTrim", "1") !== "0";
+  var guidesOn = pref("printGuide", "1") !== "0";
 
-  var srcUrls = [];        // 원본 그림 주소(앱이 올린 파일 순서: 표지 · 1-2 · 3-4 · 5-6)
+  var srcUrls = [];        // 원본 그림 주소(앱이 올린 파일 순서: 표지 · 1-2쪽 · 3-4쪽 · 5-6쪽)
   var imgs = [];           // 화면에 쓸 Image 객체
   var meta = [];           // 그림마다 { w, h, trim:{l,t,r,b}, seam }
-  var pixelsReadable = true;   // 다른 곳에서 온 그림이라 픽셀을 못 읽는 경우가 있다
+  var pixelsReadable = true;
   var bookName = "그림책";
 
   // ── 그림 불러오기 ──────────────────────────────────────────────────────
@@ -161,7 +197,7 @@
   }
 
   /// 그림 한가운데의 '거의 흰 세로 띠'(두 쪽 사이 여백)를 찾아 그 한가운데 x를 돌려준다.
-  /// 낱쪽으로 뽑을 때 실제 이음매가 정확히 절반이 아니면 한쪽 그림이 잘려 나가기 때문이다.
+  /// 전시용처럼 반쪽씩 쓸 때 실제 이음매가 절반이 아니면 한쪽 그림이 잘리기 때문이다.
   function seamCenter(img, W, H){
     var mid = Math.round(W / 2);
     var band = Math.round(W * 0.12);                       // 가운데 ±12%만 살펴본다
@@ -214,8 +250,7 @@
     return info;
   }
 
-  // ── 어떤 종이에 무엇을 얹을지 계산 ─────────────────────────────────────
-  /// 이 그림에서 실제로 쓸 부분(테두리를 뺀 안쪽, 낱쪽이면 그 반쪽)
+  /// 이 그림에서 실제로 쓸 부분(테두리를 뺀 안쪽, 반쪽만 쓸 땐 그 반쪽)
   function cropOf(i, half){
     var m = meta[i];
     var t = trimOn ? m.trim : { l:0, t:0, r:0, b:0 };
@@ -228,102 +263,157 @@
     return { x:x, y:y, w:w, h:h };
   }
 
-  /// 뽑을 쪽 목록 — 펼침면은 파일 순서 그대로, 낱쪽은 앞표지 → 속쪽 → 뒤표지 순.
-  function pageList(){
+  // ── 조판(장마다 어느 칸에 무엇을 앉힐지) ───────────────────────────────
+  //   접지용(A3·A4·A4 2장)은 앱과 같은 배치다.
+  //     ┌──────────────┬──────────────┐
+  //     │ 1-2쪽 (뒤집힘)│ 3-4쪽 (뒤집힘)│   ← 윗줄은 180° 돌려 앉힌다
+  //     ├──────────────┼──────────────┤
+  //     │ 5-6쪽        │ 표지(뒤·앞)   │
+  //     └──────────────┴──────────────┘
+  //   가로세로 반씩 접으면 8쪽짜리 작은 그림책이 된다.
+
+  /// 한 장을 만든다 — 칸을 격자로 늘어놓고 접는 선까지 계산한다.
+  ///   items: [{ file, half, rot }] 를 왼쪽 위부터 줄 단위로 채운다(빈 칸은 null).
+  function makeSheet(wmm, hmm, cols, items, label){
+    var rows = Math.ceil(items.length / cols);
+    var cw = wmm / cols, ch = hmm / rows;
+    var cells = [], v = [], h = [];
+    items.forEach(function(it, k){
+      if (!it) return;
+      var c = k % cols, r = Math.floor(k / cols);
+      cells.push({ file:it.file, half:it.half || null, rot:it.rot || 0,
+                   crop: cropOf(it.file, it.half || null),
+                   box: { x:c * cw, y:r * ch, w:cw, h:ch } });
+    });
+    for (var c = 1; c < cols; c++) v.push(c * cw);
+    for (var r = 1; r < rows; r++) h.push(r * ch);
+    // 펼침면 칸은 한가운데가 쪽과 쪽 사이(접는 자리)다.
+    if (!items.some(function(it){ return it && it.half; }))
+      for (var c2 = 0; c2 < cols; c2++) v.push(c2 * cw + cw / 2);
+    return { w:wmm, h:hmm, cells:cells, guides:{ v:v, h:h }, label:label };
+  }
+
+  /// 접지용 — 속지(1-2·3-4·5-6쪽)를 먼저, 표지를 맨 끝에. 윗줄은 뒤집는다.
+  function foldSheets(){
+    var order = [];
+    for (var i = 1; i < srcUrls.length; i++) order.push(i);
+    // 표지는 반드시 오른쪽 아래 칸(4번째)에 와야 접었을 때 겉장이 된다.
+    // 펼침면이 모자란 책은 그 앞자리를 비워 둔다.
+    while (order.length % 4 !== 3) order.push(null);
+    order.push(0);
+    var pages = srcUrls.length * 2;                  // 앞표지·속지·뒤표지를 합친 쪽 수
     var out = [];
-    if (layout === "spread") {
-      srcUrls.forEach(function(u, i){
-        out.push({ file:i, half:null, crop: cropOf(i, null),
-                   label: i === 0 ? "표지 (뒤표지 · 앞표지)" : ((i * 2 - 1) + "-" + (i * 2) + "쪽") });
-      });
-      return out;
+    for (var k = 0; k < order.length; k += 4) {
+      var g = order.slice(k, k + 4);
+      var f = function(n){ return (g[n] === undefined || g[n] === null) ? null : { file:g[n] }; };
+      var top = function(n){ var x = f(n); if (x) x.rot = 180; return x; };
+      var part = (order.length > 4) ? " (" + (k / 4 + 1) + ")" : "";
+      if (paper === "a4x2") {
+        // A3 한 장을 세로로 반 잘라 A4 세로 두 장에 나눈다(붙이면 A3 한 장).
+        out.push(makeSheet(210, 297, 1, [top(0), f(2)], "왼쪽 장 · A4 세로" + part));
+        out.push(makeSheet(210, 297, 1, [top(1), f(3)], "오른쪽 장 · A4 세로" + part));
+      } else {
+        var W = (paper === "a3") ? 420 : 297, H = (paper === "a3") ? 297 : 210;
+        out.push(makeSheet(W, H, 2, [top(0), top(1), f(2), f(3)],
+                 (paper === "a3" ? "A3 가로 한 장" : "A4 가로 한 장") + " · 접어서 " + pages + "쪽" + part));
+      }
     }
-    out.push({ file:0, half:"r", crop: cropOf(0, "r"), label:"앞표지" });
-    for (var i = 1; i < srcUrls.length; i++) {
-      out.push({ file:i, half:"l", crop: cropOf(i, "l"), label:(i * 2 - 1) + "쪽" });
-      out.push({ file:i, half:"r", crop: cropOf(i, "r"), label:(i * 2) + "쪽" });
-    }
-    out.push({ file:0, half:"l", crop: cropOf(0, "l"), label:"뒤표지" });
     return out;
   }
 
-  /// 그림 비율 그대로일 때의 종이 크기 — A4 긴 변(297mm)에 맞춘다.
-  function nativeMMFor(crop){
-    var LONG = 297, ar = crop.w / crop.h;
-    return ar >= 1 ? { w:LONG, h:Math.round(LONG / ar * 10) / 10 }
-                   : { w:Math.round(LONG * ar * 10) / 10, h:LONG };
-  }
-  /// 쪽마다 테두리를 조금씩 다르게 잘라 내므로 비율도 조금씩 다르다.
-  /// 인쇄소에 넘길 파일은 크기가 들쭉날쭉하면 곤란하니 첫 장 크기로 통일한다
-  /// (차이는 1mm 안쪽이라 꽉 채워 앉히면 눈에 띄지 않는다).
-  var nativeMM = null;
-
-  /// 종이 크기(mm) — A4·A3 는 배치에 따라 가로/세로로 눕히고,
-  /// '그림 비율 그대로'는 그림 비율대로 만든다(여백 0).
-  function paperMM(crop){
-    if (paper === "native") return nativeMM || nativeMMFor(crop);
-    var base = (paper === "a3") ? [420, 297] : [297, 210];
-    return (layout === "spread") ? { w:base[0], h:base[1] } : { w:base[1], h:base[0] };
+  /// 전시용 A2 — 접지 않고 벽에 붙이는 배치(읽는 순서대로 쭉).
+  ///   위:  [앞표지][1쪽][2쪽][3쪽] / 아래: [4쪽][5쪽][6쪽][뒤표지]
+  function exhibitSheet(){
+    var items = [{ file:0, half:"r" }];
+    for (var i = 1; i < srcUrls.length; i++) {
+      items.push({ file:i, half:"l" }); items.push({ file:i, half:"r" });
+    }
+    items.push({ file:0, half:"l" });
+    while (items.length % 8) items.push(null);
+    var out = [];
+    for (var k = 0; k < items.length; k += 8)
+      out.push(makeSheet(594, 420, 4, items.slice(k, k + 8), "전시용 A2 가로 한 장"));
+    return out;
   }
 
-  /// 종이 위 자리 잡기 — 그림 전체를 얹을 때의 좌표(mm)와 보여 줄 구간을 함께 돌려준다.
-  ///   full  : 그림 한 장을 통째로 얹었을 때의 크기·위치(테두리 바깥까지 포함)
-  ///   clip  : 그중 실제로 보이는 네모(테두리·반대쪽 반쪽은 여기서 가려진다)
-  ///   mmPerPx: 원본 1px 이 종이에서 몇 mm 가 되는가 → 인쇄 해상도 계산에 쓴다
-  function place(sp){
-    var m = meta[sp.file], crop = sp.crop, pm = paperMM(crop);
-    var s = (fitMode === "fill" || paper === "native")
-          ? Math.max(pm.w / crop.w, pm.h / crop.h)
-          : Math.min(pm.w / crop.w, pm.h / crop.h);
+  function layout(){ return (paper === "a2") ? exhibitSheet() : foldSheets(); }
+
+  /// 칸 하나에 그림을 앉힌다.
+  ///   full : 그림 한 장을 통째로 얹었을 때의 자리(테두리 바깥까지 포함)
+  ///   clip : 그중 실제로 보이는 네모(테두리·반대쪽 반쪽은 여기서 가려진다)
+  ///   뒤집힌 칸이면 좌표까지 뒤집어 종이 기준으로 돌려준다.
+  function placeCell(cell){
+    var m = meta[cell.file], crop = cell.crop, b = cell.box;
+    var s = (fitMode === "fill") ? Math.max(b.w / crop.w, b.h / crop.h)
+                                 : Math.min(b.w / crop.w, b.h / crop.h);
     var dw = crop.w * s, dh = crop.h * s;
-    var left = (pm.w - dw) / 2, top = (pm.h - dh) / 2;
-    var cx = Math.max(0, left), cy = Math.max(0, top);
-    var cw = Math.min(left + dw, pm.w) - cx, chh = Math.min(top + dh, pm.h) - cy;
-    return {
-      paper: pm, mmPerPx: s,
-      full: { w:m.w * s, h:m.h * s, x:left - crop.x * s, y:top - crop.y * s },
-      clip: { x:cx, y:cy, w:Math.max(0, cw), h:Math.max(0, chh) }
-    };
+    var lx = (b.w - dw) / 2, ly = (b.h - dh) / 2;
+    var full = { x:lx - crop.x * s, y:ly - crop.y * s, w:m.w * s, h:m.h * s };
+    var cx = Math.max(0, lx), cy = Math.max(0, ly);
+    var clip = { x:cx, y:cy,
+                 w:Math.max(0, Math.min(lx + dw, b.w) - cx),
+                 h:Math.max(0, Math.min(ly + dh, b.h) - cy) };
+    function toSheet(r){
+      return (cell.rot === 180)
+        ? { x:b.x + b.w - r.x - r.w, y:b.y + b.h - r.y - r.h, w:r.w, h:r.h }
+        : { x:b.x + r.x, y:b.y + r.y, w:r.w, h:r.h };
+    }
+    return { file:cell.file, rot:cell.rot, mmPerPx:s, full:toSheet(full), clip:toSheet(clip) };
   }
 
   // ── 화면 미리보기 ──────────────────────────────────────────────────────
-  var placed = [];
+  var sheets = [];
   function render(){
-    var list = pageList();
-    nativeMM = (paper === "native" && list.length) ? nativeMMFor(list[0].crop) : null;
-    placed = list.map(function(sp){ var p = place(sp); p.spec = sp; return p; });
+    sheets = layout().map(function(sh){
+      sh.placed = sh.cells.map(placeCell);
+      return sh;
+    });
     var host = el("sheets"); host.innerHTML = "";
-    placed.forEach(function(p){
+    sheets.forEach(function(sh){
       var slot = document.createElement("div"); slot.className = "slot";
       var page = document.createElement("div"); page.className = "page";
-      page.style.width = p.paper.w + "mm"; page.style.height = p.paper.h + "mm";
-      var clip = document.createElement("div"); clip.className = "clip";
-      clip.style.left = p.clip.x + "mm"; clip.style.top = p.clip.y + "mm";
-      clip.style.width = p.clip.w + "mm"; clip.style.height = p.clip.h + "mm";
-      var im = document.createElement("img");
-      im.src = srcUrls[p.spec.file]; im.alt = "";
-      im.style.left = (p.full.x - p.clip.x) + "mm"; im.style.top = (p.full.y - p.clip.y) + "mm";
-      im.style.width = p.full.w + "mm"; im.style.height = p.full.h + "mm";
-      clip.appendChild(im); page.appendChild(clip); slot.appendChild(page);
+      page.style.width = sh.w + "mm"; page.style.height = sh.h + "mm";
+      sh.placed.forEach(function(p){
+        var clip = document.createElement("div"); clip.className = "clip";
+        clip.style.left = p.clip.x + "mm"; clip.style.top = p.clip.y + "mm";
+        clip.style.width = p.clip.w + "mm"; clip.style.height = p.clip.h + "mm";
+        var im = document.createElement("img");
+        im.src = srcUrls[p.file]; im.alt = "";
+        if (p.rot === 180) im.className = "flip";
+        im.style.left = (p.full.x - p.clip.x) + "mm"; im.style.top = (p.full.y - p.clip.y) + "mm";
+        im.style.width = p.full.w + "mm"; im.style.height = p.full.h + "mm";
+        clip.appendChild(im); page.appendChild(clip);
+      });
+      if (guidesOn) {
+        sh.guides.v.forEach(function(x){
+          var g = document.createElement("div"); g.className = "guide v";
+          g.style.left = x + "mm"; page.appendChild(g);
+        });
+        sh.guides.h.forEach(function(y){
+          var g = document.createElement("div"); g.className = "guide h";
+          g.style.top = y + "mm"; page.appendChild(g);
+        });
+      }
+      slot.appendChild(page);
       var cap = document.createElement("div"); cap.className = "cap";
-      cap.textContent = p.spec.label + " · " + Math.round(p.paper.w) + "×" + Math.round(p.paper.h) + "mm";
+      cap.textContent = sh.label + " · " + Math.round(sh.w) + "×" + Math.round(sh.h) + "mm";
       slot.appendChild(cap);
       host.appendChild(slot);
     });
-    // 인쇄 창이 첫 장 크기를 종이 크기로 쓴다(같은 크기가 이어지므로 문제없다).
-    var first = placed[0] ? placed[0].paper : { w:297, h:210 };
+    var first = sheets[0] || { w:420, h:297 };
     el("pageCss").textContent = "@page { size:" + first.w + "mm " + first.h + "mm; margin:0; }";
-    el("msg").hidden = true; el("bar").hidden = false; el("sheets").hidden = false;
+    el("msg").hidden = true; el("bar").hidden = false;
+    el("bookcard").hidden = false; el("sheetsTitle").hidden = false; el("sheets").hidden = false;
     fitSoon();
     showDpi();
   }
 
   /// 인쇄 크기(mm)는 그대로 두고 화면에서만 줄여 보여준다.
-  ///   휴대폰에서는 종이가 화면 밖으로 넘치면 브라우저가 화면 너비를 크게 잡아 두었다가
+  ///   휴대폰은 종이가 화면 밖으로 넘치면 화면 너비를 크게 잡아 두었다가
   ///   줄인 뒤에야 제 너비를 알려 준다. 그래서 한 번 더 재서 맞춘다(fitSoon).
   function fitToScreen(){
     var availW = Math.max(200, (document.documentElement.clientWidth || window.innerWidth) - 28);
-    var availH = Math.max(200, window.innerHeight - (el("bar").offsetHeight || 60) - 70);
+    var availH = Math.max(200, window.innerHeight - (el("bar").offsetHeight || 60) - 90);
     var slots = document.querySelectorAll("#sheets .slot");
     for (var i = 0; i < slots.length; i++) {
       var page = slots[i].querySelector(".page");
@@ -342,21 +432,23 @@
   }
   window.addEventListener("resize", fitToScreen);
 
-  /// 인쇄 해상도 — 가장 낮은 쪽을 기준으로 알려 준다(200dpi면 인쇄소도 넉넉하다).
+  /// 인쇄 해상도 — 가장 낮은 칸을 기준으로 알려 준다(200dpi면 인쇄소도 넉넉하다).
   function showDpi(){
     var worst = 0;
-    placed.forEach(function(p){
-      var dpi = 25.4 / p.mmPerPx;                 // 원본 1px 이 p.mmPerPx mm 로 커진다
-      if (!worst || dpi < worst) worst = dpi;
+    sheets.forEach(function(sh){
+      sh.placed.forEach(function(p){
+        var dpi = 25.4 / p.mmPerPx;                 // 원본 1px 이 p.mmPerPx mm 로 커진다
+        if (!worst || dpi < worst) worst = dpi;
+      });
     });
     worst = Math.round(worst);
-    el("dpi").textContent = "인쇄 해상도 약 " + worst + " dpi"
-      + (worst < 150 ? " · 조금 거칠 수 있어요" : (worst >= 200 ? " · 인쇄소에 맡겨도 좋아요" : ""));
+    el("dpi").textContent = worst ? ("인쇄 해상도 약 " + worst + " dpi"
+      + (worst < 150 ? " · 조금 거칠 수 있어요" : (worst >= 200 ? " · 인쇄소에 맡겨도 좋아요" : ""))) : "";
   }
 
   // ── PDF 파일 만들기 ────────────────────────────────────────────────────
   //   원본 JPEG 를 다시 그리지 않고 그대로 넣는다(화질이 하나도 안 깎인다).
-  //   테두리 자르기·반쪽 나누기는 PDF 안에서 '보일 부분만 오려 보이기'로 처리한다.
+  //   테두리 자르기·반쪽 나누기·뒤집기는 PDF 안에서 자리와 오려 보일 곳으로 처리한다.
   function latin1(s){
     var a = new Uint8Array(s.length);
     for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 255;
@@ -450,9 +542,11 @@
       .then(function(e){ embedCache[i] = e; return e; });
   }
 
+  var PT = 72 / 25.4;                               // mm → PDF 단위(pt)
+
   function makePdf(){
     var used = {};
-    placed.forEach(function(p){ used[p.spec.file] = true; });
+    sheets.forEach(function(sh){ sh.placed.forEach(function(p){ used[p.file] = true; }); });
     var files = Object.keys(used).map(Number).sort(function(a, b){ return a - b; });
     return Promise.all(files.map(embedOf)).then(function(list){
       var byFile = {};
@@ -472,19 +566,37 @@
       });
 
       var kids = [];
-      placed.forEach(function(p){
-        var PT = 72 / 25.4;                                       // mm → PDF 단위(pt)
-        var pw = p.paper.w * PT, ph = p.paper.h * PT;
-        var fw = p.full.w * PT, fh = p.full.h * PT;
-        var fx = p.full.x * PT, fy = ph - (p.full.y * PT) - fh;   // PDF 는 아래에서 위로 잰다
-        var cx = p.clip.x * PT, cy = ph - (p.clip.y * PT) - p.clip.h * PT;
-        var content = "q\n"
-          + num(cx) + " " + num(cy) + " " + num(p.clip.w * PT) + " " + num(p.clip.h * PT) + " re W n\n"
-          + num(fw) + " 0 0 " + num(fh) + " " + num(fx) + " " + num(fy) + " cm\n/Im0 Do\nQ\n";
+      sheets.forEach(function(sh){
+        var pw = sh.w * PT, ph = sh.h * PT;
+        var content = "", xo = [];
+        sh.placed.forEach(function(p, k){
+          var nm = "Im" + k;
+          xo.push("/" + nm + " " + imgId[p.file] + " 0 R");
+          var cx = p.clip.x * PT, cy = ph - (p.clip.y + p.clip.h) * PT;   // PDF 는 아래에서 위로 잰다
+          var fx = p.full.x * PT, fy = ph - (p.full.y + p.full.h) * PT;
+          var fw = p.full.w * PT, fh = p.full.h * PT;
+          // 뒤집힌 칸은 그림을 180° 돌려 앉힌다(크기를 음수로 주고 반대쪽 모서리에서 시작).
+          var cm = (p.rot === 180)
+            ? (num(-fw) + " 0 0 " + num(-fh) + " " + num(fx + fw) + " " + num(fy + fh))
+            : (num(fw) + " 0 0 " + num(fh) + " " + num(fx) + " " + num(fy));
+          content += "q\n"
+            + num(cx) + " " + num(cy) + " " + num(p.clip.w * PT) + " " + num(p.clip.h * PT) + " re W n\n"
+            + cm + " cm\n/" + nm + " Do\nQ\n";
+        });
+        if (guidesOn) {
+          content += "q\n0.45 G 0.85 w [3 3] 0 d\n";
+          sh.guides.v.forEach(function(x){
+            content += num(x * PT) + " 0 m " + num(x * PT) + " " + num(ph) + " l S\n";
+          });
+          sh.guides.h.forEach(function(y){
+            content += "0 " + num(ph - y * PT) + " m " + num(pw) + " " + num(ph - y * PT) + " l S\n";
+          });
+          content += "Q\n";
+        }
         var cid = pdf.add("<< /Length " + content.length + " >>", latin1(content));
         kids.push(pdf.add("<< /Type /Page /Parent " + pagesId + " 0 R /MediaBox [0 0 "
-          + num(pw) + " " + num(ph) + "] /Resources << /XObject << /Im0 " + imgId[p.spec.file]
-          + " 0 R >> >> /Contents " + cid + " 0 R >>"));
+          + num(pw) + " " + num(ph) + "] /Resources << /XObject << " + xo.join(" ")
+          + " >> >> /Contents " + cid + " 0 R >>"));
       });
 
       pdf.objs[rootId - 1].body = "<< /Type /Catalog /Pages " + pagesId + " 0 R >>";
@@ -500,6 +612,8 @@
     else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
   }
 
+  var PAPER_NAME = { a3:"A3 원본", a4:"A4 축소", a4x2:"A4 2장", a2:"A2 전시용" };
+
   el("pdfBtn").addEventListener("click", function(){
     var btn = this;
     busy(btn, true, "⏳ 만드는 중…");
@@ -508,54 +622,57 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = bookName + (layout === "spread" ? " (인쇄용 펼침면)" : " (인쇄용 낱쪽)") + ".pdf";
+        a.download = bookName + " (인쇄용 " + PAPER_NAME[paper] + ").pdf";
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
       })
       .catch(function(err){
         alert("PDF 를 만들지 못했어요: " + ((err && err.message) || err)
-            + "\n대신 ‘🖨 바로 인쇄’를 눌러 인쇄 창에서 ‘PDF로 저장’을 골라 주세요.");
+            + "\n대신 ‘🖨 프린트’를 눌러 인쇄 창에서 ‘PDF로 저장’을 골라 주세요.");
       })
       .then(function(){ busy(btn, false); });
   });
   el("printBtn").addEventListener("click", function(){ window.print(); });
 
   // ── 도구 모음 ──────────────────────────────────────────────────────────
+  var NOTE = {
+    a3:  "A3 가로로 한 장 뽑아 가로·세로 반씩 접으면 그림책이 돼요 · 배율 100%, 여백 없음",
+    a4:  "A4 가로로 한 장 뽑아 가로·세로 반씩 접으면 손바닥만 한 그림책이 돼요 · 배율 100%, 여백 없음",
+    a4x2:"A4 세로로 두 장 뽑아 옆으로 붙이면 A3 한 장이 돼요 · 배율 100%, 여백 없음",
+    a2:  "접지 않고 벽에 붙이는 전시용이에요 · 인쇄 창에서 A2 가로, 배율 100%, 여백 없음"
+  };
   function syncBar(){
-    el("layoutBtn").textContent = "배치: " + (layout === "spread" ? "펼침면 그대로" : "낱쪽으로");
-    el("paperBtn").textContent = "용지: " + (paper === "a4" ? "A4" : paper === "a3" ? "A3" : "그림 비율 그대로");
-    el("fitBtn").textContent = "여백: " + (fitMode === "fit" ? "남김" : "꽉 채움(가장자리 잘림)");
-    el("fitBtn").disabled = (paper === "native");
-    el("trimBtn").textContent = "테두리: " + (trimOn ? "없앰" : "그대로");
+    var segs = el("paperSeg").querySelectorAll("button");
+    for (var i = 0; i < segs.length; i++)
+      segs[i].classList.toggle("on", segs[i].getAttribute("data-p") === paper);
+    el("fitBtn").textContent = "여백: " + (fitMode === "fill" ? "꽉 채움" : "남김(전체 보임)");
+    el("trimBtn").textContent = "테두리: " + (trimOn ? "정리" : "그대로");
     el("trimBtn").disabled = !pixelsReadable;
-    el("note").textContent = paper === "native"
-      ? "인쇄소용 — 여백 없이 그림 비율 그대로"
-      : (layout === "spread" ? "인쇄 창에서 용지 " + paper.toUpperCase() + " 가로, 배율 100%, 여백 없음"
-                             : "인쇄 창에서 용지 " + paper.toUpperCase() + " 세로, 배율 100%, 여백 없음");
+    el("guideBtn").textContent = "접는 선: " + (guidesOn ? "보임" : "숨김");
+    el("note").textContent = NOTE[paper];
   }
-  el("layoutBtn").addEventListener("click", function(){
-    layout = (layout === "spread") ? "single" : "spread";
-    prefSet("printLayout", layout); syncBar(); render();
-  });
-  el("paperBtn").addEventListener("click", function(){
-    paper = (paper === "a4") ? "a3" : (paper === "a3" ? "native" : "a4");
-    prefSet("printPaper", paper); syncBar(); render();
+  el("paperSeg").addEventListener("click", function(e){
+    var p = e.target && e.target.getAttribute && e.target.getAttribute("data-p");
+    if (!p || p === paper) return;
+    paper = p; prefSet("printPaper2", paper); syncBar(); render();
   });
   el("fitBtn").addEventListener("click", function(){
-    fitMode = (fitMode === "fit") ? "fill" : "fit";
+    fitMode = (fitMode === "fill") ? "fit" : "fill";
     prefSet("printFit", fitMode); syncBar(); render();
   });
   el("trimBtn").addEventListener("click", function(){
-    trimOn = !trimOn;
-    prefSet("printTrim", trimOn ? "1" : "0"); syncBar(); render();
+    trimOn = !trimOn; prefSet("printTrim", trimOn ? "1" : "0"); syncBar(); render();
+  });
+  el("guideBtn").addEventListener("click", function(){
+    guidesOn = !guidesOn; prefSet("printGuide", guidesOn ? "1" : "0"); syncBar(); render();
   });
 
   el("backBtn").href = "viewer.html?book=" + encodeURIComponent(bookId || "")
                      + (classId ? "&class=" + encodeURIComponent(classId) : "");
   el("listBtn").href = classId ? "./?class=" + encodeURIComponent(classId) : "./";
 
-  // ── 파일 이름 — 반 목록에서 이 책의 지은이와 제목을 찾아 쓴다 ──────────
-  //   그냥 두면 모든 책이 같은 이름으로 저장돼 서로 덮어쓴다.
+  // ── 책 이름 — 반 목록에서 이 책의 제목과 지은이를 찾아 쓴다 ────────────
+  //   파일 이름에도 쓰인다. 그냥 두면 모든 책이 같은 이름으로 저장돼 서로 덮어쓴다.
   function setBookName(){
     if (!bookId || !classId) return Promise.resolve();
     return fetch(API + "?class=" + encodeURIComponent(classId))
@@ -567,6 +684,9 @@
         if (!me) return;
         var name = String(me.student || "").trim();
         var t = String(me.title || "").replace(/\s+/g, " ").trim();
+        var cls = String(me.className || d.className || d.class || "").trim();
+        el("bookTitle").textContent = t || "그림책";
+        el("bookWho").textContent = [name, cls].filter(Boolean).join(" · ") || "우리 반 그림책";
         var base = (name && t) ? (name + " - " + t) : (name || t);
         base = base.replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
         if (base) { bookName = base; document.title = base + " (그림책 인쇄용)"; }
