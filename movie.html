@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그림책 영상 만들기 🎬</title>
+<style>
+  :root { --pink:#F35AA0; --bg:#F1F1F6; --ink:#2b2b30; --dim:#8a8a92; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink);
+              font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  #bar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.97);
+         box-shadow:0 2px 12px rgba(0,0,0,.07); padding:10px 14px 12px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .row + .row { margin-top:9px; }
+  .t { font-weight:800; color:var(--pink); margin-right:2px; }
+  .lab { font-size:12px; font-weight:800; color:var(--dim); margin-right:2px; }
+  .hint { color:var(--dim); font-size:12px; }
+  .grow { margin-left:auto; }
+  button, label.btn, a.btn { border:0; border-radius:999px; padding:9px 14px; font-size:13px; font-weight:700;
+                             cursor:pointer; background:var(--pink); color:#fff; text-decoration:none; font-family:inherit; }
+  button.ghost, label.btn.ghost, a.btn.ghost { background:#eceef3; color:#666; }
+  button[disabled] { opacity:.5; cursor:default; }
+  .seg { display:inline-flex; background:#eceef3; border-radius:999px; padding:4px; gap:2px; }
+  .seg button { background:transparent; color:#6a6a72; padding:8px 13px; }
+  .seg button.on { background:#fff; color:#1c1c20; box-shadow:0 1px 4px rgba(0,0,0,.14); }
+  input[type=file] { display:none; }
+
+  #msg { padding:80px 20px; text-align:center; color:#9a7; font-size:17px; line-height:1.6; }
+  #stage { max-width:1120px; margin:18px auto 0; padding:0 14px; }
+  #screen { width:100%; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden;
+            box-shadow:0 10px 30px rgba(0,0,0,.15); }
+  #cv { width:100%; height:100%; display:block; }
+  #time { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  #seek { flex:1; accent-color:var(--pink); }
+  #clock { font-size:12px; font-weight:700; color:var(--dim); min-width:92px; text-align:right; }
+  #rec { display:none; align-items:center; gap:8px; margin-top:10px; padding:10px 14px;
+         background:#fff; border-radius:12px; font-size:13px; font-weight:700; color:#c33; }
+  #rec.on { display:flex; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#e33; animation:blink 1s infinite; }
+  @keyframes blink { 50% { opacity:.25; } }
+
+  /* 컷 목록 — 어떤 순서로 넘어가는지 한눈에 */
+  #cuts { max-width:1120px; margin:20px auto 40px; padding:0 14px; }
+  #cuts h2 { font-size:15px; font-weight:800; color:var(--dim); margin:0 0 10px 4px; }
+  .book { background:#fff; border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+  .book .bt { font-weight:800; font-size:14px; }
+  .book .bs { font-size:12px; color:var(--dim); margin-top:2px; }
+  .strip { display:flex; gap:6px; margin-top:9px; overflow-x:auto; padding-bottom:4px; }
+  .cut { flex:0 0 auto; width:104px; }
+  .cut .th { width:104px; aspect-ratio:16/9; border-radius:7px; overflow:hidden; background:#eef1f5;
+             display:flex; align-items:center; justify-content:center; }
+  .cut .th img { width:100%; height:100%; object-fit:contain; }
+  .cut .cn { font-size:11px; color:var(--dim); margin-top:4px; text-align:center; font-weight:700; }
+
+  @media (max-width: 620px) {
+    #bar { padding:8px 10px 10px; }
+    button, label.btn, a.btn { padding:8px 11px; font-size:12px; }
+    .seg button { padding:7px 9px; font-size:12px; }
+    .hint { font-size:11px; }
+    .grow { margin-left:0; }
+  }
+</style>
+</head>
+<body>
+<div id="bar" hidden>
+  <div class="row">
+    <span class="t">그림책 영상 🎬</span>
+    <button id="playBtn">▶ 재생</button>
+    <button id="recBtn" class="ghost">⏺ 영상 파일 받기</button>
+    <a id="listBtn" class="btn ghost" href="#">‹ 갤러리로</a>
+    <span id="len" class="hint grow"></span>
+  </div>
+  <div class="row">
+    <span class="lab">컷 길이</span>
+    <span class="seg" id="paceSeg">
+      <button data-p="slow">천천히</button>
+      <button data-p="mid">보통</button>
+      <button data-p="fast">빠르게</button>
+    </span>
+    <button id="trimBtn" class="ghost" title="그림에 같이 저장된 회색 그림자·검은 실선 테두리를 빼고 씁니다">테두리: 정리</button>
+    <label class="btn ghost" for="bgFile" title="배경 그림을 내 파일로 바꿉니다">🖼 배경 바꾸기</label>
+    <input id="bgFile" type="file" accept="image/*">
+    <label class="btn ghost" for="musicFile" title="영상에 깔 음악을 고릅니다">🎵 음악 넣기</label>
+    <input id="musicFile" type="file" accept="audio/*">
+    <button id="bgReset" class="ghost" hidden>배경 되돌리기</button>
+    <span id="musicName" class="hint"></span>
+  </div>
+  <div class="row"><span id="note" class="hint"></span></div>
+</div>
+<div id="msg">그림책을 불러오는 중… 🎬</div>
+<div id="stage" hidden>
+  <div id="screen"><canvas id="cv" width="1920" height="1080"></canvas></div>
+  <div id="time"><input id="seek" type="range" min="0" max="1000" value="0"><span id="clock">0:00 / 0:00</span></div>
+  <div id="rec"><span class="dot"></span><span id="recTxt">녹화 중…</span></div>
+</div>
+<div id="cuts" hidden><h2>컷 순서</h2><div id="cutList"></div></div>
+<script>
+  var API = "https://script.google.com/macros/s/AKfycbzBg9ghzZSLv0J3MlUWMNVscBQuKVd2JgYS-HyiBAuqzPEh5qbGCUW9o_PorKOILx4/exec";
+  var qp = new URLSearchParams(location.search);
+  var classId = qp.get("class") || "";
+  var onlyBook = qp.get("book") || "";              // 한 권만 영상으로 만들고 싶을 때
+  var el = function(id){ return document.getElementById(id); };
+
+  var W = 1920, H = 1080;                           // 가로 16:9 (유튜브·TV)
+  var cv = el("cv"), ctx = cv.getContext("2d");
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+
+  // ── 컷 길이(초) ────────────────────────────────────────────────────────
+  //   opening 반 이름 카드 · title 책 제목 카드 · cover 앞표지 · spread 펼침면
+  //   back 뒤표지(판권) · fade 컷과 컷 사이 겹치는 시간 · ending 마지막 카드
+  var PACE = {
+    slow: { opening:3.4, title:2.6, cover:3.4, spread:4.6, back:3.0, ending:3.4, fade:0.6 },
+    mid:  { opening:3.0, title:2.0, cover:2.6, spread:3.6, back:2.4, ending:3.0, fade:0.5 },
+    fast: { opening:2.4, title:1.6, cover:2.0, spread:2.8, back:1.8, ending:2.4, fade:0.4 }
+  };
+  function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+  function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  var pace = PACE[pref("moviePace", "mid")] ? pref("moviePace", "mid") : "mid";
+  var trimOn = pref("movieTrim", "1") !== "0";
+
+  var books = [];        // [{ bookId, title, student, pages:[url…], imgs:[Image…], meta:[…] }]
+  var shots = [];        // 컷 목록(시작 시각·길이가 계산되어 있다)
+  var total = 0;         // 전체 길이(초)
+  var className = "";
+
+  // ── 배경 — 흰색에서 옅은 하늘색으로 넘어가는 가로 그러데이션 ───────────
+  //   선생님이 쓰시던 배경과 같은 결. '배경 바꾸기'로 실제 파일을 넣으면 그걸 쓴다.
+  var BG_STOPS = [[0, "#ffffff"], [0.42, "#fbfeff"], [0.72, "#eafaff"], [1, "#d3f2fb"]];
+  var bgImg = null;
+  function paintBg(){
+    if (bgImg) { drawCover(bgImg, 0, 0, W, H); return; }
+    var g = ctx.createLinearGradient(0, 0, W, 0);
+    BG_STOPS.forEach(function(s){ g.addColorStop(s[0], s[1]); });
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  /// 그림을 네모에 꽉 차게(넘치는 쪽은 잘라서) 그린다.
+  function drawCover(img, x, y, w, h){
+    var s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  }
+
+  // ── 그림 불러오기 ──────────────────────────────────────────────────────
+  function loadImage(u){
+    return new Promise(function(res){
+      var a = new Image(); a.crossOrigin = "anonymous";
+      a.onload = function(){ res(a); };
+      a.onerror = function(){
+        var b = new Image();
+        b.onload = function(){ res(b); }; b.onerror = function(){ res(null); };
+        b.src = u;
+      };
+      a.src = u;
+    });
+  }
+
+  // ── 그림에 같이 저장된 테두리 찾기(인쇄 페이지와 같은 방식) ────────────
+  function lineStat(d, IW, IH, side, n){
+    var horiz = (side === "l" || side === "r");
+    var lines = horiz ? IW : IH, across = horiz ? IH : IW;
+    var i = (side === "l" || side === "t") ? n : lines - 1 - n;
+    var sum = 0, sum2 = 0, cnt = 0;
+    for (var j = 0; j < across; j += 3) {
+      var o = (horiz ? (j * IW + i) : (i * IW + j)) * 4;
+      var g = (d[o] + d[o + 1] + d[o + 2]) / 3;
+      sum += g; sum2 += g * g; cnt++;
+    }
+    var m = sum / cnt;
+    return { mean: m, sd: Math.sqrt(Math.max(0, sum2 / cnt - m * m)) };
+  }
+  function borderRun(d, IW, IH, side){
+    var lines = (side === "l" || side === "r") ? IW : IH;
+    var cap = Math.round(lines * 0.12);
+    var n = 0;
+    while (n < cap && lineStat(d, IW, IH, side, n).sd < 22) n++;
+    if (n >= cap) n = 0;
+    for (var k = 0; k < 3; k++) {
+      if (n + 4 >= lines) break;
+      if (Math.abs(lineStat(d, IW, IH, side, n).mean - lineStat(d, IW, IH, side, n + 3).mean) > 55) n++;
+      else break;
+    }
+    if (!n) return 0;
+    var edge = lineStat(d, IW, IH, side, 0).mean;
+    var inside = lineStat(d, IW, IH, side, Math.min(lines - 1, n + 2)).mean;
+    if (edge >= 225) return (n <= 3 && Math.abs(inside - edge) > 45) ? n : 0;
+    var darkest = 255;
+    for (var q = 0; q < n; q++) darkest = Math.min(darkest, lineStat(d, IW, IH, side, q).mean);
+    if (inside - darkest <= 45) return 0;
+    return n;
+  }
+  function measure(img){
+    var IW = img.naturalWidth, IH = img.naturalHeight;
+    var info = { w:IW, h:IH, trim:{ l:0, t:0, r:0, b:0 } };
+    var c = document.createElement("canvas"); c.width = IW; c.height = IH;
+    var x = c.getContext("2d", { willReadFrequently: true });
+    var d;
+    try { x.drawImage(img, 0, 0); d = x.getImageData(0, 0, IW, IH).data; } catch (e) { return info; }
+    var L = borderRun(d, IW, IH, "l"), R = borderRun(d, IW, IH, "r");
+    var T = borderRun(d, IW, IH, "t"), B = borderRun(d, IW, IH, "b");
+    if (IW - L - R >= IW * 0.5 && IH - T - B >= IH * 0.5) info.trim = { l:L, t:T, r:R, b:B };
+    return info;
+  }
+  /// 이 컷에서 실제로 쓸 그림 구간(테두리를 뺀 안쪽, 반쪽이면 그 반쪽)
+  function cropOf(bk, i, half){
+    var m = bk.meta[i], t = trimOn ? m.trim : { l:0, t:0, r:0, b:0 };
+    var x = t.l, y = t.t, w = m.w - t.l - t.r, h = m.h - t.t - t.b;
+    if (half === "l") w = w / 2;
+    else if (half === "r") { x = x + w / 2; w = w / 2; }
+    return { x:x, y:y, w:w, h:h };
+  }
+
+  // ── 컷편집 — 어떤 그림을 몇 초씩, 어떤 차례로 보여줄지 ─────────────────
+  //   ① 반 이름 카드
+  //   ② 책마다  제목 카드 → 앞표지 → 1-2쪽 → 3-4쪽 → 5-6쪽 → 뒤표지
+  //   ③ 맺음 카드
+  //   컷과 컷 사이는 0.5초쯤 겹쳐 부드럽게 넘어가고(크로스페이드),
+  //   한 컷 안에서는 아주 천천히 커진다(켄번스) — 정지 사진처럼 보이지 않게.
+  function buildShots(){
+    var P = PACE[pace];
+    var out = [];
+    out.push({ kind:"opening", dur:P.opening });
+    books.forEach(function(bk){
+      out.push({ kind:"title", book:bk, dur:P.title });
+      out.push({ kind:"page", book:bk, i:0, half:"r", dur:P.cover, label:"앞표지" });
+      for (var i = 1; i < bk.pages.length; i++)
+        out.push({ kind:"page", book:bk, i:i, half:null, dur:P.spread, label:(i * 2 - 1) + "-" + (i * 2) + "쪽" });
+      out.push({ kind:"page", book:bk, i:0, half:"l", dur:P.back, label:"뒤표지" });
+    });
+    out.push({ kind:"ending", dur:P.ending });
+    // 시작 시각 — 앞 컷과 fade 만큼 겹친다.
+    var t = 0;
+    out.forEach(function(s, k){
+      s.at = t; s.fade = P.fade;
+      s.zoom = (k % 2) ? -1 : 1;                 // 한 컷씩 번갈아 커졌다 작아졌다
+      t += s.dur - (k < out.length - 1 ? P.fade : 0);
+    });
+    shots = out;
+    total = t;
+  }
+
+  // ── 한 컷 그리기 ───────────────────────────────────────────────────────
+  function roundRect(x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function fontOf(ln){
+    return (ln.big ? "800 " : "700 ") + (ln.size || (ln.big ? 92 : 46))
+         + "px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+  }
+  function textCard(lines, alpha){
+    ctx.globalAlpha = alpha;
+    var hs = lines.map(function(ln){ return (ln.size || (ln.big ? 92 : 46)) * 1.35; });
+    var totalH = hs.reduce(function(a, b){ return a + b; }, 0);
+    var y = H / 2 - totalH / 2 + hs[0] / 2;          // 글 덩어리를 화면 한가운데에
+    lines.forEach(function(ln, i){
+      ctx.font = fontOf(ln);
+      ctx.fillStyle = ln.color || (ln.big ? "#F35AA0" : "#5a5a62");
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ln.text, W / 2, y);
+      y += (hs[i] + (hs[i + 1] || 0)) / 2 + 14;      // 줄 사이를 조금 띄운다
+    });
+    ctx.globalAlpha = 1;
+  }
+  /// 컷 하나를 '화면에 보일 크기'로 미리 줄여 둔다.
+  ///   매 프레임마다 1536px 짜리 원본을 줄여 그리면 30컷/초를 못 낸다.
+  ///   커지는 만큼(6%)까지 여유를 두고 한 번만 줄여 두면 그다음은 그냥 얹기만 하면 된다.
+  ///   기억을 너무 차지하지 않게, 지금 보는 컷 앞뒤 두 개만 남기고 지운다.
+  var PAD = 0.86;                                     // 화면에서 그림이 차지하는 비율
+  function shotCanvas(sh, k){
+    if (!sh.cv) {
+      var bk = sh.book, img = bk.imgs[sh.i];
+      if (!img || !img.naturalWidth) return null;
+      var crop = cropOf(bk, sh.i, sh.half);
+      var s = Math.min(W * PAD / crop.w, H * PAD / crop.h);
+      var cw = Math.round(crop.w * s * 1.06), ch = Math.round(crop.h * s * 1.06);
+      var c = document.createElement("canvas"); c.width = cw; c.height = ch;
+      var x = c.getContext("2d");
+      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+      x.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
+      sh.cv = c; sh.baseW = crop.w * s; sh.baseH = crop.h * s;
+    }
+    shots.forEach(function(o, i){ if (o.cv && Math.abs(i - k) > 2) o.cv = null; });
+    return sh.cv;
+  }
+
+  /// 그림 한 컷 — 배경 위에 종이처럼 얹고(둥근 모서리 + 그림자) 천천히 확대한다.
+  function drawPage(sh, p, alpha, k){
+    var bk = sh.book;
+    var img = shotCanvas(sh, k);
+    if (!img) return;
+    var z = 1 + 0.05 * (sh.zoom > 0 ? p : (1 - p));   // 켄번스 — 5%만 아주 천천히
+    var dw = sh.baseW * z, dh = sh.baseH * z;
+    var dx = (W - dw) / 2, dy = (H - dh) / 2;
+    ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.22)"; ctx.shadowBlur = 46; ctx.shadowOffsetY = 14;
+    ctx.fillStyle = "#fff";
+    roundRect(dx, dy, dw, dh, 14); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    roundRect(dx, dy, dw, dh, 14); ctx.clip();
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+    // 앞표지 컷에는 제목과 지은이를 곁들인다.
+    //   그림 위에 겹치면 그림을 가리므로, 세로 표지 옆에 남는 배경 자리에 적는다.
+    if (sh.half === "r" && sh.i === 0) {
+      ctx.globalAlpha = alpha * Math.min(1, p * 4);
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      var tx = Math.max(70, dx - 470), ty = H - 150;
+      if (dx - 70 < 380) { tx = 70; ty = H - 60; }      // 자리가 좁으면 아래로
+      ctx.font = "800 52px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+      ctx.fillStyle = "#F35AA0";
+      ctx.fillText(bk.title || "그림책", tx, ty);
+      ctx.font = "700 34px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+      ctx.fillStyle = "#6a6a72";
+      ctx.fillText((bk.student || "") + " 지음", tx, ty + 52);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawShot(sh, p, alpha, k){
+    if (sh.kind === "page") return drawPage(sh, p, alpha, k);
+    if (sh.kind === "title") {
+      return textCard([{ text:sh.book.title || "그림책", big:true, size:86 },
+                       { text:(sh.book.student || "") + " 지음", size:44 }], alpha);
+    }
+    if (sh.kind === "opening") {
+      return textCard([{ text:"우리 반 그림책 문집", big:true, size:96 },
+                       { text:className || "", size:46 }], alpha);
+    }
+    return textCard([{ text:"읽어 주셔서 고맙습니다", big:true, size:80 },
+                     { text:(className ? className + " · " : "") + "그림책 " + books.length + "권", size:44 },
+                     { text:"Artable 미술 수업", size:32, color:"#a8a8b0" }], alpha);
+  }
+
+  /// t초 시점의 화면을 그린다.
+  function drawFrame(t){
+    paintBg();
+    for (var k = 0; k < shots.length; k++) {
+      var sh = shots[k];
+      var lt = t - sh.at;
+      if (lt < 0 || lt > sh.dur) continue;
+      var a = 1;
+      if (lt < sh.fade && k > 0) a = lt / sh.fade;                     // 들어올 때
+      else if (lt > sh.dur - sh.fade && k < shots.length - 1) a = (sh.dur - lt) / sh.fade;  // 나갈 때
+      drawShot(sh, Math.max(0, Math.min(1, lt / sh.dur)), Math.max(0, Math.min(1, a)), k);
+    }
+  }
+
+  // ── 재생 ───────────────────────────────────────────────────────────────
+  var playing = false, t0 = 0, cur = 0, raf = 0;
+  function fmt(s){ s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+  function tick(){
+    if (!playing) return;
+    cur = (performance.now() - t0) / 1000;
+    if (cur >= total) { cur = total; stop(); drawFrame(total); sync(); return; }
+    drawFrame(cur); sync();
+    raf = requestAnimationFrame(tick);
+  }
+  function sync(){
+    el("seek").value = Math.round(cur / total * 1000);
+    el("clock").textContent = fmt(cur) + " / " + fmt(total);
+  }
+  function play(from){
+    if (typeof from === "number") cur = from;
+    if (cur >= total) cur = 0;
+    playing = true; t0 = performance.now() - cur * 1000;
+    el("playBtn").textContent = "⏸ 멈춤";
+    raf = requestAnimationFrame(tick);
+  }
+  function stop(){
+    playing = false; cancelAnimationFrame(raf);
+    el("playBtn").textContent = "▶ 재생";
+  }
+  el("playBtn").addEventListener("click", function(){ playing ? stop() : play(); });
+  el("seek").addEventListener("input", function(){
+    cur = this.value / 1000 * total;
+    if (playing) t0 = performance.now() - cur * 1000;
+    drawFrame(cur); sync();
+  });
+
+  // ── 영상 파일로 받기 ───────────────────────────────────────────────────
+  //   화면에 그리는 그대로를 실시간으로 녹화한다(영상 길이만큼 걸린다).
+  //   mp4 를 만들 수 있는 브라우저면 mp4, 아니면 webm 으로 저장한다.
+  var audioEl = null, musicBuf = null;
+  //   mp4(H.264)가 되면 그걸로 — 카톡·파워포인트·아이폰 어디서나 열린다.
+  //   H.264 가 없는 브라우저에서 그냥 'video/mp4' 를 쓰면 겉만 mp4 이고 속은 VP9 라
+  //   정작 카톡·퀵타임에서 안 열린다. 그럴 땐 솔직하게 webm 으로 저장한다.
+  function pickType(){
+    var want = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4;codecs=avc1.42E01E",
+                "video/mp4;codecs=avc1", "video/webm;codecs=vp9,opus",
+                "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+    for (var i = 0; i < want.length; i++)
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(want[i])) return want[i];
+    return "";
+  }
+  el("recBtn").addEventListener("click", function(){
+    if (!window.MediaRecorder || !cv.captureStream) {
+      alert("이 브라우저는 영상 저장을 지원하지 않아요. 크롬(PC)에서 열어 주세요.");
+      return;
+    }
+    var type = pickType();
+    if (!type) { alert("이 브라우저에서는 영상 형식을 만들 수 없어요. 크롬(PC)을 써 주세요."); return; }
+    var btn = this;
+    stop(); cur = 0;
+    var stream = cv.captureStream(30);
+    // 음악을 골랐으면 소리도 함께 녹화한다.
+    var actx = null;
+    if (musicBuf) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      var srcNode = actx.createBufferSource(); srcNode.buffer = musicBuf; srcNode.loop = true;
+      var gain = actx.createGain(); gain.gain.value = 0.7;
+      var dest = actx.createMediaStreamDestination();
+      srcNode.connect(gain); gain.connect(dest); srcNode.start();
+      dest.stream.getAudioTracks().forEach(function(tr){ stream.addTrack(tr); });
+    }
+    var rec = new MediaRecorder(stream, { mimeType:type, videoBitsPerSecond: 8000000 });
+    var chunks = [];
+    rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = function(){
+      if (actx) actx.close();
+      var blob = new Blob(chunks, { type:type.split(";")[0] });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = (className ? className + " " : "") + "그림책 영상." + (type.indexOf("mp4") >= 0 ? "mp4" : "webm");
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 20000);
+      el("rec").classList.remove("on"); btn.disabled = false; el("playBtn").disabled = false;
+    };
+    el("rec").classList.add("on"); btn.disabled = true; el("playBtn").disabled = true;
+    rec.start();
+    play(0);
+    var watch = setInterval(function(){
+      el("recTxt").textContent = "녹화 중… " + fmt(cur) + " / " + fmt(total) + " (창을 그대로 두세요)";
+      if (cur >= total) { clearInterval(watch); setTimeout(function(){ rec.stop(); }, 400); }
+    }, 200);
+  });
+
+  // ── 도구 모음 ──────────────────────────────────────────────────────────
+  function syncBar(){
+    var segs = el("paceSeg").querySelectorAll("button");
+    for (var i = 0; i < segs.length; i++)
+      segs[i].classList.toggle("on", segs[i].getAttribute("data-p") === pace);
+    el("trimBtn").textContent = "테두리: " + (trimOn ? "정리" : "그대로");
+    el("len").textContent = books.length ? (books.length + "권 · 컷 " + shots.length + "개 · " + fmt(total)) : "";
+    var ty = pickType();
+    el("note").textContent = "1920×1080 가로 · 배경은 흰색→하늘색 그러데이션 · "
+      + (ty ? (ty.indexOf("mp4") >= 0 ? "mp4 로 저장됩니다" : "이 브라우저는 mp4 를 못 만들어 webm 으로 저장됩니다(크롬 PC 권장)") : "이 브라우저는 영상 저장을 못 합니다")
+      + " · ‘영상 파일 받기’는 길이만큼 실제로 재생하며 녹화하니 그동안 창을 그대로 두세요";
+  }
+  function rebuild(){ buildShots(); syncBar(); drawList(); drawFrame(cur = 0); sync(); }
+  el("paceSeg").addEventListener("click", function(e){
+    var p = e.target && e.target.getAttribute && e.target.getAttribute("data-p");
+    if (!p || p === pace) return;
+    pace = p; prefSet("moviePace", pace); stop(); rebuild();
+  });
+  el("trimBtn").addEventListener("click", function(){
+    trimOn = !trimOn; prefSet("movieTrim", trimOn ? "1" : "0"); stop(); rebuild();
+  });
+  el("bgFile").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    var u = URL.createObjectURL(f), im = new Image();
+    im.onload = function(){ bgImg = im; el("bgReset").hidden = false; drawFrame(cur); };
+    im.src = u;
+  });
+  el("bgReset").addEventListener("click", function(){ bgImg = null; this.hidden = true; drawFrame(cur); });
+  el("musicFile").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    el("musicName").textContent = "🎵 " + f.name + " 넣는 중…";
+    f.arrayBuffer().then(function(buf){
+      var actx = new (window.AudioContext || window.webkitAudioContext)();
+      return actx.decodeAudioData(buf).then(function(b){ musicBuf = b; actx.close();
+        el("musicName").textContent = "🎵 " + f.name; });
+    }).catch(function(){ el("musicName").textContent = "이 음악 파일은 읽지 못했어요"; });
+  });
+  el("listBtn").href = classId ? "./?class=" + encodeURIComponent(classId) : "./";
+
+  // ── 컷 목록 그리기 ─────────────────────────────────────────────────────
+  function drawList(){
+    var host = el("cutList"); host.innerHTML = "";
+    books.forEach(function(bk){
+      var d = document.createElement("div"); d.className = "book";
+      d.innerHTML = '<div class="bt">' + (bk.title || "그림책") + '</div>'
+                  + '<div class="bs">' + (bk.student || "") + '</div>';
+      var strip = document.createElement("div"); strip.className = "strip";
+      shots.filter(function(s){ return s.book === bk; }).forEach(function(s){
+        var c = document.createElement("div"); c.className = "cut";
+        var th = document.createElement("div"); th.className = "th";
+        if (s.kind === "page") {
+          var im = document.createElement("img"); im.src = bk.pages[s.i]; th.appendChild(im);
+        } else { th.textContent = "제목"; th.style.color = "#F35AA0"; th.style.fontWeight = "800"; }
+        c.appendChild(th);
+        var cn = document.createElement("div"); cn.className = "cn";
+        cn.textContent = (s.label || "제목 카드") + " · " + s.dur.toFixed(1) + "초";
+        c.appendChild(cn); strip.appendChild(c);
+      });
+      d.appendChild(strip); host.appendChild(d);
+    });
+  }
+
+  // ── 불러오기 ───────────────────────────────────────────────────────────
+  function loadBook(b){
+    return fetch(API + "?book=" + encodeURIComponent(b.bookId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok || !d.pages || !d.pages.length) return null;
+        b.pages = d.pages;
+        return Promise.all(d.pages.map(loadImage)).then(function(list){
+          if (list.some(function(im){ return !im || !im.naturalWidth; })) return null;
+          b.imgs = list; b.meta = list.map(measure);
+          return b;
+        });
+      })
+      .catch(function(){ return null; });
+  }
+
+  if (!classId && !onlyBook) { el("msg").textContent = "주소에 class 가 없어요."; }
+  else {
+    fetch(API + "?class=" + encodeURIComponent(classId))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok || !d.books || !d.books.length) { el("msg").textContent = "이 반엔 아직 올라온 그림책이 없어요 📭"; return; }
+        className = String(d.className || d.class || "").trim();
+        var list = d.books.filter(function(b){ return !onlyBook || b.bookId === onlyBook; });
+        el("msg").textContent = "그림책 " + list.length + "권을 불러오는 중… 🎬";
+        var done = 0;
+        return Promise.all(list.map(function(b){
+          return loadBook(b).then(function(ok){
+            el("msg").textContent = "그림책 불러오는 중… " + (++done) + " / " + list.length + " 🎬";
+            return ok;
+          });
+        })).then(function(res){
+          books = res.filter(Boolean);
+          if (!books.length) { el("msg").textContent = "그림을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; return; }
+          el("msg").hidden = true; el("bar").hidden = false;
+          el("stage").hidden = false; el("cuts").hidden = false;
+          rebuild();
+        });
+      })
+      .catch(function(){ el("msg").textContent = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요."; });
+  }
+</script>
+</body>
+</html>
