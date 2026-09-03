@@ -109,10 +109,11 @@
   // ── 컷 길이(초) ────────────────────────────────────────────────────────
   //   opening 반 이름 카드 · title 책 제목 카드 · cover 앞표지 · spread 펼침면
   //   back 뒤표지(판권) · fade 컷과 컷 사이 겹치는 시간 · ending 마지막 카드
+  //   turn = 책장 한 장이 넘어가는 데 걸리는 시간
   var PACE = {
-    slow: { opening:3.4, title:2.6, cover:3.4, spread:4.6, back:3.0, ending:3.4, fade:0.6 },
-    mid:  { opening:3.0, title:2.0, cover:2.6, spread:3.6, back:2.4, ending:3.0, fade:0.5 },
-    fast: { opening:2.4, title:1.6, cover:2.0, spread:2.8, back:1.8, ending:2.4, fade:0.4 }
+    slow: { opening:3.4, title:2.6, cover:3.4, spread:4.6, back:3.0, ending:3.4, fade:0.6, turn:1.0 },
+    mid:  { opening:3.0, title:2.0, cover:2.6, spread:3.6, back:2.4, ending:3.0, fade:0.5, turn:0.8 },
+    fast: { opening:2.4, title:1.6, cover:2.0, spread:2.8, back:1.8, ending:2.4, fade:0.4, turn:0.6 }
   };
   function pref(k, d){ try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
   function prefSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
@@ -214,29 +215,56 @@
   //   ① 반 이름 카드
   //   ② 책마다  제목 카드 → 앞표지 → 1-2쪽 → 3-4쪽 → 5-6쪽 → 뒤표지
   //   ③ 맺음 카드
-  //   컷과 컷 사이는 0.5초쯤 겹쳐 부드럽게 넘어가고(크로스페이드),
-  //   한 컷 안에서는 아주 천천히 커진다(켄번스) — 정지 사진처럼 보이지 않게.
+  //   컷과 컷 사이는 진짜 책장이 넘어가듯 넘긴다(0.8초).
+  //   책은 늘 같은 자리·같은 크기에 놓이고, 오른쪽 쪽이 왼쪽으로 넘어가며
+  //   그 뒷면에 다음 펼침면의 왼쪽 쪽이 나타난다 — 실제 책과 똑같은 순서다.
+  //   그래서 컷마다 '왼쪽 쪽 / 오른쪽 쪽'을 따로 들고 있는다.
+  //     앞표지 컷 = 오른쪽 쪽만(덮인 책을 펴기 직전)
+  //     펼침면    = 왼쪽 + 오른쪽
+  //     뒤표지 컷 = 왼쪽 쪽만(다 넘긴 뒤)
+  function pg(bk, i, half){ return { bk:bk, i:i, half:half }; }
+
+  /// 이 책의 펼침면이 놓일 자리 — 모든 컷이 같은 자리를 쓴다(넘길 때 어긋나지 않게).
+  function bookBoxOf(bk){
+    var c = cropOf(bk, bk.pages.length > 1 ? 1 : 0, null);
+    var ar = c.w / c.h;
+    var w = W * PAD, h = w / ar;
+    if (h > H * PAD) { h = H * PAD; w = h * ar; }
+    return { x:(W - w) / 2, y:(H - h) / 2, w:w, h:h };
+  }
+
   function buildShots(){
     var P = PACE[pace];
     var out = [];
     out.push({ kind:"opening", dur:P.opening });
     books.forEach(function(bk){
+      var box = bookBoxOf(bk);
       out.push({ kind:"title", book:bk, dur:P.title });
-      out.push({ kind:"page", book:bk, i:0, half:"r", dur:P.cover, label:"앞표지" });
+      out.push({ kind:"page", book:bk, box:box, dur:P.cover, label:"앞표지",
+                 pages:{ left:null, right:pg(bk, 0, "r") } });
       for (var i = 1; i < bk.pages.length; i++)
-        out.push({ kind:"page", book:bk, i:i, half:null, dur:P.spread, label:(i * 2 - 1) + "-" + (i * 2) + "쪽" });
-      out.push({ kind:"page", book:bk, i:0, half:"l", dur:P.back, label:"뒤표지" });
+        out.push({ kind:"page", book:bk, box:box, dur:P.spread, label:(i * 2 - 1) + "-" + (i * 2) + "쪽",
+                   pages:{ left:pg(bk, i, "l"), right:pg(bk, i, "r") } });
+      out.push({ kind:"page", book:bk, box:box, dur:P.back, label:"뒤표지",
+                 pages:{ left:pg(bk, 0, "l"), right:null } });
     });
     out.push({ kind:"ending", dur:P.ending });
-    // 시작 시각 — 앞 컷과 fade 만큼 겹친다.
+    // 시작 시각 — 넘김(또는 겹침)만큼 앞 컷과 겹친다.
     var t = 0;
     out.forEach(function(s, k){
-      s.at = t; s.fade = P.fade;
-      s.zoom = (k % 2) ? -1 : 1;                 // 한 컷씩 번갈아 커졌다 작아졌다
-      t += s.dur - (k < out.length - 1 ? P.fade : 0);
+      var nx = out[k + 1];
+      s.fade = P.fade;
+      s.out = nx ? (isTurn(s, nx) ? P.turn : P.fade) : 0;
+      s.at = t;
+      t += s.dur - s.out;
     });
     shots = out;
     total = t;
+  }
+
+  /// 두 컷 사이를 '책장 넘김'으로 이을 수 있는가 — 같은 책의 쪽과 쪽 사이일 때만.
+  function isTurn(a, b){
+    return !!(a && b && a.kind === "page" && b.kind === "page" && a.book === b.book);
   }
 
   // ── 한 컷 그리기 ───────────────────────────────────────────────────────
@@ -264,64 +292,134 @@
     });
     ctx.globalAlpha = 1;
   }
-  /// 컷 하나를 '화면에 보일 크기'로 미리 줄여 둔다.
-  ///   매 프레임마다 1536px 짜리 원본을 줄여 그리면 30컷/초를 못 낸다.
-  ///   커지는 만큼(6%)까지 여유를 두고 한 번만 줄여 두면 그다음은 그냥 얹기만 하면 된다.
-  ///   기억을 너무 차지하지 않게, 지금 보는 컷 앞뒤 두 개만 남기고 지운다.
-  var PAD = 0.86;                                     // 화면에서 그림이 차지하는 비율
-  function shotCanvas(sh, k){
-    if (!sh.cv) {
-      var bk = sh.book, img = bk.imgs[sh.i];
+  // ── 쪽 한 장 그리기 ───────────────────────────────────────────────────
+  //   매 프레임 1536px 원본을 줄여 그리면 느리다. 쪽마다 '보여줄 크기'로
+  //   한 번만 줄여 두고 그다음엔 얹기만 한다. 기억을 아끼려 쓴 지 오래된 건 지운다.
+  var PAD = 0.86;                                     // 화면에서 책이 차지하는 비율
+  var pageCache = {}, cacheAge = 0;
+  function pageCanvas(pgo, w, h){
+    var key = [pgo.bk.bookId, pgo.i, pgo.half, Math.round(w), trimOn ? 1 : 0].join("|");
+    var hit = pageCache[key];
+    if (!hit) {
+      var img = pgo.bk.imgs[pgo.i];
       if (!img || !img.naturalWidth) return null;
-      var crop = cropOf(bk, sh.i, sh.half);
-      var s = Math.min(W * PAD / crop.w, H * PAD / crop.h);
-      var cw = Math.round(crop.w * s * 1.06), ch = Math.round(crop.h * s * 1.06);
+      var crop = cropOf(pgo.bk, pgo.i, pgo.half);
+      var cw = Math.max(2, Math.round(w)), ch = Math.max(2, Math.round(h));
       var c = document.createElement("canvas"); c.width = cw; c.height = ch;
       var x = c.getContext("2d");
       x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
       x.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
-      sh.cv = c; sh.baseW = crop.w * s; sh.baseH = crop.h * s;
+      hit = pageCache[key] = { cv:c };
+      var keys = Object.keys(pageCache);
+      if (keys.length > 8) {                          // 오래된 것부터 버린다
+        keys.sort(function(a, b){ return pageCache[a].age - pageCache[b].age; });
+        for (var i = 0; i < keys.length - 8; i++) delete pageCache[keys[i]];
+      }
     }
-    shots.forEach(function(o, i){ if (o.cv && Math.abs(i - k) > 2) o.cv = null; });
-    return sh.cv;
+    hit.age = ++cacheAge;
+    return hit.cv;
   }
 
-  /// 그림 한 컷 — 배경 위에 종이처럼 얹고(둥근 모서리 + 그림자) 천천히 확대한다.
-  function drawPage(sh, p, alpha, k){
-    var bk = sh.book;
-    var img = shotCanvas(sh, k);
-    if (!img) return;
-    var z = 1 + 0.05 * (sh.zoom > 0 ? p : (1 - p));   // 켄번스 — 5%만 아주 천천히
-    var dw = sh.baseW * z, dh = sh.baseH * z;
-    var dx = (W - dw) / 2, dy = (H - dh) / 2;
-    ctx.globalAlpha = alpha;
+  /// 종이 한 장 — 바깥 모서리만 둥글게, 그림자와 함께.
+  function paper(x, y, w, h, side){
+    var r = 14;
+    var rl = (side === "r") ? 0 : r, rr = (side === "l") ? 0 : r;
+    ctx.beginPath();
+    ctx.moveTo(x + rl, y); ctx.lineTo(x + w - rr, y);
+    ctx.arcTo(x + w, y, x + w, y + rr, rr); ctx.lineTo(x + w, y + h - rr);
+    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr); ctx.lineTo(x + rl, y + h);
+    ctx.arcTo(x, y + h, x, y + h - rl, rl); ctx.lineTo(x, y + rl);
+    ctx.arcTo(x, y, x + rl, y, rl); ctx.closePath();
+  }
+
+  /// 쪽 하나를 자리에 앉힌다. squeeze=true 면 넘어가는 중이라 가로로 눌린 모습.
+  ///   mirror=true 면 잎의 뒷면(다음 쪽)이라 좌우를 뒤집어 그린다.
+  ///   natW = 눌리지 않았을 때의 제 너비. 넘기는 동안 같은 그림을 다시 안 줄이려고 쓴다.
+  function drawSlot(pgo, x, y, w, h, side, mirror, natW){
+    if (!pgo || w < 1) return;
+    var cvp = pageCanvas(pgo, natW || w, h);
+    if (!cvp) return;
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,.22)"; ctx.shadowBlur = 46; ctx.shadowOffsetY = 14;
+    ctx.shadowColor = "rgba(0,0,0,.2)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 12;
     ctx.fillStyle = "#fff";
-    roundRect(dx, dy, dw, dh, 14); ctx.fill();
+    paper(x, y, w, h, side); ctx.fill();
     ctx.restore();
     ctx.save();
-    roundRect(dx, dy, dw, dh, 14); ctx.clip();
-    ctx.drawImage(img, dx, dy, dw, dh);
+    paper(x, y, w, h, side); ctx.clip();
+    if (mirror) { ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(cvp, 0, 0, w, h); }
+    else ctx.drawImage(cvp, x, y, w, h);
     ctx.restore();
-    // 앞표지 컷에는 제목과 지은이를 곁들인다.
-    //   그림 위에 겹치면 그림을 가리므로, 세로 표지 옆에 남는 배경 자리에 적는다.
-    if (sh.half === "r" && sh.i === 0) {
-      ctx.globalAlpha = alpha * Math.min(1, p * 4);
-      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-      var tx = Math.max(70, dx - 470), ty = H - 150;
-      if (dx - 70 < 380) { tx = 70; ty = H - 60; }      // 자리가 좁으면 아래로
-      ctx.font = "800 52px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-      ctx.fillStyle = "#F35AA0";
-      ctx.fillText(bk.title || "그림책", tx, ty);
-      ctx.font = "700 34px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-      ctx.fillStyle = "#6a6a72";
-      ctx.fillText((bk.student || "") + " 지음", tx, ty + 52);
-    }
+  }
+
+  var curBox = null;
+
+  /// 펼쳐 놓인 상태 한 컷 — 왼쪽 쪽·오른쪽 쪽을 제자리에 앉힌다.
+  function drawSpreadShot(sh, alpha){
+    var b = sh.box; curBox = b;
+    var half = b.w / 2;
+    ctx.globalAlpha = alpha;
+    drawSlot(sh.pages.left,  b.x,          b.y, half, b.h, "l");
+    drawSlot(sh.pages.right, b.x + half,   b.y, half, b.h, "r");
+    coverText(sh, alpha);
     ctx.globalAlpha = 1;
   }
+
+  /// 앞표지 컷에는 제목과 지은이를 곁들인다 — 비어 있는 반대쪽 배경 자리에.
+  function coverText(sh, alpha){
+    var bk = sh.book, b = sh.box, half = b.w / 2;
+    if (!(sh.pages.right && !sh.pages.left && sh.pages.right.i === 0)) return;
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    var tx = Math.max(70, b.x + 40), ty = H / 2 + 10;
+    ctx.font = "800 56px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillStyle = "#F35AA0";
+    ctx.fillText(bk.title || "그림책", tx, ty);
+    ctx.font = "700 34px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+    ctx.fillStyle = "#6a6a72";
+    ctx.fillText((bk.student || "") + " 지음", tx, ty + 54);
+    ctx.globalAlpha = 1;
+  }
+
+  /// 책장 한 장이 넘어가는 장면.
+  ///   u = 0…1. 오른쪽 쪽이 왼쪽으로 넘어가고, 그 뒷면에 다음 왼쪽 쪽이 나타난다.
+  ///   아래에는 '넘기기 전 왼쪽 쪽'과 '넘긴 뒤 오른쪽 쪽'이 미리 깔려 있다.
+  function drawTurn(A, B, u){
+    var b = A.box; curBox = b;
+    var half = b.w / 2, cx = b.x + half;
+    drawSlot(A.pages.left,  b.x, b.y, half, b.h, "l");
+    drawSlot(B.pages.right, cx,  b.y, half, b.h, "r");
+    // 넘어가는 잎 — 가로로 눌리며 돌아간다(cos).
+    var th = Math.PI * u, c = Math.cos(th), w = Math.abs(c) * half;
+    //   잎의 뒷면(다음 왼쪽 쪽)은 뒤집어 그리지 않는다. 책장은 책등을 축으로 도는 것이라
+    //   뒷면 글씨도 똑바로 보인다 — 뒤집으면 다 넘긴 순간 그림이 툭 바뀐다.
+    if (c >= 0) drawSlot(A.pages.right, cx,     b.y, w, b.h, "r", false, half);
+    else        drawSlot(B.pages.left,  cx - w, b.y, w, b.h, "l", false, half);
+    // 잎에 지는 그늘 — 책등 쪽이 어둡다. 세울수록 진해진다.
+    var sh1 = Math.sin(th) * 0.26;
+    if (w > 2) {
+      var gx0 = (c >= 0) ? cx : cx - w, gx1 = (c >= 0) ? cx + w : cx;
+      var g = ctx.createLinearGradient((c >= 0) ? gx0 : gx1, 0, (c >= 0) ? gx1 : gx0, 0);
+      g.addColorStop(0, "rgba(0,0,0," + sh1.toFixed(3) + ")");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.save(); paper(gx0, b.y, w, b.h, (c >= 0) ? "r" : "l"); ctx.clip();
+      ctx.fillStyle = g; ctx.fillRect(gx0, b.y, w, b.h); ctx.restore();
+    }
+    // 넘어가는 잎이 아래 쪽에 드리우는 그늘 — 책등에서 바깥으로 옅어진다.
+    //   그늘은 '밑에 깔린 쪽'이 있을 때만 진다. 없는데 그리면 배경에 회색 띠가 뜬다.
+    var under = (c >= 0) ? A.pages.left : B.pages.right;
+    if (under) {
+      var sh2 = Math.sin(th) * 0.18;
+      var g2 = ctx.createLinearGradient(cx, 0, (c >= 0) ? cx - half * 0.5 : cx + half * 0.5, 0);
+      g2.addColorStop(0, "rgba(0,0,0," + sh2.toFixed(3) + ")");
+      g2.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.save();
+      paper((c >= 0) ? b.x : cx, b.y, half, b.h, (c >= 0) ? "l" : "r"); ctx.clip();
+      ctx.fillStyle = g2; ctx.fillRect(b.x, b.y, b.w, b.h); ctx.restore();
+    }
+  }
+
   function drawShot(sh, p, alpha, k){
-    if (sh.kind === "page") return drawPage(sh, p, alpha, k);
+    if (sh.kind === "page") return drawSpreadShot(sh, alpha);
     if (sh.kind === "title") {
       return textCard([{ text:sh.book.title || "그림책", big:true, size:86 },
                        { text:(sh.book.student || "") + " 지음", size:44 }], alpha);
@@ -339,12 +437,18 @@
   function drawFrame(t){
     paintBg();
     for (var k = 0; k < shots.length; k++) {
-      var sh = shots[k];
+      var sh = shots[k], nx = shots[k + 1];
       var lt = t - sh.at;
       if (lt < 0 || lt > sh.dur) continue;
+      var going = nx && lt > sh.dur - sh.out;                 // 다음 컷으로 넘어가는 중
+      if (going && isTurn(sh, nx)) {                          // 책장 넘김 — 두 컷을 한꺼번에
+        drawTurn(sh, nx, (lt - (sh.dur - sh.out)) / sh.out);
+        return;
+      }
       var a = 1;
-      if (lt < sh.fade && k > 0) a = lt / sh.fade;                     // 들어올 때
-      else if (lt > sh.dur - sh.fade && k < shots.length - 1) a = (sh.dur - lt) / sh.fade;  // 나갈 때
+      var prev = shots[k - 1];
+      if (lt < sh.fade && k > 0 && !isTurn(prev, sh)) a = lt / sh.fade;   // 들어올 때
+      else if (going) a = (sh.dur - lt) / sh.out;                          // 나갈 때
       drawShot(sh, Math.max(0, Math.min(1, lt / sh.dur)), Math.max(0, Math.min(1, a)), k);
     }
   }
@@ -449,6 +553,7 @@
     var ty = pickType();
     el("note").textContent = "1920×1080 가로 · 배경은 흰색→하늘색 그러데이션 · "
       + (ty ? (ty.indexOf("mp4") >= 0 ? "mp4 로 저장됩니다" : "이 브라우저는 mp4 를 못 만들어 webm 으로 저장됩니다(크롬 PC 권장)") : "이 브라우저는 영상 저장을 못 합니다")
+      + " · 쪽과 쪽 사이는 책장이 넘어갑니다"
       + " · ‘영상 파일 받기’는 길이만큼 실제로 재생하며 녹화하니 그동안 창을 그대로 두세요";
   }
   function rebuild(){ buildShots(); syncBar(); drawList(); drawFrame(cur = 0); sync(); }
