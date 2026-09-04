@@ -17,7 +17,7 @@ import argparse, math, os, shutil, subprocess, sys, tempfile, unicodedata
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 
 # ─────────────────────────────────────────────── 모든 컷이 함께 쓰는 값
 
@@ -217,22 +217,46 @@ def move(shot, i):
 
 # ─────────────────────────────────────────────── 준비 · 만들기
 
-def prepare(shots, work, ow, oh):
-    """EXIF 회전을 펴고, 화면을 덮도록 자른 뒤 PREP 배로 키워 둔다."""
+def _blur_bg(im, tw, th):
+    """흐린 배경 — 큰 그림을 그대로 흐리면 느리니 줄였다 키운다(결과는 같다)."""
+    w, h = im.size
+    s = max(240 / w, 135 / h)
+    small = im.resize((max(1, round(w * s)), max(1, round(h * s))), Image.BILINEAR)
+    w, h = small.size
+    s = max(tw / w, th / h)
+    small = small.resize((max(tw, round(w * s)), max(th, round(h * s))), Image.BILINEAR)
+    w, h = small.size
+    bg = small.crop(((w - tw) // 2, (h - th) // 2, (w - tw) // 2 + tw, (h - th) // 2 + th))
+    return Image.eval(bg.filter(ImageFilter.GaussianBlur(9)), lambda v: int(v * 0.72))
+
+def prepare(shots, work, ow, oh, fit=True):
+    """EXIF 회전을 펴고, 화면에 맞춰 자르거나 담은 뒤 PREP 배로 키워 둔다.
+
+    화면 비율과 크게 어긋나는 사진(주로 세로 사진)은 잘라 내면 절반 넘게
+    버리고 그만큼 확대돼 뿌예진다. 그런 사진은 통째로 담고 뒤를 흐리게 채운다."""
     pw, ph = round(ow * (1 + PAD)), round(oh * (1 + PAD))
     tw, th = round(pw * PREP), round(ph * PREP)
-    out = []
+    out, fitted = [], 0
     for k, sh in enumerate(shots):
         im = ImageOps.exif_transpose(Image.open(sh.path)).convert("RGB")
         w, h = im.size
-        s = max(tw / w, th / h)                      # 덮도록(잘려도 여백은 없게)
-        im = im.resize((max(tw, round(w * s)), max(th, round(h * s))), Image.LANCZOS)
-        w, h = im.size
-        im = im.crop(((w - tw) // 2, (h - th) // 2, (w - tw) // 2 + tw, (h - th) // 2 + th))
+        keep = min(1.0, (w / h) / (tw / th), (tw / th) / (w / h))   # 잘랐을 때 남는 비율
+        if fit and keep < 0.60:                       # 40% 넘게 버려야 하면 담는다
+            s = min(tw / w, th / h)
+            sharp = im.resize((max(1, round(w * s)), max(1, round(h * s))), Image.LANCZOS)
+            canvas = _blur_bg(im, tw, th)
+            canvas.paste(sharp, ((tw - sharp.width) // 2, (th - sharp.height) // 2))
+            im, fitted = canvas, fitted + 1
+        else:
+            s = max(tw / w, th / h)
+            im = im.resize((max(tw, round(w * s)), max(th, round(h * s))), Image.LANCZOS)
+            w, h = im.size
+            im = im.crop(((w - tw) // 2, (h - th) // 2,
+                          (w - tw) // 2 + tw, (h - th) // 2 + th))
         p = work / f"{k:03d}.jpg"
         im.save(p, quality=96, subsampling=0)
         out.append(p)
-    return out, tw, th
+    return out, tw, th, fitted
 
 def build(shots, files, ow, oh, xfade, look):
     """필터 그래프를 짓는다. 컷마다 zoompan → 축소, 그 뒤 xfade 로 잇고
@@ -262,10 +286,10 @@ def build(shots, files, ow, oh, xfade, look):
     parts.append(f"[{cur}]{look},format=yuv420p[out]")
     return ";\n".join(parts), acc / FPS
 
-def render(shots, out, ow, oh, xfade, crf, dry, look):
+def render(shots, out, ow, oh, xfade, crf, dry, look, fit):
     work = Path(tempfile.mkdtemp(prefix="docvid_"))
     try:
-        files, tw, th = prepare(shots, work, ow, oh)
+        files, tw, th, fitted = prepare(shots, work, ow, oh, fit)
         graph, total = build(shots, files, ow, oh, xfade, look)
         gp = work / "graph.txt"
         gp.write_text(graph, encoding="utf-8")
@@ -276,7 +300,8 @@ def render(shots, out, ow, oh, xfade, crf, dry, look):
                 "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
                 "-pix_fmt", "yuv420p", "-r", str(FPS),
                 "-movflags", "+faststart", str(out)]
-        print(f"준비 {len(files)}장 · {tw}x{th} · 화면 {ow}x{oh} · 길이 약 {total:.1f}초")
+        note = f" · 통째로 담은 사진 {fitted}장(뒤는 흐리게)" if fitted else ""
+        print(f"준비 {len(files)}장 · {tw}x{th} · 화면 {ow}x{oh}{note} · 길이 약 {total:.1f}초")
         if dry:
             print("\n[필터 그래프]\n" + graph)
             return total
@@ -303,6 +328,9 @@ def main():
     ap.add_argument("--pick", help="쓸 사진 번호만. 예: 1,4,9,12 (1부터)")
     ap.add_argument("--highlights", help="하이라이트로 못박을 번호. 예: 3,7")
     ap.add_argument("--portrait", action="store_true", help="9:16 세로(1080x1920)")
+    ap.add_argument("--size", help="출력 크기. 예: 1280x720. 사진이 작으면 줄이는 편이 또렷하다")
+    ap.add_argument("--no-fit", action="store_true",
+                    help="비율이 안 맞는 사진도 잘라서 꽉 채운다(기본은 통째로 담고 뒤를 흐리게)")
     ap.add_argument("--xfade", type=float, default=XFADE, help="전환 길이(초)")
     ap.add_argument("--sat", type=float, default=SAT, help=f"채도 (기본 {SAT})")
     ap.add_argument("--vignette", type=float, default=VIGNETTE,
@@ -337,6 +365,8 @@ def main():
 
     plan(shots, a.seconds, a.xfade)
     ow, oh = (1080, 1920) if a.portrait else (OUT_W, OUT_H)
+    if a.size:
+        ow, oh = (int(v) for v in a.size.lower().split("x"))
 
     for i, s in enumerate(shots, 1):
         side = "왼쪽" if s.cx < 0.45 else ("오른쪽" if s.cx > 0.55 else "가운데")
@@ -346,7 +376,7 @@ def main():
               f"점수 {s.score:.2f}{'  클로즈업' if s.closeup else ''}  {s.path.name}")
 
     look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen)
-    total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look)
+    total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look, not a.no_fit)
     if not a.dry_run:
         mb = Path(a.out).stat().st_size / 1e6
         print(f"\n완성 → {a.out}  ({total:.1f}초, {mb:.1f}MB)")
