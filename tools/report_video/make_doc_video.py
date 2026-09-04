@@ -25,9 +25,11 @@ FPS        = 30
 OUT_W      = 1920
 OUT_H      = 1080
 
-PREP       = 4.0      # 원본을 화면의 몇 배로 준비할지(줌해도 안 깨지고, 팬이 매끈하게)
-SUPER      = 1.5      # 켄번즈를 이 배율로 그린 뒤 lanczos 로 줄인다(계단 방지)
-PAD        = 0.20     # 팬·줌이 돌아다닐 여백(화면 대비)
+PREP       = 3.0      # 원본을 화면의 몇 배로 준비할지(팬이 매끈하게)
+SUPER      = 2.0      # 켄번즈를 이 배율로 그린 뒤 lanczos 로 줄인다.
+                      # zoompan 안쪽 축소는 bilinear 라 배율이 크면 뭉갠다.
+                      # PREP 에 가깝게 둘수록 그 뭉갬이 줄고 마무리는 lanczos 가 맡는다.
+PAD        = 0.12     # 팬·줌이 돌아다닐 여백(화면 대비). 크면 그만큼 화소를 버린다
 
 ZOOM_LO    = 0.085    # 컷마다 8.5 ~ 11.5% 확대
 ZOOM_HI    = 0.115
@@ -50,10 +52,14 @@ SAT        = 0.90     # 채도 (1.0 = 그대로)
 CONTRAST   = 1.06
 VIGNETTE   = 12.0     # PI/이 값. 클수록 옅다 (10 진하게 ~ 18 아주 옅게)
 GRAIN      = 7        # 필름 그레인 세기 (0 이면 끈다, 4~10 권장)
+SHARPEN    = 0.45     # 마무리 선명도 (0 이면 끈다, 0.3~0.7 권장)
 
-def grade(sat=SAT, contrast=CONTRAST, vig=VIGNETTE, grain=GRAIN):
+def grade(sat=SAT, contrast=CONTRAST, vig=VIGNETTE, grain=GRAIN, sharpen=SHARPEN):
     """따뜻한 톤 한 벌. 모든 사진이 이 한 함수를 지나므로 톤이 갈리지 않는다."""
-    f = [
+    f = []
+    if sharpen:
+        f.append(f"unsharp=5:5:{sharpen:.2f}:5:5:0.0")     # 축소로 무뎌진 만큼만 되살린다
+    f += [
         f"eq=saturation={sat:.3f}:contrast={contrast:.3f}:brightness=0.005",
         "curves="
         "r='0/0 0.12/0.105 0.35/0.375 0.65/0.685 0.88/0.905 1/1':"
@@ -302,6 +308,8 @@ def main():
     ap.add_argument("--vignette", type=float, default=VIGNETTE,
                     help=f"비네트 PI/N. 클수록 옅다 (기본 {VIGNETTE:g}, 0이면 끔)")
     ap.add_argument("--grain", type=int, default=GRAIN, help=f"그레인 (기본 {GRAIN}, 0이면 끔)")
+    ap.add_argument("--sharpen", type=float, default=SHARPEN,
+                    help=f"마무리 선명도 (기본 {SHARPEN}, 0이면 끔)")
     ap.add_argument("--crf", type=int, default=19)
     ap.add_argument("--prep", type=float, default=PREP,
                     help="원본 준비 배율. 높을수록 팬이 매끈하고 느려진다(기본 4.0)")
@@ -337,7 +345,7 @@ def main():
         print(f" {mark}{i:3d}  {s.dur:4.1f}초  피사체 {side}({s.cx:.2f}) {way}  "
               f"점수 {s.score:.2f}{'  클로즈업' if s.closeup else ''}  {s.path.name}")
 
-    look = grade(a.sat, CONTRAST, a.vignette, a.grain)
+    look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen)
     total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look)
     if not a.dry_run:
         mb = Path(a.out).stat().st_size / 1e6
