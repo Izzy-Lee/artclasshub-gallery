@@ -72,6 +72,63 @@ def grade(sat=SAT, contrast=CONTRAST, vig=VIGNETTE, grain=GRAIN, sharpen=SHARPEN
         f.append(f"noise=c0s={int(grain)}:c0f=t+u")
     return ",".join(f)
 
+# ─────────────────────────────────────────────── 타이틀 겹쳐 넣기
+
+TIT_IN    = 0.9      # 어두워지며 글씨가 떠오르는 시간(초)
+TIT_HOLD  = 2.4      # 글씨가 머무는 시간(초)
+TIT_OUT   = 1.1      # 어둠과 글씨가 함께 사라지는 시간(초)
+TIT_DARK  = 0.14     # 얼마나 어두워지는가 (0~1). 살짝만 눌러 준다
+
+FONT_HUNT = [
+    "/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf",
+    "/usr/share/fonts/truetype/nanum/NanumBarunGothicBold.ttf",
+    "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",            # macOS
+    "/Library/Fonts/AppleGothic.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+]
+
+def find_font():
+    for f in FONT_HUNT:
+        if os.path.exists(f):
+            return f
+    return None
+
+def _ramp():
+    """0 → 1 → 0 사다리꼴을 부드럽게 다듬은 값. 어둠과 글씨가 이걸 같이 쓴다."""
+    end = TIT_IN + TIT_HOLD + TIT_OUT
+    return (f"st(0,clip(t/{TIT_IN:.3f},0,1));"
+            f"st(1,clip(({end:.3f}-t)/{TIT_OUT:.3f},0,1));"
+            f"st(2,min(ld(0),ld(1)));"
+            f"ld(2)*ld(2)*(3-2*ld(2))")
+
+def title_overlay(work, text, sub, oh):
+    """화면이 살짝 어두워지며 글씨가 떠올랐다가, 어둠과 글씨가 함께 사라진다.
+    별도의 카드가 아니라 첫 장면 위에 겹쳐 놓는다."""
+    f = find_font()
+    if not f:
+        print("  (한글 글꼴을 못 찾아 타이틀은 건너뜁니다)")
+        return ""
+    a = _ramp()
+    big, small = round(oh * 0.075), round(oh * 0.030)
+    t1 = work / "t1.txt"; t1.write_text(text, encoding="utf-8")
+    parts = [f"eq=brightness='{-TIT_DARK:.3f}*({a})':eval=frame"]
+    # 덜 어둡게 눌러도 글씨가 묻히지 않도록 옅은 그림자를 깐다
+    common = (f":fontfile='{f}':fontcolor=white"
+              f":shadowcolor=black@0.45:shadowx=0:shadowy=2"
+              f":x=(w-text_w)/2:alpha='{a}'")
+    if sub:
+        t2 = work / "t2.txt"; t2.write_text(sub, encoding="utf-8")
+        parts.append(f"drawtext=textfile='{t1}':fontsize={big}"
+                     f":y=(h-text_h)/2-{round(oh*0.030)}{common}")
+        parts.append(f"drawtext=textfile='{t2}':fontsize={small}"
+                     f":y=(h-text_h)/2+{round(oh*0.062)}{common}"
+                     .replace("fontcolor=white", "fontcolor=0xE8E8E8"))
+    else:
+        parts.append(f"drawtext=textfile='{t1}':fontsize={big}"
+                     f":y=(h-text_h)/2{common}")
+    return "," + ",".join(parts)
+
 # ─────────────────────────────────────────────── 구도 읽기
 
 def _blur(a, r):
@@ -258,7 +315,7 @@ def prepare(shots, work, ow, oh, fit=True):
         out.append(p)
     return out, tw, th, fitted
 
-def build(shots, files, ow, oh, xfade, look):
+def build(shots, files, ow, oh, xfade, look, title=""):
     """필터 그래프를 짓는다. 컷마다 zoompan → 축소, 그 뒤 xfade 로 잇고
     색보정은 맨 끝에 딱 한 번만 — 그래야 사진마다 톤이 갈리지 않는다."""
     xf = round(xfade * FPS)
@@ -283,14 +340,15 @@ def build(shots, files, ow, oh, xfade, look):
         parts.append(f"[{cur}][v{i}]xfade=transition=fade:duration={xfade:.4f}"
                      f":offset={off:.4f}[{nxt}]")
         cur, acc = nxt, acc + frames[i] - xf
-    parts.append(f"[{cur}]{look},format=yuv420p[out]")
+    parts.append(f"[{cur}]{look}{title},format=yuv420p[out]")
     return ";\n".join(parts), acc / FPS
 
-def render(shots, out, ow, oh, xfade, crf, dry, look, fit):
+def render(shots, out, ow, oh, xfade, crf, dry, look, fit, title, sub):
     work = Path(tempfile.mkdtemp(prefix="docvid_"))
     try:
         files, tw, th, fitted = prepare(shots, work, ow, oh, fit)
-        graph, total = build(shots, files, ow, oh, xfade, look)
+        tit = title_overlay(work, title, sub, oh) if title else ""
+        graph, total = build(shots, files, ow, oh, xfade, look, tit)
         gp = work / "graph.txt"
         gp.write_text(graph, encoding="utf-8")
         cmd = ["ffmpeg", "-y", "-loglevel", "error"]
@@ -328,6 +386,8 @@ def main():
     ap.add_argument("--pick", help="쓸 사진 번호만. 예: 1,4,9,12 (1부터)")
     ap.add_argument("--highlights", help="하이라이트로 못박을 번호. 예: 3,7")
     ap.add_argument("--portrait", action="store_true", help="9:16 세로(1080x1920)")
+    ap.add_argument("--title", help="첫 장면 위에 띄울 제목(기관 이름 등). 없으면 안 넣는다")
+    ap.add_argument("--subtitle", default="", help="제목 아래 작은 글씨")
     ap.add_argument("--size", help="출력 크기. 예: 1280x720. 사진이 작으면 줄이는 편이 또렷하다")
     ap.add_argument("--no-fit", action="store_true",
                     help="비율이 안 맞는 사진도 잘라서 꽉 채운다(기본은 통째로 담고 뒤를 흐리게)")
@@ -376,7 +436,8 @@ def main():
               f"점수 {s.score:.2f}{'  클로즈업' if s.closeup else ''}  {s.path.name}")
 
     look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen)
-    total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look, not a.no_fit)
+    total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look,
+                   not a.no_fit, a.title, a.subtitle)
     if not a.dry_run:
         mb = Path(a.out).stat().st_size / 1e6
         print(f"\n완성 → {a.out}  ({total:.1f}초, {mb:.1f}MB)")
