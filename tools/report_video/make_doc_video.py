@@ -54,18 +54,29 @@ VIGNETTE   = 12.0     # PI/이 값. 클수록 옅다 (10 진하게 ~ 18 아주 �
 GRAIN      = 7        # 필름 그레인 세기 (0 이면 끈다, 4~10 권장)
 SHARPEN    = 0.45     # 마무리 선명도 (0 이면 끈다, 0.3~0.7 권장)
 
-def grade(sat=SAT, contrast=CONTRAST, vig=VIGNETTE, grain=GRAIN, sharpen=SHARPEN):
+# 톤 곡선의 마디. bright 를 올리면 어두운 쪽과 중간 톤을 들어 올린다.
+CURVE = {
+    "r": [(0, 0.000), (0.12, 0.105), (0.35, 0.375), (0.65, 0.685), (0.88, 0.905), (1, 1.000)],
+    "g": [(0, 0.000), (0.12, 0.100), (0.35, 0.352), (0.65, 0.660), (0.88, 0.888), (1, 0.996)],
+    "b": [(0, 0.004), (0.12, 0.092), (0.35, 0.332), (0.65, 0.628), (0.88, 0.855), (1, 0.972)],
+}
+
+def _lift(y, bright):
+    """중간 톤을 가장 많이, 어두운 쪽을 조금 들어 올린다. 흰 쪽은 건드리지 않는다."""
+    return min(1.0, y + bright * (0.055 * math.sin(math.pi * y) + 0.030 * (1 - y) ** 3))
+
+def grade(sat=SAT, contrast=CONTRAST, vig=VIGNETTE, grain=GRAIN,
+          sharpen=SHARPEN, bright=0.0):
     """따뜻한 톤 한 벌. 모든 사진이 이 한 함수를 지나므로 톤이 갈리지 않는다."""
     f = []
     if sharpen:
         f.append(f"unsharp=5:5:{sharpen:.2f}:5:5:0.0")     # 축소로 무뎌진 만큼만 되살린다
-    f += [
-        f"eq=saturation={sat:.3f}:contrast={contrast:.3f}:brightness=0.005",
-        "curves="
-        "r='0/0 0.12/0.105 0.35/0.375 0.65/0.685 0.88/0.905 1/1':"
-        "g='0/0 0.12/0.100 0.35/0.352 0.65/0.660 0.88/0.888 1/0.996':"
-        "b='0/0.004 0.12/0.092 0.35/0.332 0.65/0.628 0.88/0.855 1/0.972'",
-    ]
+    f.append(f"eq=saturation={sat:.3f}:contrast={contrast - 0.045 * bright:.3f}"
+             f":brightness={0.005 + 0.018 * bright:.4f}")
+    cur = ":".join(
+        f"{ch}='" + " ".join(f"{x:g}/{_lift(y, bright):.4f}" for x, y in pts) + "'"
+        for ch, pts in CURVE.items())
+    f.append("curves=" + cur)
     if vig:
         f.append(f"vignette=PI/{vig:g}:mode=forward")
     if grain:
@@ -94,10 +105,13 @@ def find_font():
             return f
     return None
 
-def _ramp():
-    """0 → 1 → 0 사다리꼴을 부드럽게 다듬은 값. 어둠과 글씨가 이걸 같이 쓴다."""
+def _ramp(fade_in):
+    """0/1 에서 시작해 끝에서 함께 사라지는 값.
+    어둠은 처음부터 깔리고(fade_in=False), 글씨만 떠오른다(fade_in=True).
+    사라지는 구간은 둘이 같아서 어둠과 글씨가 같이 걷힌다."""
     end = TIT_IN + TIT_HOLD + TIT_OUT
-    return (f"st(0,clip(t/{TIT_IN:.3f},0,1));"
+    rise = f"clip(t/{TIT_IN:.3f},0,1)" if fade_in else "1"
+    return (f"st(0,{rise});"
             f"st(1,clip(({end:.3f}-t)/{TIT_OUT:.3f},0,1));"
             f"st(2,min(ld(0),ld(1)));"
             f"ld(2)*ld(2)*(3-2*ld(2))")
@@ -109,14 +123,14 @@ def title_overlay(work, text, sub, oh):
     if not f:
         print("  (한글 글꼴을 못 찾아 타이틀은 건너뜁니다)")
         return ""
-    a = _ramp()
+    dark, txt = _ramp(False), _ramp(True)
     big, small = round(oh * 0.075), round(oh * 0.030)
     t1 = work / "t1.txt"; t1.write_text(text, encoding="utf-8")
-    parts = [f"eq=brightness='{-TIT_DARK:.3f}*({a})':eval=frame"]
+    parts = [f"eq=brightness='{-TIT_DARK:.3f}*({dark})':eval=frame"]
     # 덜 어둡게 눌러도 글씨가 묻히지 않도록 옅은 그림자를 깐다
     common = (f":fontfile='{f}':fontcolor=white"
               f":shadowcolor=black@0.45:shadowx=0:shadowy=2"
-              f":x=(w-text_w)/2:alpha='{a}'")
+              f":x=(w-text_w)/2:alpha='{txt}'")
     if sub:
         t2 = work / "t2.txt"; t2.write_text(sub, encoding="utf-8")
         parts.append(f"drawtext=textfile='{t1}':fontsize={big}"
@@ -212,7 +226,7 @@ def _fit(dur, lo, hi, total):
             d[i] = min(hi, max(lo, d[i] + gap / len(free)))
     return d
 
-def plan(shots, seconds, xfade):
+def plan(shots, seconds, xfade, first_hold=0.0):
     """하이라이트 순위로 컷 길이를 나눈다. 무작위가 아니라 점수 순위로 정한다."""
     n = len(shots)
     order = sorted(range(n), key=lambda i: -shots[i].score)
@@ -231,6 +245,9 @@ def plan(shots, seconds, xfade):
 
     for sh, d in zip(shots, dur):
         sh.dur = d
+    if first_hold:                       # 첫 컷은 타이틀이 지나갈 만큼 오래 둔다
+        shots[0].dur = first_hold
+        dur[0] = first_hold
     return dur
 
 # ─────────────────────────────────────────────── 켄번즈 식(모든 컷 공통)
@@ -386,6 +403,10 @@ def main():
     ap.add_argument("--pick", help="쓸 사진 번호만. 예: 1,4,9,12 (1부터)")
     ap.add_argument("--highlights", help="하이라이트로 못박을 번호. 예: 3,7")
     ap.add_argument("--portrait", action="store_true", help="9:16 세로(1080x1920)")
+    ap.add_argument("--first-hold", type=float, default=0.0,
+                    help="첫 컷을 이만큼(초) 머물게 한다. 타이틀 나올 시간을 준다")
+    ap.add_argument("--bright", type=float, default=0.0,
+                    help="0~1. 올릴수록 어두운 쪽·중간 톤이 밝아진다")
     ap.add_argument("--title", help="첫 장면 위에 띄울 제목(기관 이름 등). 없으면 안 넣는다")
     ap.add_argument("--subtitle", default="", help="제목 아래 작은 글씨")
     ap.add_argument("--size", help="출력 크기. 예: 1280x720. 사진이 작으면 줄이는 편이 또렷하다")
@@ -423,7 +444,7 @@ def main():
             if x and 0 < int(x) <= len(shots):
                 shots[int(x) - 1].score = top
 
-    plan(shots, a.seconds, a.xfade)
+    plan(shots, a.seconds, a.xfade, a.first_hold)
     ow, oh = (1080, 1920) if a.portrait else (OUT_W, OUT_H)
     if a.size:
         ow, oh = (int(v) for v in a.size.lower().split("x"))
@@ -435,7 +456,7 @@ def main():
         print(f" {mark}{i:3d}  {s.dur:4.1f}초  피사체 {side}({s.cx:.2f}) {way}  "
               f"점수 {s.score:.2f}{'  클로즈업' if s.closeup else ''}  {s.path.name}")
 
-    look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen)
+    look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen, a.bright)
     total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look,
                    not a.no_fit, a.title, a.subtitle)
     if not a.dry_run:
