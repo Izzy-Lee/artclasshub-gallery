@@ -84,12 +84,42 @@ def window_box(frame_rgba):
         sys.exit("프레임에 뚫린 자리가 없습니다. 구름 창이 투명한지 확인해 주세요.")
     return xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
 
+FONT_HUNT = [
+    "/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf",
+    "/usr/share/fonts/truetype/nanum/NanumBarunGothicBold.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+]
+
+def find_font():
+    for f in FONT_HUNT:
+        if os.path.exists(f): return f
+    return None
+
+def draw_caption(work, top, bottom, W, H, font_path):
+    """글씨 그림을 못 받았을 때 대신 그린다. 디자인의 자리를 그대로 따른다."""
+    from PIL import ImageDraw, ImageFont
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    for text, size, y in ((top, round(H * 0.052), round(H * 0.25)),
+                          (bottom, round(H * 0.034), round(H * 0.76))):
+        if not text: continue
+        f = ImageFont.truetype(font_path, size)
+        w = d.textbbox((0, 0), text, font=f)[2]
+        d.text(((W - w) / 2, y), text, font=f, fill=(20, 20, 22, 255))
+    p = work / "cap.png"; im.save(p)
+    return p
+
 def main():
     ap = argparse.ArgumentParser(description="영상에 손그림 프레임·타이틀 씌우기")
     ap.add_argument("--video", required=True, help="바탕이 될 영상")
     ap.add_argument("--frame", required=True, help="프레임 PNG (구름 창이 뚫린)")
     ap.add_argument("--title", help="섬 이름 손글씨 PNG")
     ap.add_argument("--caption", help="사업명·기관명 글씨 PNG")
+    ap.add_argument("--cap-top", help="위 글씨(직접 그릴 때)")
+    ap.add_argument("--cap-bottom", help="아래 글씨(직접 그릴 때)")
+    ap.add_argument("--size", help="출력 크기. 예: 1280x720 (기본은 프레임 크기)")
+    ap.add_argument("--scrim", type=float, default=0.66,
+                    help="도입부에 사진을 덮는 흰 막의 진하기 (0이면 없음)")
     ap.add_argument("--out", default="완성.mp4")
     ap.add_argument("--audio", help="붙일 소리 파일")
     ap.add_argument("--crf", type=int, default=19)
@@ -98,37 +128,54 @@ def main():
     work = Path(tempfile.mkdtemp(prefix="frame_"))
     try:
         fr = to_rgba(a.frame, keyed_from_edge=True)
-        W, H = fr.size
+        W, H = (int(v) for v in a.size.lower().split("x")) if a.size else fr.size
+        if fr.size != (W, H):
+            fr = fr.resize((W, H), Image.LANCZOS)
         fp = work / "frame.png"; fr.save(fp)
         x0, y0, x1, y1 = window_box(fr)
-        print(f"프레임 {W}x{H} · 창 {x1-x0}x{y1-y0} (x {x0}~{x1}, y {y0}~{y1})")
+        print(f"화면 {W}x{H} · 구름 창 {x1-x0}x{y1-y0}")
 
-        # 창을 덮도록 영상을 키워 자리 잡는다
+        end = TIT_IN + TIT_HOLD + TIT_OUT
+        fades = f"fade=t=in:st=0:d={TIT_IN}:alpha=1,fade=t=out:st={TIT_IN+TIT_HOLD}:d={TIT_OUT}:alpha=1"
+
+        ins = ["-i", a.video]
         g = [f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
-             f"crop={W}:{H},setsar=1[base]",
-             f"[base][1:v]overlay=0:0[withframe]"]
-        cur, n = "withframe", 2
-        ins = ["-i", a.video, "-i", str(fp)]
+             f"crop={W}:{H},setsar=1,format=rgba[base]"]
+        cur, n = "base", 1
+
+        if a.scrim > 0:                       # 도입부에 사진을 눅여 글씨가 읽히게
+            g.append(f"color=c=white@{a.scrim:.3f}:s={W}x{H}:d={end:.2f},"
+                     f"format=rgba,{fades}[scrim]")
+            g.append(f"[{cur}][scrim]overlay=0:0:shortest=0:enable='lte(t,{end:.2f})'[s0]")
+            cur = "s0"
+
         for src, key in ((a.title, "title"), (a.caption, "caption")):
             if not src: continue
-            p = work / f"{key}.png"; to_rgba(src, keyed_from_edge=False).save(p)
-            ins += ["-i", str(p)]
-            g.append(f"[{n}:v]format=rgba,colorchannelmixer=aa=1[{key}]")
-            g.append(f"[{cur}][{key}]overlay=0:0:enable='lte(t,{TIT_IN+TIT_HOLD+TIT_OUT:.2f})'"
-                     f"[o{n}]")
-            # 알파를 시간에 따라 흔든다
-            g[-2] = (f"[{n}:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)'"
-                     f":a='alpha(X,Y)*({_ramp()})'[{key}]")
+            im = to_rgba(src, keyed_from_edge=False)
+            if im.size != (W, H): im = im.resize((W, H), Image.LANCZOS)
+            q = work / f"{key}.png"; im.save(q)
+            ins += ["-loop", "1", "-t", f"{end:.2f}", "-i", str(q)]
+            g.append(f"[{n}:v]format=rgba,{fades}[{key}]")
+            g.append(f"[{cur}][{key}]overlay=0:0:shortest=0:enable='lte(t,{end:.2f})'[o{n}]")
             cur, n = f"o{n}", n + 1
-        g.append(f"[{cur}]format=yuv420p[v]")
+
+        if a.cap_top or a.cap_bottom:          # 글씨 그림이 없으면 직접 그린다
+            f = find_font()
+            if f:
+                cap = draw_caption(work, a.cap_top, a.cap_bottom, W, H, f)
+                ins += ["-loop", "1", "-t", f"{end:.2f}", "-i", str(cap)]
+                g.append(f"[{n}:v]format=rgba,{fades}[cap]")
+                g.append(f"[{cur}][cap]overlay=0:0:shortest=0:enable='lte(t,{end:.2f})'[o{n}]")
+                cur, n = f"o{n}", n + 1
+
+        ins += ["-loop", "1", "-i", str(fp)]   # 프레임은 맨 위에 계속
+        g.append(f"[{cur}][{n}:v]overlay=0:0:shortest=1,format=yuv420p[v]")
         gp = work / "g.txt"; gp.write_text(";\n".join(g), encoding="utf-8")
 
         cmd = ["ffmpeg", "-y", "-loglevel", "error"] + ins
-        if a.audio:
-            cmd += ["-i", a.audio]
+        if a.audio: cmd += ["-i", a.audio]
         cmd += ["-filter_complex_script", str(gp), "-map", "[v]"]
-        if a.audio:
-            cmd += ["-map", f"{n}:a", "-c:a", "aac", "-b:a", "192k", "-shortest"]
+        if a.audio: cmd += ["-map", f"{n+1}:a", "-c:a", "aac", "-b:a", "192k", "-shortest"]
         cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", str(a.crf),
                 "-pix_fmt", "yuv420p", "-r", str(FPS),
                 "-movflags", "+faststart", a.out]
