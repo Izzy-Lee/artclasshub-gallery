@@ -117,16 +117,19 @@ def _ramp(fade_in):
             f"ld(2)*ld(2)*(3-2*ld(2))")
 
 def title_overlay(work, text, sub, oh):
-    """화면이 살짝 어두워지며 글씨가 떠올랐다가, 어둠과 글씨가 함께 사라진다.
-    별도의 카드가 아니라 첫 장면 위에 겹쳐 놓는다."""
+    """첫 장면 위에 겹치는 도입부. 처음부터 살짝 어둡다가 걷힌다.
+    text 가 있으면 글씨가 떠올랐다 어둠과 함께 사라지고, 없으면 어둠만 쓴다."""
+    dark, txt = _ramp(False), _ramp(True)
+    scrim = f"eq=brightness='{-TIT_DARK:.3f}*({dark})':eval=frame"
+    if not text:
+        return "," + scrim
     f = find_font()
     if not f:
-        print("  (한글 글꼴을 못 찾아 타이틀은 건너뜁니다)")
-        return ""
-    dark, txt = _ramp(False), _ramp(True)
+        print("  (한글 글꼴을 못 찾아 글씨는 건너뜁니다 — 어둠만 넣습니다)")
+        return "," + scrim
     big, small = round(oh * 0.075), round(oh * 0.030)
     t1 = work / "t1.txt"; t1.write_text(text, encoding="utf-8")
-    parts = [f"eq=brightness='{-TIT_DARK:.3f}*({dark})':eval=frame"]
+    parts = [scrim]
     # 덜 어둡게 눌러도 글씨가 묻히지 않도록 옅은 그림자를 깐다
     common = (f":fontfile='{f}':fontcolor=white"
               f":shadowcolor=black@0.45:shadowx=0:shadowy=2"
@@ -360,11 +363,11 @@ def build(shots, files, ow, oh, xfade, look, title=""):
     parts.append(f"[{cur}]{look}{title},format=yuv420p[out]")
     return ";\n".join(parts), acc / FPS
 
-def render(shots, out, ow, oh, xfade, crf, dry, look, fit, title, sub):
+def render(shots, out, ow, oh, xfade, crf, dry, look, fit, title, sub, open_dark):
     work = Path(tempfile.mkdtemp(prefix="docvid_"))
     try:
         files, tw, th, fitted = prepare(shots, work, ow, oh, fit)
-        tit = title_overlay(work, title, sub, oh) if title else ""
+        tit = title_overlay(work, title, sub, oh) if (title or open_dark) else ""
         graph, total = build(shots, files, ow, oh, xfade, look, tit)
         gp = work / "graph.txt"
         gp.write_text(graph, encoding="utf-8")
@@ -407,6 +410,8 @@ def main():
                     help="첫 컷을 이만큼(초) 머물게 한다. 타이틀 나올 시간을 준다")
     ap.add_argument("--bright", type=float, default=0.0,
                     help="0~1. 올릴수록 어두운 쪽·중간 톤이 밝아진다")
+    ap.add_argument("--open-dark", action="store_true",
+                    help="글씨 없이, 처음부터 살짝 어둡다가 걷히는 도입부만 넣는다")
     ap.add_argument("--title", help="첫 장면 위에 띄울 제목(기관 이름 등). 없으면 안 넣는다")
     ap.add_argument("--subtitle", default="", help="제목 아래 작은 글씨")
     ap.add_argument("--size", help="출력 크기. 예: 1280x720. 사진이 작으면 줄이는 편이 또렷하다")
@@ -458,7 +463,7 @@ def main():
 
     look = grade(a.sat, CONTRAST, a.vignette, a.grain, a.sharpen, a.bright)
     total = render(shots, a.out, ow, oh, a.xfade, a.crf, a.dry_run, look,
-                   not a.no_fit, a.title, a.subtitle)
+                   not a.no_fit, a.title or "", a.subtitle, a.open_dark)
     if not a.dry_run:
         mb = Path(a.out).stat().st_size / 1e6
         print(f"\n완성 → {a.out}  ({total:.1f}초, {mb:.1f}MB)")
