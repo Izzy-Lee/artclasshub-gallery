@@ -19,7 +19,9 @@ import numpy as np
 from PIL import Image
 
 FPS = 30
-TIT_IN, TIT_HOLD, TIT_OUT = 0.9, 2.4, 1.1     # 떠오름 · 머묾 · 걷힘 (초)
+TIT_HOLD, TIT_OUT = 3.3, 1.1     # 다 뜬 채로 머묾 · 걷힘 (초)
+WOB_HOLD, WOB_AMP, WOB_ROT = 4, 1.8, 0.35   # 손그림 흔들림
+                                 # 원본을 재보니 초당 7번쯤, 1~2px
 
 def _ramp(fade_in=True):
     """도입부용 0→1→0 곡선. 타이틀과 자막이 같은 식을 써서 같이 걷힌다."""
@@ -95,6 +97,26 @@ def find_font():
         if os.path.exists(f): return f
     return None
 
+def wobble_seq(im, work, key, frames,
+               hold=WOB_HOLD, amp=WOB_AMP, rot=WOB_ROT):
+    """손으로 다시 그린 것처럼 몇 프레임마다 조금씩 어긋나게 한다.
+    원본 영상을 재보니 초당 7번쯤 1~2px 씩 움직인다 — 그 결에 맞춘다."""
+    rng = np.random.default_rng(11)
+    d = work / key; d.mkdir()
+    W, H = im.size
+    last = None
+    for i in range(frames):
+        f = d / f"{i:04d}.png"
+        if i % hold == 0:                     # 새 포즈를 그린다
+            dx, dy = rng.uniform(-amp, amp, 2)
+            ang = rng.uniform(-rot, rot)
+            im.rotate(ang, resample=Image.BICUBIC, center=(W / 2, H / 2),
+                      translate=(float(dx), float(dy))).save(f)
+            last = f
+        else:                                 # 같은 포즈는 그대로 이어 쓴다
+            shutil.copy(last, f)
+    return d / "%04d.png"
+
 def draw_caption(work, top, bottom, W, H, font_path):
     """글씨 그림을 못 받았을 때 대신 그린다. 디자인의 자리를 그대로 따른다."""
     from PIL import ImageDraw, ImageFont
@@ -121,6 +143,8 @@ def main():
     ap.add_argument("--scrim", type=float, default=0.66,
                     help="도입부에 사진을 덮는 흰 막의 진하기 (0이면 없음)")
     ap.add_argument("--out", default="완성.mp4")
+    ap.add_argument("--no-wobble", action="store_true",
+                    help="섬 이름 글씨를 흔들지 않는다")
     ap.add_argument("--audio", help="붙일 소리 파일")
     ap.add_argument("--crf", type=int, default=19)
     a = ap.parse_args()
@@ -135,8 +159,9 @@ def main():
         x0, y0, x1, y1 = window_box(fr)
         print(f"화면 {W}x{H} · 구름 창 {x1-x0}x{y1-y0}")
 
-        end = TIT_IN + TIT_HOLD + TIT_OUT
-        fades = f"fade=t=in:st=0:d={TIT_IN}:alpha=1,fade=t=out:st={TIT_IN+TIT_HOLD}:d={TIT_OUT}:alpha=1"
+        end = TIT_HOLD + TIT_OUT
+        fades = f"fade=t=out:st={TIT_HOLD}:d={TIT_OUT}:alpha=1"
+        nfr = int(round(end * FPS)) + 2
 
         ins = ["-i", a.video]
         g = [f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
@@ -153,8 +178,12 @@ def main():
             if not src: continue
             im = to_rgba(src, keyed_from_edge=False)
             if im.size != (W, H): im = im.resize((W, H), Image.LANCZOS)
-            q = work / f"{key}.png"; im.save(q)
-            ins += ["-loop", "1", "-t", f"{end:.2f}", "-i", str(q)]
+            if key == "title" and not a.no_wobble:
+                seq = wobble_seq(im, work, "wob", nfr)
+                ins += ["-framerate", str(FPS), "-i", str(seq)]
+            else:
+                q = work / f"{key}.png"; im.save(q)
+                ins += ["-loop", "1", "-t", f"{end:.2f}", "-i", str(q)]
             g.append(f"[{n}:v]format=rgba,{fades}[{key}]")
             g.append(f"[{cur}][{key}]overlay=0:0:shortest=0:enable='lte(t,{end:.2f})'[o{n}]")
             cur, n = f"o{n}", n + 1
