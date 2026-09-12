@@ -16,6 +16,7 @@
   // ---------- 상태 ----------
   let allItems = [];       // 전체 작품
   let isAdmin = false;
+  let pendingUpload = null;      // 관리자가 직접 올리는 작품(학생·반)을 파일 고를 때까지 들고 있는다
   let usingSample = false;
   let db = null;
   // 학교별 비밀번호 { 학교명: 비번 } — 걸린 학교만 들어있음
@@ -1454,6 +1455,94 @@
       r.readAsDataURL(blob);
     });
   }
+
+  // =========================================================
+  //  작품 직접 올리기 (관리자)
+  //    아이패드 앱에서 제출이 막혔을 때 선생님이 휴대폰·PC 로 바로 올리는 길.
+  //    앱과 같은 자리(반/작품_제출/학생)에 저장하고 같은 스키마로 기록하므로
+  //    갤러리·그림책 줄에 앱으로 올린 작품과 똑같이 나타난다.
+  // =========================================================
+
+  /// 지금 보고 있는 반(학교) — 작품을 어디로 올릴지 정한다. 홈에서는 알 수 없다.
+  function currentUploadTarget() {
+    if (isLocked && lockClass) return { code: lockClass, school: lockedTitle() };
+    const name = (isLocked && lockSchool) ? lockSchool : currentSchool;
+    if (!name) return null;
+    const one = allItems.find((a) => (a.school || "") === name);
+    return { code: (one && one.classCode) || "", school: name };
+  }
+
+  $("addWorkBtn").addEventListener("click", () => {
+    if (!CLASS_API) { alert("업로드 주소(classApi)가 설정되어 있지 않아요."); return; }
+    if (usingSample || !db) { alert("샘플 모드에서는 작품을 올릴 수 없어요."); return; }
+    const target = currentUploadTarget();
+    if (!target) { alert("먼저 반(학교)을 연 다음에 올려 주세요."); return; }
+
+    const student = (prompt(target.school + " — 누구의 작품인가요? (학생 이름)") || "").trim();
+    if (!student) return;
+
+    pendingUpload = { target: target, student: student };
+    $("addWorkFile").value = "";      // 같은 파일을 다시 골라도 change 가 뜨도록
+    $("addWorkFile").click();
+  });
+
+  $("addWorkFile").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    const job = pendingUpload;
+    pendingUpload = null;
+    if (!file || !job) return;
+
+    const btn = $("addWorkBtn");
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "⏳ 올리는 중…";
+    try {
+      const small = await shrinkImage(file, 2000);
+      const blob = small || file;
+      const ext = small ? "jpg" : (extOf(file.name) || "jpg");
+      const mime = small ? "image/jpeg" : (file.type || "image/jpeg");
+      const safe = (v) => String(v).replace(/[\\/:*?"<>|]/g, "_");
+      const n = new Date(), pad = (v) => String(v).padStart(2, "0");
+      const stamp = `${n.getFullYear()}${pad(n.getMonth() + 1)}${pad(n.getDate())}-` +
+                    `${pad(n.getHours())}${pad(n.getMinutes())}${pad(n.getSeconds())}`;
+      const fileName = `${safe(job.target.code || job.target.school)}_${safe(job.student)}_${stamp}.${ext}`;
+      const dataBase64 = await toBase64(blob);
+
+      const res = await fetch(CLASS_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },   // 프리플라이트 없이(GAS 단순요청)
+        body: JSON.stringify({
+          action: "upload", secret: CFG.classSecret || "",
+          folderPath: [job.target.school || job.target.code, "작품_제출", job.student],
+          fileName: fileName, mimeType: mime, dataBase64: dataBase64
+        })
+      });
+      const d = await res.json();
+      if (!d || !d.ok || !d.fileId) throw new Error((d && d.error) || "업로드 실패");
+
+      // 앱(ArtworkSubmitViewModel)이 쓰는 것과 같은 칸 이름으로 기록한다.
+      await db.collection(COLLECTION).add({
+        student_nickname: job.student,
+        class_code: job.target.code || "",
+        school_name: job.target.school || "",
+        type: "image",
+        file_type: "image",
+        file_extension: ext,
+        file_name: fileName,
+        file_size: blob.size || 0,
+        google_drive_file_id: d.fileId,
+        google_drive_link: d.link || "",
+        thumbnail_url: d.thumbnailUrl || "",
+        download_url: d.thumbnailUrl || d.link || "",
+        uploaded_by: "gallery-admin",     // 앱이 아니라 갤러리에서 올린 작품
+        created_at: new Date()
+      });
+      alert(job.student + " 작품을 올렸어요 🎉");
+    } catch (err) {
+      alert("작품을 올리지 못했어요: " + (err && err.message ? err.message : err));
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
 
   $("replaceBtn").addEventListener("click", () => {
     if (!currentItem) return;

@@ -6,7 +6,7 @@
   <title>Artable 미술 갤러리</title>
   <meta name="description" content="Artable 미술 수업 학생 작품 갤러리" />
   <link rel="preconnect" href="https://www.gstatic.com" />
-  <link rel="stylesheet" href="style.css?v=0c65d52" />
+  <link rel="stylesheet" href="style.css?v=5ba8729" />
 </head>
 <body>
 
@@ -28,8 +28,11 @@
   <div id="adminBanner" class="admin-banner" hidden>
     관리자 모드 — 카드에서 <b>숨김/삭제</b>를 사용할 수 있어요.
     반 비밀번호는 스프레드시트 <b>“클래스”</b> 탭의 <b>비번</b> 칸에서 정해요.
+    <button id="addWorkBtn" class="link-btn">📤 작품 올리기</button>
     <button id="adminLogout" class="link-btn">종료</button>
   </div>
+  <!-- 작품 직접 올리기(관리자)용 숨은 파일 선택 -->
+  <input id="addWorkFile" type="file" accept="image/*" hidden />
 
   <!-- 컨트롤 바 -->
   <section class="controls">
@@ -135,8 +138,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <!-- 앱 스크립트 -->
-  <script src="config.js?v=0c65d52"></script>
-  <script src="script.js?v=0c65d52"></script>
-  <script src="home-rails.js?v=0c65d52"></script>
+  <script src="config.js?v=5ba8729"></script>
+  <script src="script.js?v=5ba8729"></script>
+  <script src="home-rails.js?v=5ba8729"></script>
 </body>
 </html>
