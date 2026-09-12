@@ -165,9 +165,32 @@
   //  클래스(반) 등록부 — 스프레드시트 "클래스" 탭
   //    반 이름 / 반마다 다른 비밀번호 / 사진 폴더 이름을 여기 한 장에서 관리한다.
   // =========================================================
+  /// 웹앱(Apps Script) 응답을 기다리다 화면이 멈추지 않게 하는 fetch.
+  ///
+  /// 웹앱이 느리거나 하루 한도에 걸리면 응답이 영영 오지 않는 일이 있는데,
+  /// 그때 fetch는 실패하지도 않고 계속 매달려 있어서 갤러리가
+  /// '작품을 불러오는 중이에요…'에 갇혀 버렸다. 정해진 시간이 지나면
+  /// 실패로 처리해 아래 .catch 로 넘긴다(= 시트 없이 그냥 연다).
+  function fetchSoon(url, options, ms) {
+    const wait = ms || 8000;
+    if (typeof AbortController === "function") {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), wait);
+      const opts = Object.assign({}, options || {}, { signal: ac.signal });
+      return fetch(url, opts).then(
+        (r) => { clearTimeout(timer); return r; },
+        (e) => { clearTimeout(timer); throw e; }
+      );
+    }
+    return Promise.race([
+      fetch(url, options || {}),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), wait))
+    ]);
+  }
+
   function loadClassRegistry() {
     if (!CLASS_API) { classRegistryLoaded = true; return Promise.resolve(); }
-    return fetch(CLASS_API + "?classes=1")
+    return fetchSoon(CLASS_API + "?classes=1", null, 12000)
       .then((r) => r.json())
       .then((d) => {
         if (!d || !d.ok) return;
@@ -938,7 +961,7 @@
   /// "분류" 탭에서 목록을 읽어 온다(모든 반 공용).
   function loadCategories() {
     if (!CLASS_API) { loadLocalCategories(); return Promise.resolve(); }
-    return fetch(CLASS_API + "?categories=1")
+    return fetchSoon(CLASS_API + "?categories=1")
       .then((r) => r.json())
       .then((d) => {
         if (!d || !d.ok) return;
